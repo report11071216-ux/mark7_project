@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { createComment, deleteComment } from "@/app/actions/post";
 import { timeAgo } from "@/lib/utils/time";
 
@@ -29,12 +30,10 @@ export default function CommentSection({
 }: Props) {
   const router = useRouter();
   const [content, setContent] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     const formData = new FormData();
@@ -43,8 +42,9 @@ export default function CommentSection({
 
     const result = await createComment(formData);
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else {
+      toast.success("댓글이 작성되었습니다!");
       setContent("");
       router.refresh();
     }
@@ -53,8 +53,13 @@ export default function CommentSection({
 
   const handleDelete = async (commentId: string) => {
     if (!confirm("정말 삭제할까요?")) return;
-    await deleteComment(commentId, postId);
-    router.refresh();
+    const result = await deleteComment(commentId, postId);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("댓글이 삭제되었습니다");
+      router.refresh();
+    }
   };
 
   return (
@@ -63,7 +68,6 @@ export default function CommentSection({
         💬 댓글 ({comments.length})
       </h3>
 
-      {/* 댓글 작성 */}
       {currentUserId ? (
         <form onSubmit={handleSubmit} className="mb-6 space-y-2">
           <textarea
@@ -75,9 +79,6 @@ export default function CommentSection({
             placeholder="댓글을 입력하세요..."
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -94,7 +95,6 @@ export default function CommentSection({
         </p>
       )}
 
-      {/* 댓글 목록 */}
       <div className="space-y-4">
         {comments.length === 0 ? (
           <p className="py-6 text-center text-sm text-gray-500">
