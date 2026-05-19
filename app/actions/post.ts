@@ -2,9 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
-export async function createPost(formData: FormData) {
+export type ActionResult = {
+  success?: boolean;
+  error?: string;
+  postId?: string;
+};
+
+export async function createPost(formData: FormData): Promise<ActionResult> {
   const supabase = createClient();
   const {
     data: { user },
@@ -17,6 +22,7 @@ export async function createPost(formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
   const content = (formData.get("content") as string)?.trim();
   const guildId = formData.get("guild_id") as string | null;
+  const category = (formData.get("category") as string) || "free";
 
   if (!title || title.length < 2) {
     return { error: "제목은 2글자 이상이어야 합니다." };
@@ -35,6 +41,7 @@ export async function createPost(formData: FormData) {
       title,
       content,
       guild_id: guildId || null,
+      category: guildId ? "free" : category,
     })
     .select()
     .single();
@@ -47,10 +54,11 @@ export async function createPost(formData: FormData) {
   if (guildId) {
     revalidatePath(`/g/`);
   }
-  redirect(`/posts/${post.id}`);
+
+  return { success: true, postId: post.id };
 }
 
-export async function createComment(formData: FormData) {
+export async function createComment(formData: FormData): Promise<ActionResult> {
   const supabase = createClient();
   const {
     data: { user },
@@ -84,7 +92,7 @@ export async function createComment(formData: FormData) {
   return { success: true };
 }
 
-export async function deletePost(postId: string) {
+export async function deletePost(postId: string): Promise<ActionResult> {
   const supabase = createClient();
   const {
     data: { user },
@@ -103,10 +111,10 @@ export async function deletePost(postId: string) {
   }
 
   revalidatePath("/");
-  redirect("/");
+  return { success: true };
 }
 
-export async function deleteComment(commentId: string, postId: string) {
+export async function deleteComment(commentId: string, postId: string): Promise<ActionResult> {
   const supabase = createClient();
   const {
     data: { user },
@@ -114,13 +122,18 @@ export async function deleteComment(commentId: string, postId: string) {
 
   if (!user) return { error: "로그인이 필요합니다." };
 
-  await supabase
+  const { error } = await supabase
     .from("comments")
     .delete()
     .eq("id", commentId)
     .eq("author_id", user.id);
 
+  if (error) {
+    return { error: "삭제 중 오류" };
+  }
+
   revalidatePath(`/posts/${postId}`);
+  return { success: true };
 }
 
 export async function incrementViewCount(postId: string) {
