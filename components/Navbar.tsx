@@ -26,7 +26,7 @@ export default async function Navbar() {
           href="/"
           className="text-xl font-bold text-gray-900 hover:text-blue-600"
         >
-          🎮 길드 플랫폼
+          🎮 길드패스
         </Link>
 
         {/* 가운데: 메뉴 */}
@@ -35,20 +35,20 @@ export default async function Navbar() {
             href="/"
             className="text-gray-700 hover:text-blue-600"
           >
-            광장
+            🏛️ 광장
           </Link>
           <Link
             href="/ranking"
             className="text-gray-700 hover:text-blue-600"
           >
-            길드 랭킹
+            🏆 랭킹
           </Link>
           {user && (
             <Link
               href="/my-guilds"
               className="text-gray-700 hover:text-blue-600"
             >
-              내 길드
+              🏰 내 길드
             </Link>
           )}
         </div>
