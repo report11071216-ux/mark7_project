@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import PostList from "@/components/PostList";
 
 type Props = {
   params: { code: string };
@@ -11,7 +12,6 @@ export default async function GuildHomePage({ params }: Props) {
   const supabase = createClient();
   const code = params.code.toUpperCase();
 
-  // 길드 정보 가져오기
   const { data: guild } = await supabase
     .from("guilds")
     .select("*")
@@ -22,19 +22,16 @@ export default async function GuildHomePage({ params }: Props) {
     notFound();
   }
 
-  // 길드 테마 가져오기
   const { data: theme } = await supabase
     .from("guild_themes")
     .select("*")
     .eq("guild_id", guild.id)
     .maybeSingle();
 
-  // 현재 사용자 정보
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 현재 사용자가 이 길드의 멤버인지 확인
   let myRole: string | null = null;
   if (user) {
     const { data: membership } = await supabase
@@ -46,7 +43,6 @@ export default async function GuildHomePage({ params }: Props) {
     myRole = membership?.role || null;
   }
 
-  // 멤버 목록 가져오기 (포인트 순)
   const { data: members } = await supabase
     .from("guild_members")
     .select(
@@ -72,11 +68,8 @@ export default async function GuildHomePage({ params }: Props) {
   return (
     <>
       <Navbar />
-      <main
-        className="min-h-screen"
-        style={{ backgroundColor: bgColor }}
-      >
-        {/* 길드 헤더 (배너) */}
+      <main className="min-h-screen" style={{ backgroundColor: bgColor }}>
+        {/* 배너 */}
         <div
           className="relative h-48"
           style={{
@@ -109,9 +102,9 @@ export default async function GuildHomePage({ params }: Props) {
           </div>
         </div>
 
-        {/* 길드 정보 + 액션 */}
         <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="mb-6 flex items-center justify-between rounded-2xl bg-white p-6 shadow">
+          {/* 길드 정보 + 액션 */}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-6 shadow">
             <div className="flex gap-8">
               <div>
                 <div className="text-xs text-gray-500">총 포인트</div>
@@ -129,7 +122,7 @@ export default async function GuildHomePage({ params }: Props) {
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">모집 상태</div>
+                <div className="text-xs text-gray-500">상태</div>
                 <div className="text-2xl font-bold">
                   {guild.is_recruiting ? "✅ 모집중" : "❌ 마감"}
                 </div>
@@ -158,8 +151,9 @@ export default async function GuildHomePage({ params }: Props) {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* 좌측: 길드 소개 + 환영 메시지 */}
-            <div className="lg:col-span-2">
+            {/* 좌측: 소개 + 게시판 */}
+            <div className="space-y-6 lg:col-span-2">
+              {/* 길드 소개 */}
               <div className="rounded-2xl bg-white p-6 shadow">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">
                   📜 길드 소개
@@ -177,14 +171,32 @@ export default async function GuildHomePage({ params }: Props) {
                 </p>
               </div>
 
-              {/* 게시판 placeholder */}
-              <div className="mt-6 rounded-2xl bg-white p-6 shadow">
-                <h2 className="mb-4 text-xl font-bold text-gray-900">
-                  📋 길드 게시판
-                </h2>
-                <p className="py-8 text-center text-gray-500">
-                  곧 만들어집니다 (6~7단계 예정)
-                </p>
+              {/* 길드 게시판 */}
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    📋 길드 게시판
+                  </h2>
+                  {isMember && (
+                    <Link
+                      href={`/posts/new?guild=${guild.code}`}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      ✏️ 글쓰기
+                    </Link>
+                  )}
+                </div>
+
+                {isMember ? (
+                  <PostList guildId={guild.id} />
+                ) : (
+                  <div className="rounded-xl bg-white p-12 text-center shadow">
+                    <div className="mb-3 text-5xl">🔒</div>
+                    <p className="text-gray-600">
+                      길드 게시판은 멤버만 볼 수 있어요
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
