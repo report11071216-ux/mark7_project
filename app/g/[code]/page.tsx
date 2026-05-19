@@ -156,3 +156,128 @@ export default async function GuildHomePage({ params }: Props) {
 
             <div className="flex gap-2">
               {isMaster && (
+                <Link
+                  href={`/g/${guild.code}/admin`}
+                  className="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-yellow-600"
+                >
+                  ⚙️ 관리자 패널
+                </Link>
+              )}
+              {!isMember && user && (
+                <Link
+                  href="/guild/join"
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  🎟️ 가입하기
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* 좌측: 소개 + 게시판 */}
+            <div className="space-y-6 lg:col-span-2">
+              {/* 길드 소개 */}
+              <div className="rounded-2xl bg-white p-6 shadow">
+                <h2 className="mb-4 text-xl font-bold text-gray-900">
+                  📜 길드 소개
+                </h2>
+                {theme?.welcome_message && (
+                  <div
+                    className="mb-4 rounded-lg p-4"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <p className="text-gray-700">{theme.welcome_message}</p>
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap text-gray-700">
+                  {guild.description || "아직 소개글이 없습니다."}
+                </p>
+              </div>
+
+              {/* 길드 게시판 */}
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    📋 길드 게시판
+                  </h2>
+                  {isMember && (
+                    <Link
+                      href={`/posts/new?guild=${guild.code}`}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      ✏️ 글쓰기
+                    </Link>
+                  )}
+                </div>
+
+                {isMember ? (
+                  <PostList guildId={guild.id} />
+                ) : (
+                  <div className="rounded-xl bg-white p-12 text-center shadow">
+                    <div className="mb-3 text-5xl">🔒</div>
+                    <p className="text-gray-600">
+                      길드 게시판은 멤버만 볼 수 있어요
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 우측: 출석체크 + 멤버 목록 */}
+            <div className="space-y-6">
+              {/* ⭐ 출석체크 (멤버일 때만) */}
+              {isMember && user && (
+                <AttendanceButton
+                  guildId={guild.id}
+                  userId={user.id}
+                  alreadyCheckedIn={alreadyCheckedIn}
+                  myPoints={myPoints}
+                />
+              )}
+
+              {/* 멤버 목록 */}
+              <div className="rounded-2xl bg-white p-6 shadow">
+                <h2 className="mb-4 text-xl font-bold text-gray-900">
+                  👥 멤버 ({members?.length || 0})
+                </h2>
+                <div className="space-y-3">
+                  {members?.map((m: any) => (
+                    <div
+                      key={m.profiles.id}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        {m.profiles.avatar_url ? (
+                          <img
+                            src={m.profiles.avatar_url}
+                            alt={m.profiles.username}
+                            className="h-10 w-10 rounded-full"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                            👤
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {m.profiles.username}
+                            {m.role === "master" && " 👑"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {m.points}P
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
