@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import PostList from "@/components/PostList";
 import CategoryTabs from "@/components/CategoryTabs";
 import LoginButton from "@/components/LoginButton";
+import TopGuildsWidget from "@/components/TopGuildsWidget";
 
 type Props = {
   searchParams: { category?: string };
@@ -17,12 +18,6 @@ export default async function Home({ searchParams }: Props) {
   } = await supabase.auth.getUser();
 
   const category = searchParams.category;
-
-  const { data: topGuilds } = await supabase
-    .from("guilds")
-    .select("id, name, code, total_points, member_count")
-    .order("total_points", { ascending: false })
-    .limit(5);
 
   return (
     <>
@@ -106,56 +101,8 @@ export default async function Home({ searchParams }: Props) {
                 </div>
               )}
 
-              <div className="rounded-2xl bg-white p-6 shadow">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-gray-900">
-                    🏆 랭킹 Top 5
-                  </h3>
-                  <Link
-                    href="/ranking"
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    전체보기 →
-                  </Link>
-                </div>
-                {topGuilds && topGuilds.length > 0 ? (
-                  <div className="space-y-2">
-                    {topGuilds.map((g, i) => (
-                      <Link
-                        key={g.id}
-                        href={`/g/${g.code}`}
-                        className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-gray-50"
-                      >
-                        <div
-                          className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                            i === 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : i === 1
-                              ? "bg-gray-200 text-gray-700"
-                              : i === 2
-                              ? "bg-orange-100 text-orange-800"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {i + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-gray-900">
-                            {g.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ⭐ {g.total_points.toLocaleString()}P
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="py-4 text-center text-sm text-gray-500">
-                    아직 등록된 길드가 없어요
-                  </p>
-                )}
-              </div>
+              {/* 🏆 Top 길드 위젯 (6-C) */}
+              <TopGuildsWidget />
 
               <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 p-6 text-white shadow">
                 <h3 className="mb-2 text-lg font-bold">🎮 길드패스란?</h3>
