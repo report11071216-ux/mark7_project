@@ -4,17 +4,22 @@ import { timeAgo } from "@/lib/utils/time";
 
 type Props = {
   guildId?: string | null;
+  category?: string;
   limit?: number;
 };
 
-export default async function PostList({ guildId = null, limit = 20 }: Props) {
+export default async function PostList({
+  guildId = null,
+  category,
+  limit = 20,
+}: Props) {
   const supabase = createClient();
 
   let query = supabase
     .from("posts")
     .select(
       `
-      id, title, content, view_count, like_count, is_notice, created_at,
+      id, title, content, view_count, like_count, is_notice, category, created_at,
       profiles (username, avatar_url),
       comments (id)
     `
@@ -24,6 +29,9 @@ export default async function PostList({ guildId = null, limit = 20 }: Props) {
 
   if (guildId === null) {
     query = query.is("guild_id", null);
+    if (category) {
+      query = query.eq("category", category);
+    }
   } else {
     query = query.eq("guild_id", guildId);
   }
@@ -67,6 +75,11 @@ export default async function PostList({ guildId = null, limit = 20 }: Props) {
                 {post.is_notice && (
                   <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
                     공지
+                  </span>
+                )}
+                {!guildId && post.category === "recruit" && (
+                  <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
+                    🏰 길드모집
                   </span>
                 )}
                 <h3 className="truncate font-semibold text-gray-900">
