@@ -188,7 +188,9 @@ export default async function GuildHomePage({ params }: Props) {
                     className="mb-4 rounded-lg p-4"
                     style={{ backgroundColor: `${primaryColor}15` }}
                   >
-                    <p className="text-gray-700">{theme.welcome_message}</p>
+                    <p className="whitespace-pre-wrap text-gray-700">
+                      {theme.welcome_message}
+                    </p>
                   </div>
                 )}
                 <p className="whitespace-pre-wrap text-gray-700">
@@ -227,7 +229,7 @@ export default async function GuildHomePage({ params }: Props) {
 
             {/* 우측: 출석체크 + 멤버 목록 */}
             <div className="space-y-6">
-              {/* ⭐ 출석체크 (멤버일 때만) */}
+              {/* 출석체크 (멤버일 때만) */}
               {isMember && user && (
                 <AttendanceButton
                   guildId={guild.id}
