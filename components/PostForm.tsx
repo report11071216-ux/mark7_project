@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { createPost } from "@/app/actions/post";
 
 type Props = {
@@ -9,16 +11,24 @@ type Props = {
 };
 
 export default function PostForm({ guildId, guildName }: Props) {
-  const [error, setError] = useState("");
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [category, setCategory] = useState("free");
 
   const handleSubmit = async (formData: FormData) => {
-    setError("");
     setLoading(true);
     const result = await createPost(formData);
+
     if (result?.error) {
-      setError(result.error);
+      toast.error(result.error);
       setLoading(false);
+      return;
+    }
+
+    if (result?.success && result.postId) {
+      toast.success("글이 작성되었습니다!");
+      router.push(`/posts/${result.postId}`);
+      router.refresh();
     }
   };
 
@@ -31,6 +41,45 @@ export default function PostForm({ guildId, guildName }: Props) {
             📍 <strong>{guildName}</strong> 길드 게시판에 작성합니다
           </div>
         </>
+      )}
+
+      {/* 광장 글일 때만 카테고리 선택 */}
+      {!guildId && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            카테고리 <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCategory("free")}
+              className={`flex-1 rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                category === "free"
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "border-gray-200 text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              💬 자유
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategory("recruit")}
+              className={`flex-1 rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                category === "recruit"
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "border-gray-200 text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              🏰 길드 모집
+            </button>
+          </div>
+          <input type="hidden" name="category" value={category} />
+          {category === "recruit" && (
+            <p className="mt-2 text-xs text-blue-600">
+              💡 길드 모집 카테고리에는 길드 코드를 함께 적어주세요
+            </p>
+          )}
+        </div>
       )}
 
       <div>
@@ -59,12 +108,6 @@ export default function PostForm({ guildId, guildName }: Props) {
           placeholder="내용을 입력하세요"
         />
       </div>
-
-      {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
 
       <button
         type="submit"
