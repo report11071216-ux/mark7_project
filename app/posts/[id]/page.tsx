@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import CommentSection from "@/components/CommentSection";
-import { deletePost, incrementViewCount } from "@/app/actions/post";
+import PostDeleteButton from "@/components/PostDeleteButton";
+import { incrementViewCount } from "@/app/actions/post";
 import { timeAgo } from "@/lib/utils/time";
 
 type Props = {
@@ -13,7 +14,6 @@ type Props = {
 export default async function PostDetailPage({ params }: Props) {
   const supabase = createClient();
 
-  // 글 가져오기
   const { data: post } = await supabase
     .from("posts")
     .select(
@@ -30,10 +30,8 @@ export default async function PostDetailPage({ params }: Props) {
     notFound();
   }
 
-  // 조회수 +1 (백그라운드)
   await incrementViewCount(params.id);
 
-  // 댓글 가져오기
   const { data: comments } = await supabase
     .from("comments")
     .select(
@@ -45,18 +43,21 @@ export default async function PostDetailPage({ params }: Props) {
     .eq("post_id", params.id)
     .order("created_at", { ascending: true });
 
-  // 현재 사용자
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const isAuthor = user?.id === post.author_id;
 
+  const categoryLabel: Record<string, string> = {
+    free: "💬 자유",
+    recruit: "🏰 길드 모집",
+  };
+
   return (
     <>
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8">
-        {/* 글 본문 */}
         <article className="mb-6 rounded-2xl bg-white p-8 shadow">
           {/* 위치 표시 */}
           <div className="mb-4 flex items-center gap-2 text-sm">
@@ -74,9 +75,16 @@ export default async function PostDetailPage({ params }: Props) {
                 </Link>
               </>
             )}
+            {!post.guilds && post.category && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-600">
+                  {categoryLabel[post.category] || post.category}
+                </span>
+              </>
+            )}
           </div>
 
-          {/* 제목 + 공지 배지 */}
           <div className="mb-4 flex items-center gap-2">
             {post.is_notice && (
               <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
@@ -86,7 +94,6 @@ export default async function PostDetailPage({ params }: Props) {
             <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
           </div>
 
-          {/* 작성자 + 정보 */}
           <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
             <div className="flex items-center gap-3">
               {post.profiles.avatar_url ? (
@@ -110,38 +117,20 @@ export default async function PostDetailPage({ params }: Props) {
               </div>
             </div>
 
-            {/* 작성자만 삭제 가능 */}
-            {isAuthor && (
-              <form
-                action={async () => {
-                  "use server";
-                  await deletePost(post.id);
-                }}
-              >
-                <button
-                  type="submit"
-                  className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50"
-                >
-                  삭제
-                </button>
-              </form>
-            )}
+            {isAuthor && <PostDeleteButton postId={post.id} />}
           </div>
 
-          {/* 본문 */}
           <div className="prose max-w-none whitespace-pre-wrap text-gray-700">
             {post.content}
           </div>
         </article>
 
-        {/* 댓글 */}
         <CommentSection
           postId={post.id}
           comments={(comments as any) || []}
           currentUserId={user?.id || null}
         />
 
-        {/* 뒤로 가기 */}
         <div className="mt-6 text-center">
           <Link
             href={post.guilds ? `/g/${post.guilds.code}` : "/"}
