@@ -100,3 +100,7 @@ export {
   CardHeader,
   CardFooter,
   CardEyebrow,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};
