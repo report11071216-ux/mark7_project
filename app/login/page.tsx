@@ -1,34 +1,81 @@
-import LoginButton from "@/components/LoginButton";
+import Link from "next/link";
+import { Shield } from "lucide-react";
+import { AuthShowcase } from "@/components/auth/AuthShowcase";
+import { DiscordLoginButton } from "@/components/auth/DiscordLoginButton";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+export default function LoginPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-        <h1 className="mb-2 text-center text-3xl font-bold text-gray-900">
-          🎮 길드 플랫폼
-        </h1>
-        <p className="mb-8 text-center text-gray-600">
-          로그인하고 길드에 참여하세요
-        </p>
+    <main className="min-h-screen grid lg:grid-cols-[1.2fr_1fr] xl:grid-cols-[1.3fr_1fr]">
+      {/* 좌측: 자랑 패널 (데스크탑만) */}
+      <AuthShowcase />
 
-        {searchParams.error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            로그인 중 오류가 발생했습니다. 다시 시도해주세요.
-          </div>
-        )}
-
-        <div className="flex justify-center">
-          <LoginButton />
+      {/* 우측: 로그인 폼 */}
+      <div className="relative flex flex-col justify-center px-6 py-12 sm:px-10 lg:px-16 min-h-screen lg:min-h-0">
+        {/* 모바일 배경 효과 */}
+        <div className="absolute inset-0 lg:hidden -z-10">
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-violet-600/20 blur-[100px] rounded-full" />
         </div>
 
-        <p className="mt-8 text-center text-xs text-gray-400">
-          로그인 시 디스코드 정보(닉네임, 프로필 사진)에 접근하는 것에
-          동의하게 됩니다.
-        </p>
+        <div className="w-full max-w-md mx-auto">
+          {/* 로고 */}
+          <Link href="/" className="inline-flex items-center gap-2 mb-12 group">
+            <Shield className="w-7 h-7 text-violet-400 group-hover:text-violet-300 transition-colors" />
+            <span className="font-display text-2xl font-bold text-white">
+              길드패스
+            </span>
+          </Link>
+
+          {/* 헤더 */}
+          <div className="mb-10">
+            <p className="mono-label mb-3">SIGN IN</p>
+            <h2 className="font-display text-3xl md:text-4xl font-black text-white mb-3 leading-tight">
+              환영합니다
+            </h2>
+            <p className="text-muted-foreground">
+              디스코드 계정으로 빠르게 시작하세요
+            </p>
+          </div>
+
+          {/* 로그인 버튼 */}
+          <div className="space-y-4">
+            <DiscordLoginButton />
+
+            <p className="text-center text-xs text-muted-foreground font-mono tracking-wider">
+              · 5초 가입 · 카드 등록 불필요 · 베타 무료
+            </p>
+          </div>
+
+          {/* 구분선 */}
+          <div className="my-10 flex items-center gap-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground font-mono tracking-wider uppercase">
+              이미 가입했나요?
+            </span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* 길드 코드로 참여 */}
+          <Link
+            href="/login?mode=guild-code"
+            className="block text-center text-sm text-violet-300 hover:text-violet-200 transition-colors"
+          >
+            길드 코드로 바로 참여하기 →
+          </Link>
+
+          {/* 약관 */}
+          <p className="mt-12 text-center text-xs text-muted-foreground leading-relaxed">
+            가입 시{" "}
+            <Link href="/terms" className="text-violet-400 hover:underline">
+              이용약관
+            </Link>
+            과{" "}
+            <Link href="/privacy" className="text-violet-400 hover:underline">
+              개인정보처리방침
+            </Link>
+            에<br />
+            동의하는 것으로 간주됩니다.
+          </p>
+        </div>
       </div>
     </main>
   );
