@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Shield } from "lucide-react";
@@ -64,13 +65,17 @@ export function Hero() {
           className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-up"
           style={{ animationDelay: "0.4s", opacity: 0 }}
         >
-          <Button variant="gradient" size="xl" className="min-w-[220px]">
-            무료로 길드 만들기
-            <ArrowRight />
+          <Button variant="gradient" size="xl" className="min-w-[220px]" asChild>
+            <Link href="/login">
+              무료로 길드 만들기
+              <ArrowRight />
+            </Link>
           </Button>
-          <Button variant="outline" size="xl" className="min-w-[220px]">
-            <Shield />
-            길드 코드로 참여
+          <Button variant="outline" size="xl" className="min-w-[220px]" asChild>
+            <Link href="/login?mode=guild-code">
+              <Shield />
+              길드 코드로 참여
+            </Link>
           </Button>
         </div>
 
