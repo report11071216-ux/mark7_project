@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -19,10 +20,12 @@ export function CTASection() {
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10">
               베타 기간 동안 모든 기능 무료. 신용카드 등록 없이 바로 시작할 수 있어요.
             </p>
-            <Button variant="gradient" size="xl" className="min-w-[260px]">
-              <Sparkles />
-              무료로 길드 만들기
-              <ArrowRight />
+            <Button variant="gradient" size="xl" className="min-w-[260px]" asChild>
+              <Link href="/login">
+                <Sparkles />
+                무료로 길드 만들기
+                <ArrowRight />
+              </Link>
             </Button>
             <p className="text-xs text-muted-foreground mt-6 font-mono tracking-wider">
               · 베타 기간 무료 · 5분 만에 시작 · 카드 등록 불필요
