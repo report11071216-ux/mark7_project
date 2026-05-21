@@ -1,11 +1,9 @@
-// app/plaza/page.tsx — 교체
 import { createClient } from '@/lib/supabase/server'
 import MegaphoneTicker from '@/components/plaza/MegaphoneTicker'
 import TopRankCompact from '@/components/plaza/TopRankCompact'
 import BoardPreview from '@/components/plaza/BoardPreview'
 import Link from 'next/link'
 
-// ── 타입 ──────────────────────────────────────────
 type Post = {
   id: string
   title: string
@@ -21,7 +19,6 @@ type RankEntry = {
   guilds?: { name: string; logo_url: string | null } | null
 }
 
-// ── 비로그인 배너 ──────────────────────────────────
 function GuestBanner() {
   return (
     <div className="w-full bg-violet-600/10 border border-violet-500/30 rounded-xl px-5 py-3 flex items-center justify-between gap-4 mb-6 flex-wrap">
@@ -41,29 +38,24 @@ function GuestBanner() {
   )
 }
 
-// ── 메인 ──────────────────────────────────────────
 export default async function PlazaPage() {
   const supabase = createClient()
 
-  // 현재 유저 (없으면 null — 에러 무시)
   const { data: { user } } = await supabase.auth.getUser()
   const isGuest = !user
 
-  // 게시글
   const { data: posts } = await supabase
     .from('posts')
     .select('id, title, content, created_at, guild_id, guilds(name)')
     .order('created_at', { ascending: false })
     .limit(8)
 
-  // 주간 랭킹
   const { data: weeklyRank } = await supabase
     .from('weekly_guild_ranking')
     .select('guild_id, score, guilds(name, logo_url)')
     .order('score', { ascending: false })
     .limit(5)
 
-  // 확성기 더미 (실제 테이블 연결 전)
   const megaphoneItems = [
     '🔥 아르카나 길드 카오스던전 공략 올라왔어요!',
     '📢 이번 주 랭킹 1위 달성한 길드를 축하합니다!',
@@ -72,15 +64,12 @@ export default async function PlazaPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0d14] text-white">
-      {/* 확성기 티커 */}
       <MegaphoneTicker items={megaphoneItems} />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
 
-        {/* 비로그인 배너 */}
         {isGuest && <GuestBanner />}
 
-        {/* 헤더 */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             🏛️ 길드 광장
@@ -90,10 +79,8 @@ export default async function PlazaPage() {
           </p>
         </div>
 
-        {/* 2단 레이아웃 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* 게시판 (2/3) */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
@@ -105,14 +92,12 @@ export default async function PlazaPage() {
                 </span>
               )}
             </div>
-
             <BoardPreview
               posts={(posts as Post[]) ?? []}
               isGuest={isGuest}
             />
           </div>
 
-          {/* 랭킹 사이드 (1/3) */}
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
               주간 랭킹
@@ -121,9 +106,9 @@ export default async function PlazaPage() {
               entries={(weeklyRank as RankEntry[]) ?? []}
             />
           </div>
+
         </div>
 
-        {/* 비로그인: 하단 CTA 블록 */}
         {isGuest && (
           <div className="rounded-2xl border border-violet-500/20 bg-violet-600/5 p-8 text-center space-y-4">
             <p className="text-lg font-bold text-white">
