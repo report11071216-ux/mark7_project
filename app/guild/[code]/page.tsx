@@ -1,193 +1,172 @@
+// app/guild/[code]/page.tsx
 import { createClient } from "@/lib/supabase/server";
-import {
-  Card,
-  CardEyebrow,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  Trophy,
-  CalendarDays,
-  TrendingUp,
-  Sparkles,
-} from "lucide-react";
+import { notFound } from "next/navigation";
+import AttendanceWidget from "@/components/guild/AttendanceWidget";
+import MiniCalendar from "@/components/guild/MiniCalendar";
+import { Card } from "@/components/ui/card";
+import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
+import { Users, TrendingUp, Calendar, Award } from "lucide-react";
+import { formatNumber, getRelativeTime } from "@/lib/utils";
 
-export default async function GuildHomePage({
-  params,
-}: {
+type Props = {
   params: { code: string };
-}) {
+};
+
+export default async function GuildHomePage({ params }: Props) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) notFound();
 
-  // 길드 정보 (layout에서 검증된 후라 항상 존재)
+  // 길드 조회
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, name, description, member_count, total_points, created_at")
-    .eq("code", params.code.toUpperCase())
+    .select("id, name, code, description, total_points, member_count, max_members")
+    .eq("code", params.code)
     .single();
+  if (!guild) notFound();
 
-  if (!guild) {
-    return null;
-  }
-
-  // 오늘 출석한 멤버 수
-  const today = new Date().toISOString().split("T")[0];
-  const { count: todayAttendCount } = await supabase
+  // 내 출석 기록 (최근 60일)
+  const { data: myAttendances } = await supabase
     .from("attendances")
-    .select("id", { count: "exact", head: true })
+    .select("attendance_date")
     .eq("guild_id", guild.id)
-    .eq("attendance_date", today);
+    .eq("user_id", user.id)
+    .order("attendance_date", { ascending: false })
+    .limit(60);
 
-  // 최근 멤버 (joined_at 최신순 5명)
+  const attendanceDates = (myAttendances ?? []).map((a) => a.attendance_date);
+  const today = getAttendanceDate();
+  const alreadyAttended = attendanceDates.includes(today);
+  const streak = calculateStreak(attendanceDates);
+  const totalAttendances = attendanceDates.length;
+
+  // 최근 가입 멤버 5명
   const { data: recentMembers } = await supabase
     .from("guild_members")
-    .select("user_id, role, joined_at, profiles(username, avatar_url)")
+    .select("user_id, points, joined_at, profiles(username, avatar_url)")
     .eq("guild_id", guild.id)
     .order("joined_at", { ascending: false })
     .limit(5);
 
   return (
-    <div className="container-padded py-10 max-w-6xl">
-      {/* 환영 헤더 */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 mb-3">
-          <Badge variant="online" dot>오늘 활동 중</Badge>
-        </div>
-        <h1 className="font-display text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-          어서오세요,{" "}
-          <span className="text-gradient-violet-strong">{guild.name}</span>
-        </h1>
-        {guild.description && (
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            {guild.description}
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {/* 헤더 */}
+      <div className="border-b border-zinc-800 bg-zinc-900/30 backdrop-blur sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
+            GUILD / {guild.code}
           </p>
-        )}
-      </div>
-
-      {/* 빠른 통계 4개 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <Card variant="glass" className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-5 h-5 text-violet-400" />
-            <CardEyebrow>MEMBERS</CardEyebrow>
-          </div>
-          <div className="font-mono text-3xl font-black text-white">
-            {guild.member_count ?? 0}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">총 멤버</p>
-        </Card>
-
-        <Card variant="glass" className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
-            <CardEyebrow>POINTS</CardEyebrow>
-          </div>
-          <div className="font-mono text-3xl font-black text-white">
-            {guild.total_points ?? 0}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">길드 포인트</p>
-        </Card>
-
-        <Card variant="glass" className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <CalendarDays className="w-5 h-5 text-cyan-400" />
-            <CardEyebrow>TODAY</CardEyebrow>
-          </div>
-          <div className="font-mono text-3xl font-black text-white">
-            {todayAttendCount ?? 0}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">오늘 출석</p>
-        </Card>
-
-        <Card variant="glass" className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-5 h-5 text-violet-400" />
-            <CardEyebrow>STATUS</CardEyebrow>
-          </div>
-          <div className="font-mono text-3xl font-black text-cyan-300">
-            LIVE
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">실시간</p>
-        </Card>
-      </div>
-
-      {/* 메인 그리드: 출석 위젯 자리 + 최근 활동 */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* 출석 위젯 자리 (8-C-3에서 채울 예정) */}
-        <Card variant="gradient" className="lg:col-span-2 p-8 relative overflow-hidden min-h-[320px] flex items-center justify-center">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/20 blur-3xl rounded-full pointer-events-none" />
-          <div className="relative z-10 text-center">
-            <Sparkles className="w-10 h-10 text-violet-400 mx-auto mb-4 animate-glow-pulse" />
-            <CardEyebrow className="text-cyan-300">COMING SOON</CardEyebrow>
-            <CardTitle className="mt-3 mb-2 text-2xl">
-              출석 위젯 자리
-            </CardTitle>
-            <CardDescription className="max-w-md mx-auto">
-              곧 이 자리에 출석 체크 + 미니 캘린더 위젯이 들어올 거예요.
-              <br />
-              연속 출석 보상 시스템과 함께!
-            </CardDescription>
-          </div>
-        </Card>
-
-        {/* 최근 합류 멤버 */}
-        <Card variant="glass" className="p-6">
-          <div className="mb-4">
-            <CardEyebrow>RECENT MEMBERS</CardEyebrow>
-            <CardTitle className="mt-2 text-lg">최근 합류</CardTitle>
-          </div>
-          {recentMembers && recentMembers.length > 0 ? (
-            <div className="space-y-3">
-              {recentMembers.map((m) => {
-                const profile = m.profiles as any;
-                const name = profile?.username ?? "익명";
-                const avatar = profile?.avatar_url as string | null;
-                return (
-                  <div key={m.user_id} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
-                      {avatar ? (
-                        <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-white">
-                          {name[0]?.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-white truncate">
-                        {name}
-                      </div>
-                      <div className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase">
-                        {m.role === "master"
-                          ? "마스터"
-                          : m.role === "submaster"
-                            ? "부마스터"
-                            : "멤버"}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              아직 멤버가 없어요
-            </p>
+          <h1 className="text-2xl font-bold">{guild.name}</h1>
+          {guild.description && (
+            <p className="text-sm text-zinc-400 mt-1">{guild.description}</p>
           )}
-        </Card>
+        </div>
       </div>
 
-      {/* 안내 박스 (베타 기간) */}
-      <div className="mt-10 p-5 rounded-xl border border-violet-500/20 bg-violet-500/5">
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          <span className="text-violet-300 font-semibold">💜 베타 안내:</span>{" "}
-          공지, 레이드 캘린더, 채팅 페이지는 곧 추가됩니다. 출석 위젯은
-          다음 업데이트에서 만나보실 수 있어요!
-        </p>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* 통계 카드 4개 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            icon={<Users className="w-4 h-4" />}
+            label="멤버"
+            value={`${guild.member_count ?? 0}/${guild.max_members ?? 100}`}
+          />
+          <StatCard
+            icon={<TrendingUp className="w-4 h-4" />}
+            label="길드 포인트"
+            value={formatNumber(guild.total_points ?? 0)}
+            accent
+          />
+          <StatCard
+            icon={<Calendar className="w-4 h-4" />}
+            label="내 출석"
+            value={`${totalAttendances}일`}
+          />
+          <StatCard
+            icon={<Award className="w-4 h-4" />}
+            label="연속 출석"
+            value={`${streak}일`}
+          />
+        </div>
+
+        {/* 위젯 영역: 출석 + 캘린더 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-1">
+            <AttendanceWidget
+              guildCode={guild.code}
+              alreadyAttended={alreadyAttended}
+              streak={streak}
+              totalAttendances={totalAttendances}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <MiniCalendar attendanceDates={attendanceDates} />
+          </div>
+        </div>
+
+        {/* 최근 멤버 */}
+        <Card className="p-6 bg-zinc-900/50 border-zinc-800 backdrop-blur">
+          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
+            RECENT MEMBERS
+          </p>
+          <h3 className="text-lg font-bold text-white mb-4">최근 가입 멤버</h3>
+          <div className="space-y-3">
+            {(recentMembers ?? []).map((m: any) => (
+              <div key={m.user_id} className="flex items-center justify-between py-2 border-b border-zinc-800/50 last:border-0">
+                <div className="flex items-center gap-3">
+                  {m.profiles?.avatar_url ? (
+                    <img
+                      src={m.profiles.avatar_url}
+                      alt=""
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-xs font-mono text-violet-300">
+                      {m.profiles?.username?.[0] ?? "?"}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-white">
+                      {m.profiles?.username ?? "Unknown"}
+                    </p>
+                    <p className="text-xs text-zinc-500 font-mono">
+                      {getRelativeTime(m.joined_at)}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm font-mono text-violet-300">{m.points ?? 0}P</p>
+              </div>
+            ))}
+            {(!recentMembers || recentMembers.length === 0) && (
+              <p className="text-sm text-zinc-500 text-center py-4">아직 멤버가 없습니다</p>
+            )}
+          </div>
+        </Card>
       </div>
     </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  accent = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <Card className="p-4 bg-zinc-900/50 border-zinc-800 backdrop-blur">
+      <div className="flex items-center gap-2 text-zinc-500 mb-2">
+        {icon}
+        <p className="text-xs font-mono uppercase tracking-wider">{label}</p>
+      </div>
+      <p className={`text-2xl font-bold ${accent ? "text-violet-300" : "text-white"}`}>
+        {value}
+      </p>
+    </Card>
   );
 }
