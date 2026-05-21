@@ -1,27 +1,26 @@
+// components/Navbar.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 
 export default async function Navbar() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = await createClient(); // ← await 추가
 
-  let profile = null;
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("username, avatar_url")
-      .eq("id", user.id)
-      .single();
-    profile = data;
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 프로필은 유저 있을 때만
+  const profile = user
+    ? (await supabase
+        .from("profiles")
+        .select("username, avatar_url")
+        .eq("id", user.id)
+        .single()
+      ).data
+    : null;
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        {/* 왼쪽: 로고 */}
         <Link
           href="/"
           className="text-xl font-bold text-gray-900 hover:text-blue-600"
@@ -29,31 +28,20 @@ export default async function Navbar() {
           🎮 길드패스
         </Link>
 
-        {/* 가운데: 메뉴 */}
         <div className="hidden gap-6 md:flex">
-          <Link
-            href="/"
-            className="text-gray-700 hover:text-blue-600"
-          >
+          <Link href="/" className="text-gray-700 hover:text-blue-600">
             🏛️ 광장
           </Link>
-          <Link
-            href="/ranking"
-            className="text-gray-700 hover:text-blue-600"
-          >
+          <Link href="/ranking" className="text-gray-700 hover:text-blue-600">
             🏆 랭킹
           </Link>
           {user && (
-            <Link
-              href="/my-guilds"
-              className="text-gray-700 hover:text-blue-600"
-            >
+            <Link href="/my-guilds" className="text-gray-700 hover:text-blue-600">
               🏰 내 길드
             </Link>
           )}
         </div>
 
-        {/* 오른쪽: 프로필 / 로그인 */}
         <div className="flex items-center gap-3">
           {user ? (
             <>
