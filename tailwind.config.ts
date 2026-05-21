@@ -18,12 +18,10 @@ const config: Config = {
     },
     extend: {
   fontFamily: {
-        sans: ["var(--font-pretendard)", "system-ui", "sans-serif"],
-        mono: ["var(--font-jetbrains)", "ui-monospace", "monospace"],
-        // display: 큰 제목용. 한글 지원 위해 Pretendard로 통일.
-        // 영문 디스플레이 폰트(Geist/Outfit 등) 추가 시 여기에 prepend.
-        display: ["var(--font-pretendard)", "system-ui", "sans-serif"],
-      },
+  sans: ["var(--font-jakarta)", "var(--font-pretendard)", "system-ui", "sans-serif"],
+  mono: ["var(--font-jetbrains)", "ui-monospace", "monospace"],
+  display: ["var(--font-jakarta)", "var(--font-pretendard)", "system-ui", "sans-serif"],
+},
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
