@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Shield, Compass } from "lucide-react";
+import { ArrowRight, Shield } from "lucide-react";
 import { AuroraBackground } from "./AuroraBackground";
 
 export function Hero() {
@@ -75,17 +75,6 @@ export function Hero() {
             <Link href="/login?mode=guild-code">
               <Shield />
               길드 코드로 참여
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="xl"
-            className="min-w-[220px] border border-cyan-400/30 text-cyan-300 hover:border-cyan-400 hover:text-cyan-200 hover:bg-cyan-400/5"
-            asChild
-          >
-            <Link href="/plaza">
-              <Compass className="w-4 h-4" />
-              광장 둘러보기
             </Link>
           </Button>
         </div>
