@@ -1,17 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import MegaphoneTicker from '@/components/plaza/MegaphoneTicker'
 import TopRankCompact from '@/components/plaza/TopRankCompact'
-import BoardPreview from '@/components/plaza/BoardPreview'
+import BoardPreview, { PlazaPost } from '@/components/plaza/BoardPreview'
 import Link from 'next/link'
-
-type Post = {
-  id: string
-  title: string
-  content: string | null
-  created_at: string
-  guild_id: string
-  guilds?: { name: string } | null
-}
 
 type RankEntry = {
   guild_id: string
@@ -44,11 +35,35 @@ export default async function PlazaPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const isGuest = !user
 
-  const { data: posts } = await supabase
+  // PlazaPost 타입에 맞게 조인 쿼리
+  const { data: rawPosts } = await supabase
     .from('posts')
-    .select('id, title, content, created_at, guild_id, guilds(name)')
+    .select(`
+      id,
+      title,
+      category,
+      is_notice,
+      view_count,
+      created_at,
+      guild_id,
+      guilds ( name, code ),
+      profiles ( nickname )
+    `)
     .order('created_at', { ascending: false })
     .limit(8)
+
+  // PlazaPost 형태로 변환
+  const posts: PlazaPost[] = (rawPosts ?? []).map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    category: p.category ?? null,
+    is_notice: p.is_notice ?? false,
+    view_count: p.view_count ?? 0,
+    created_at: p.created_at,
+    guild_name: p.guilds?.name ?? '알 수 없는 길드',
+    guild_code: p.guilds?.code ?? '',
+    author_name: p.profiles?.nickname ?? '알 수 없음',
+  }))
 
   const { data: weeklyRank } = await supabase
     .from('weekly_guild_ranking')
@@ -86,10 +101,7 @@ export default async function PlazaPage() {
                 </span>
               )}
             </div>
-            <BoardPreview
-              posts={(posts as Post[]) ?? []}
-              isGuest={isGuest}
-            />
+            <BoardPreview posts={posts} />
           </div>
 
           <div className="space-y-4">
