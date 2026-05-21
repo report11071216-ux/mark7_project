@@ -1,7 +1,7 @@
 // app/plaza/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles, Sword, Anchor, Skull } from "lucide-react";
+import { Trophy, ShoppingBag, Sparkles, Sword, Anchor, Skull, Gamepad2 } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
@@ -12,10 +12,9 @@ import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
 export default async function PlazaPage() {
   const supabase = createClient();
 
-  // 현재 로그인 사용자
   const { data: { user } } = await supabase.auth.getUser();
 
-  // === 1. 모집중 길드 (좌측 5개) ===
+  // === 1. 모집중 길드 ===
   const { data: recruitingRaw } = await supabase
     .from("guilds")
     .select("id, code, name, logo_url, member_count, max_members, description, is_recruiting")
@@ -170,26 +169,37 @@ export default async function PlazaPage() {
         </div>
       </div>
 
-      {/* 메가폰 ticker (가로 전체) - 청크 C에서 라이트화 예정 */}
+      {/* 메가폰 ticker - 청크 C에서 라이트화 예정 */}
       <MegaphoneTicker />
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      {/* 메인 컨테이너 - space-y-6 → space-y-10 으로 확대 */}
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-10">
         {/* 메인 3컬럼 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 좌측: 모집중 길드 (lg:col-span-2) */}
+          {/* 좌측: 모집중 길드 */}
           <aside className="lg:col-span-2">
             <RecruitingGuilds guilds={recruitingGuilds} />
           </aside>
 
-          {/* 중앙: 게시판 + API placeholder (lg:col-span-7) */}
+          {/* 중앙: 게시판 + 인게임 정보 */}
           <div className="lg:col-span-7 space-y-6">
-            {/* 게시판 - 청크 C에서 라이트화 예정 */}
             <BoardPreview posts={plazaPosts} />
-            {/* API 위젯 placeholder - 11단계 */}
-            <ApiWidgetsPlaceholder />
+
+            {/* 인게임 정보 섹션 - 명확한 섹션 헤더 추가 */}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Gamepad2 className="w-4 h-4 text-blue-600" />
+                <h2 className="text-sm font-bold text-slate-900">인게임 정보</h2>
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                  Coming Soon
+                </span>
+                <div className="flex-1 h-px bg-slate-200 ml-2" />
+              </div>
+              <ApiWidgetsPlaceholder />
+            </section>
           </div>
 
-          {/* 우측: 프로필 + 내 길드 + 랭킹 (lg:col-span-3) */}
+          {/* 우측 */}
           <aside className="lg:col-span-3 space-y-4">
             <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
@@ -197,14 +207,25 @@ export default async function PlazaPage() {
           </aside>
         </div>
 
-        {/* 최하단: 포인트 상품 placeholder - 12단계 */}
-        <ShopProductsPlaceholder />
+        {/* 최하단: 포인트 상품 섹션 - 명확한 시각적 분리 */}
+        <section className="pt-6 border-t border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-slate-900">신규 포인트 상품</h2>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                Coming Soon
+              </span>
+            </div>
+          </div>
+          <ShopProductsPlaceholder />
+        </section>
       </div>
     </>
   );
 }
 
-// === 인라인 placeholder 컴포넌트들 ===
+// === 인라인 placeholder ===
 
 // 11단계: 로아 API 위젯 placeholder
 function ApiWidgetsPlaceholder() {
@@ -236,27 +257,16 @@ function ApiWidgetsPlaceholder() {
 // 12단계: 포인트샵 신규 상품 placeholder
 function ShopProductsPlaceholder() {
   return (
-    <div className="plaza-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-blue-600" />
-          <h3 className="text-sm font-bold text-slate-900">신규 포인트 상품</h3>
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            Coming Soon
-          </span>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3 hover:ring-blue-300 transition-all"
+        >
+          <Sparkles className="w-6 h-6 text-slate-300" />
+          <p className="text-[11px] text-slate-400 leading-tight">오픈 예정</p>
         </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3"
-          >
-            <Sparkles className="w-6 h-6 text-slate-300" />
-            <p className="text-[11px] text-slate-400 leading-tight">오픈 예정</p>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
