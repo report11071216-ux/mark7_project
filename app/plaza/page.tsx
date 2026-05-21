@@ -1,4 +1,4 @@
-// app/plaza/page.tsx
+// app/plaza/page.tsx 교체
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
 import { Trophy, ShoppingBag, Sparkles, Sword, Anchor, Skull, Gamepad2 } from "lucide-react";
@@ -9,14 +9,12 @@ import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
 import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
 
-// 60초 캐싱: 매번 새로 SSR하지 않고 1분간 캐시 활용
 export const revalidate = 60;
 
 export default async function PlazaPage() {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const weekStart = getWeekStart();
 
-  // ⚡ 1단계: 독립 쿼리 6개 병렬 실행
   const [
     userResult,
     recruitingResult,
@@ -55,7 +53,6 @@ export default async function PlazaPage() {
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
 
-  // 모집중 길드 필터링
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? [])
     .filter((g) => (g.member_count ?? 0) < (g.max_members ?? 50))
     .slice(0, 5)
@@ -69,7 +66,6 @@ export default async function PlazaPage() {
       description: g.description,
     }));
 
-  // 주간 랭킹 집계
   const weekCounts = new Map<string, number>();
   (weeklyAttendances ?? []).forEach((a) => {
     weekCounts.set(a.guild_id, (weekCounts.get(a.guild_id) ?? 0) + 1);
@@ -87,7 +83,6 @@ export default async function PlazaPage() {
     .sort((a, b) => b.points - a.points)
     .slice(0, 5);
 
-  // ⚡ 2단계: 사용자 의존 + 게시판 메타 4개 병렬
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
@@ -148,7 +143,6 @@ export default async function PlazaPage() {
 
   return (
     <>
-      {/* 컴팩트 헤더 */}
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
