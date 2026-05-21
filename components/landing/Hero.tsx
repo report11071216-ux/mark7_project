@@ -47,7 +47,6 @@ export function Hero() {
           </Badge>
         </div>
 
-        {/* 메인 제목: 사이즈 다운, 웨이트 다운, leading 여유 */}
         <h1 className="font-sans text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] mb-6 animate-fade-up">
           <span className="block text-white">길드 운영,</span>
           <span className="block text-gradient-violet-strong">한 곳에서.</span>
@@ -62,6 +61,7 @@ export function Hero() {
           위젯으로 직접 꾸미는 우리 길드만의 홈페이지를 만들어보세요.
         </p>
 
+        {/* 메인 CTA 2개 */}
         <div
           className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-up"
           style={{ animationDelay: "0.4s", opacity: 0 }}
@@ -80,7 +80,21 @@ export function Hero() {
           </Button>
         </div>
 
-        {/* 하단 통계: 숫자는 mono 유지(의도된 디자인), 라벨도 mono 유지 */}
+        {/* 광장 둘러보기 - 부담 없는 톤 */}
+        <div
+          className="mt-6 animate-fade-up"
+          style={{ animationDelay: "0.5s", opacity: 0 }}
+        >
+          <Link
+            href="/plaza"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-violet-300 transition-colors group"
+          >
+            <span>회원가입 없이 먼저 광장 둘러보기</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+
+        {/* 통계 */}
         <div
           className="mt-20 grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-fade-up"
           style={{ animationDelay: "0.6s", opacity: 0 }}
