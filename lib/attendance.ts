@@ -11,13 +11,10 @@ const RESET_HOUR = 6; // 오전 6시
  *     5/22 오전 9시 → "2026-05-22"
  */
 export function getAttendanceDate(date: Date = new Date()): string {
-  // UTC 시각에 KST offset 더해서 KST 시각 계산
   const kstTime = new Date(date.getTime() + KST_OFFSET_MS);
-  // 오전 6시 이전이면 하루 빼기
   if (kstTime.getUTCHours() < RESET_HOUR) {
     kstTime.setUTCDate(kstTime.getUTCDate() - 1);
   }
-  // YYYY-MM-DD 포맷
   const year = kstTime.getUTCFullYear();
   const month = String(kstTime.getUTCMonth() + 1).padStart(2, "0");
   const day = String(kstTime.getUTCDate()).padStart(2, "0");
@@ -55,10 +52,11 @@ export function formatTimeUntilReset(ms: number): string {
  */
 export function calculateStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
-  const sorted = [...new Set(dates)].sort().reverse(); // 최신순
+  // 중복 제거 후 최신순 정렬
+  const uniqueDates = Array.from(new Set(dates));
+  const sorted = uniqueDates.sort().reverse();
   const today = getAttendanceDate();
   const yesterday = getPreviousDate(today);
-  // 가장 최근 출석이 오늘도 어제도 아니면 streak 끊김
   if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
   let streak = 1;
   let expected = getPreviousDate(sorted[0]);
