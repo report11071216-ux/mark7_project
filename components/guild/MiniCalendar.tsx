@@ -10,7 +10,7 @@ import { getAttendanceDate } from "@/lib/attendance";
 type View = "month" | "week" | "day";
 
 type Props = {
-  attendanceDates: string[]; // YYYY-MM-DD 배열
+  attendanceDates: string[];
 };
 
 export default function MiniCalendar({ attendanceDates }: Props) {
@@ -45,7 +45,7 @@ export default function MiniCalendar({ attendanceDates }: Props) {
         </div>
       </div>
       {view === "month" && (
-        <MonthView cursor={cursor} setCursor={setCursor} attendedSet={attendedSet} today={today} />
+        <MonthView cursor={cursor} setCursor={setCursor} attendanceDates={attendanceDates} attendedSet={attendedSet} today={today} />
       )}
       {view === "week" && (
         <WeekView cursor={cursor} setCursor={setCursor} attendedSet={attendedSet} today={today} />
@@ -57,8 +57,7 @@ export default function MiniCalendar({ attendanceDates }: Props) {
   );
 }
 
-// === 월간 뷰 ===
-function MonthView({ cursor, setCursor, attendedSet, today }: any) {
+function MonthView({ cursor, setCursor, attendanceDates, attendedSet, today }: any) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
@@ -68,8 +67,9 @@ function MonthView({ cursor, setCursor, attendedSet, today }: any) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const monthCount = Array.from(attendedSet as Set<string>).filter((d) =>
-    d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`)
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthCount = (attendanceDates as string[]).filter((d) =>
+    d.startsWith(monthPrefix)
   ).length;
 
   return (
@@ -126,9 +126,7 @@ function MonthView({ cursor, setCursor, attendedSet, today }: any) {
   );
 }
 
-// === 주간 뷰 ===
 function WeekView({ cursor, setCursor, attendedSet, today }: any) {
-  // 주의 일요일 찾기
   const sunday = new Date(cursor);
   sunday.setDate(cursor.getDate() - cursor.getDay());
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -203,7 +201,6 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
   );
 }
 
-// === 일간 뷰 ===
 function DayView({ cursor, setCursor, attendedSet, today }: any) {
   const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
   const isAttended = attendedSet.has(dateStr);
