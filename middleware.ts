@@ -1,4 +1,3 @@
-// middleware.ts (루트) — 교체
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
@@ -28,9 +27,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // ✅ 공개 경로 — 인증 불필요
+  // 공개 경로 — 인증 불필요
   const publicPaths = ['/', '/login', '/plaza', '/auth']
-  const isPublic = publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isPublic = publicPaths.some(
+    p => pathname === p || pathname.startsWith(p + '/')
+  )
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -40,5 +41,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
