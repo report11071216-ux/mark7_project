@@ -1,8 +1,9 @@
+// components/TopGuildsWidget.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function TopGuildsWidget() {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
 
   const { data: topGuilds } = await supabase
     .from("guilds")
@@ -21,7 +22,6 @@ export default async function TopGuildsWidget() {
           전체 보기 →
         </Link>
       </div>
-
       {!topGuilds || topGuilds.length === 0 ? (
         <p className="py-6 text-center text-sm text-gray-500">
           아직 길드가 없어요
@@ -32,7 +32,6 @@ export default async function TopGuildsWidget() {
             const rank = i + 1;
             const medal =
               rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
-
             return (
               <Link
                 key={g.id}
