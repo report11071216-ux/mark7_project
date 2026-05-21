@@ -9,7 +9,7 @@ export default async function GuildLayout({
   children: React.ReactNode;
   params: { code: string };
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
