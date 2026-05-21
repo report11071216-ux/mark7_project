@@ -12,32 +12,32 @@ import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
 export const revalidate = 60;
 
 export default async function PlazaPage() {
-  const supabase = await createClient(); // ← await 추가
+  const supabase = await createClient();
   const weekStart = getWeekStart();
 
+  // ⚡ 1단계: 유저 + 핵심 데이터 병렬 (5개로 줄임)
   const [
     userResult,
     recruitingResult,
-    allGuildsResult,
-    weeklyAttResult,
+    // ✅ 변경: 200개 조회 → DB에서 바로 Top5 집계
+    weeklyRankingResult,
     rawPostsResult,
     totalCountResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("guilds")
-      .select("id, code, name, logo_url, member_count, max_members, description, is_recruiting")
+      .select("id, code, name, logo_url, member_count, max_members, description")
       .eq("is_recruiting", true)
+      .lt("member_count", 50) // ✅ 변경: JS 필터 → DB 필터
       .order("created_at", { ascending: false })
-      .limit(20),
+      .limit(5), // ✅ 변경: 20개→5개 (JS slice 제거)
+    // ✅ 변경: attendances 200개 + guilds 200개 → weekly_guild_ranking 직접 조회
     supabase
-      .from("guilds")
-      .select("id, code, name, logo_url, member_count, total_points")
-      .limit(200),
-    supabase
-      .from("attendances")
-      .select("guild_id")
-      .gte("attendance_date", weekStart),
+      .from("weekly_guild_ranking")
+      .select("id, code, name, logo_url, weekly_points")
+      .order("weekly_points", { ascending: false })
+      .limit(5),
     supabase
       .from("posts")
       .select("id, title, category, is_notice, view_count, created_at, guild_id, author_id")
@@ -48,69 +48,58 @@ export default async function PlazaPage() {
 
   const user = userResult.data.user;
   const recruitingRaw = recruitingResult.data;
-  const allGuilds = allGuildsResult.data;
-  const weeklyAttendances = weeklyAttResult.data;
+  const weeklyRaw = weeklyRankingResult.data;
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
 
-  const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? [])
-    .filter((g) => (g.member_count ?? 0) < (g.max_members ?? 50))
-    .slice(0, 5)
-    .map((g) => ({
-      id: g.id,
-      code: g.code,
-      name: g.name,
-      logo_url: g.logo_url,
-      member_count: g.member_count ?? 0,
-      max_members: g.max_members ?? 50,
-      description: g.description,
-    }));
+  // 모집중 길드 (DB에서 이미 필터/정렬됨)
+  const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
+    id: g.id,
+    code: g.code,
+    name: g.name,
+    logo_url: g.logo_url,
+    member_count: g.member_count ?? 0,
+    max_members: g.max_members ?? 50,
+    description: g.description,
+  }));
 
-  const weekCounts = new Map<string, number>();
-  (weeklyAttendances ?? []).forEach((a) => {
-    weekCounts.set(a.guild_id, (weekCounts.get(a.guild_id) ?? 0) + 1);
-  });
+  // 주간 랭킹 (DB에서 이미 Top5 정렬됨)
+  const sideRankings: RankedSide[] = (weeklyRaw ?? []).map((g) => ({
+    id: g.id,
+    code: g.code,
+    name: g.name,
+    logo_url: g.logo_url,
+    points: g.weekly_points ?? 0,
+  }));
 
-  const sideRankings: RankedSide[] = (allGuilds ?? [])
-    .map((g) => ({
-      id: g.id,
-      code: g.code,
-      name: g.name,
-      logo_url: g.logo_url,
-      points: weekCounts.get(g.id) ?? 0,
-    }))
-    .filter((g) => g.points > 0)
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 5);
-
+  // ⚡ 2단계: 유저 의존 + 게시판 메타 병렬
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
-  const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
-    user
-      ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    user
-      ? supabase
-          .from("guild_members")
-          .select("role, points, guilds(id, code, name, logo_url)")
-          .eq("user_id", user.id)
-          .limit(5)
-      : Promise.resolve({ data: [] }),
-    supabase
-      .from("guilds")
-      .select("id, name, code")
-      .in("id", postGuildIds.length > 0 ? postGuildIds : ["00000000-0000-0000-0000-000000000000"]),
-    supabase
-      .from("profiles")
-      .select("id, username")
-      .in("id", postAuthorIds.length > 0 ? postAuthorIds : ["00000000-0000-0000-0000-000000000000"]),
-  ]);
+  const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] =
+    await Promise.all([
+      user
+        ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("guild_members")
+            .select("role, points, guilds(id, code, name, logo_url)")
+            .eq("user_id", user.id)
+            .limit(5)
+        : Promise.resolve({ data: [] }),
+      postGuildIds.length > 0
+        ? supabase.from("guilds").select("id, name, code").in("id", postGuildIds)
+        : Promise.resolve({ data: [] }),
+      postAuthorIds.length > 0
+        ? supabase.from("profiles").select("id, username").in("id", postAuthorIds)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const myProfile = profileResult.data as { username: string | null; avatar_url: string | null } | null;
   const memberships = membershipsResult.data ?? [];
-  const postGuilds = postGuildsResult.data;
-  const postAuthors = postAuthorsResult.data;
+  const postGuilds = postGuildsResult.data ?? [];
+  const postAuthors = postAuthorsResult.data ?? [];
 
   const myGuilds: MyGuildItem[] = (memberships as any[])
     .filter((m) => m.guilds)
@@ -123,8 +112,8 @@ export default async function PlazaPage() {
       my_points: m.points ?? 0,
     }));
 
-  const guildMap = new Map((postGuilds ?? []).map((g) => [g.id, g]));
-  const authorMap = new Map((postAuthors ?? []).map((a) => [a.id, a.username]));
+  const guildMap = new Map(postGuilds.map((g) => [g.id, g]));
+  const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
 
   const plazaPosts: PlazaPost[] = (rawPosts ?? []).map((p) => {
     const g = guildMap.get(p.guild_id);
@@ -179,11 +168,9 @@ export default async function PlazaPage() {
           <aside className="lg:col-span-2">
             <RecruitingGuilds guilds={recruitingGuilds} />
           </aside>
-
           <div className="lg:col-span-7">
             <BoardPreview posts={plazaPosts} />
           </div>
-
           <aside className="lg:col-span-3 space-y-4">
             <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
