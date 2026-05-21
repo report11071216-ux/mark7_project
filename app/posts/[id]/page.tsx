@@ -1,3 +1,4 @@
+// app/posts/[id]/page.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -12,40 +13,26 @@ type Props = {
 };
 
 export default async function PostDetailPage({ params }: Props) {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
 
-  const { data: post } = await supabase
-    .from("posts")
-    .select(
-      `
-      *,
-      profiles (id, username, avatar_url),
-      guilds (id, name, code)
-    `
-    )
-    .eq("id", params.id)
-    .maybeSingle();
+  // post + comments + user 병렬 조회
+  const [{ data: post }, { data: comments }, { data: { user } }] = await Promise.all([
+    supabase
+      .from("posts")
+      .select(`*, profiles (id, username, avatar_url), guilds (id, name, code)`)
+      .eq("id", params.id)
+      .maybeSingle(),
+    supabase
+      .from("comments")
+      .select(`id, content, created_at, author_id, profiles (username, avatar_url)`)
+      .eq("post_id", params.id)
+      .order("created_at", { ascending: true }),
+    supabase.auth.getUser(),
+  ]);
 
-  if (!post) {
-    notFound();
-  }
+  if (!post) notFound();
 
   await incrementViewCount(params.id);
-
-  const { data: comments } = await supabase
-    .from("comments")
-    .select(
-      `
-      id, content, created_at, author_id,
-      profiles (username, avatar_url)
-    `
-    )
-    .eq("post_id", params.id)
-    .order("created_at", { ascending: true });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const isAuthor = user?.id === post.author_id;
 
@@ -59,7 +46,6 @@ export default async function PostDetailPage({ params }: Props) {
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8">
         <article className="mb-6 rounded-2xl bg-white p-8 shadow">
-          {/* 위치 표시 */}
           <div className="mb-4 flex items-center gap-2 text-sm">
             <Link href="/" className="text-blue-600 hover:underline">
               광장
