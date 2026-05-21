@@ -1,13 +1,20 @@
-import { createServerClient } from "@supabase/ssr";
+import {
+  createServerClient,
+  type CookieOptions,
+} from "@supabase/ssr";
+
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+
   const code = requestUrl.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(`${requestUrl.origin}/login`);
+    return NextResponse.redirect(
+      `${requestUrl.origin}/login`
+    );
   }
 
   const cookieStore = await cookies();
@@ -24,10 +31,23 @@ export async function GET(request: Request) {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
+
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }[]
+        ) {
+          cookiesToSet.forEach(
+            ({ name, value, options }) => {
+              response.cookies.set(
+                name,
+                value,
+                options
+              );
+            }
+          );
         },
       },
     }
@@ -36,10 +56,14 @@ export async function GET(request: Request) {
   const {
     data: { user },
     error,
-  } = await supabase.auth.exchangeCodeForSession(code);
+  } = await supabase.auth.exchangeCodeForSession(
+    code
+  );
 
   if (error || !user) {
-    return NextResponse.redirect(`${requestUrl.origin}/login`);
+    return NextResponse.redirect(
+      `${requestUrl.origin}/login`
+    );
   }
 
   const { data: memberships } = await supabase
@@ -52,7 +76,9 @@ export async function GET(request: Request) {
   if (memberships?.guilds) {
     response.headers.set(
       "Location",
-      `${requestUrl.origin}/guild/${(memberships.guilds as any).code}`
+      `${requestUrl.origin}/guild/${
+        (memberships.guilds as any).code
+      }`
     );
   }
 
