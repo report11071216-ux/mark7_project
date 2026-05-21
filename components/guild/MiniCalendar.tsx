@@ -1,0 +1,193 @@
+// components/guild/MiniCalendar.tsx
+"use client";
+
+import { useState, useMemo } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getAttendanceDate } from "@/lib/attendance";
+
+type View = "month" | "week" | "day";
+
+type Props = {
+  attendanceDates: string[]; // YYYY-MM-DD 배열
+};
+
+export default function MiniCalendar({ attendanceDates }: Props) {
+  const [view, setView] = useState<View>("month");
+  const [cursor, setCursor] = useState(new Date());
+  const attendedSet = useMemo(() => new Set(attendanceDates), [attendanceDates]);
+  const today = getAttendanceDate();
+
+  return (
+    <Card className="p-6 bg-zinc-900/50 border-zinc-800 backdrop-blur">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
+            CALENDAR
+          </p>
+          <h3 className="text-lg font-bold text-white">출석 캘린더</h3>
+        </div>
+        <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1">
+          {(["month", "week", "day"] as View[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1 text-xs font-mono uppercase rounded transition ${
+                view === v
+                  ? "bg-violet-500/20 text-violet-300"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {v === "month" ? "월" : v === "week" ? "주" : "일"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {view === "month" && (
+        <MonthView cursor={cursor} setCursor={setCursor} attendedSet={attendedSet} today={today} />
+      )}
+      {view === "week" && (
+        <WeekView cursor={cursor} setCursor={setCursor} attendedSet={attendedSet} today={today} />
+      )}
+      {view === "day" && (
+        <DayView cursor={cursor} setCursor={setCursor} attendedSet={attendedSet} today={today} />
+      )}
+    </Card>
+  );
+}
+
+// === 월간 뷰 ===
+function MonthView({ cursor, setCursor, attendedSet, today }: any) {
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const monthCount = Array.from(attendedSet as Set<string>).filter((d) =>
+    d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`)
+  ).length;
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCursor(new Date(year, month - 1, 1))}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <p className="text-sm font-bold text-white">
+          {year}년 {month + 1}월 <span className="text-violet-400 ml-2">{monthCount}일 출석</span>
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCursor(new Date(year, month + 1, 1))}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
+          <div key={d} className="text-center text-xs font-mono text-zinc-600 py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (day === null) return <div key={i} className="aspect-square" />;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const isAttended = attendedSet.has(dateStr);
+          const isToday = dateStr === today;
+          return (
+            <div
+              key={i}
+              className={`aspect-square flex items-center justify-center text-xs rounded transition ${
+                isAttended
+                  ? "bg-violet-500/30 text-violet-200 font-bold border border-violet-500/50"
+                  : "text-zinc-500 hover:bg-zinc-800/50"
+              } ${isToday ? "ring-2 ring-cyan-400/50" : ""}`}
+            >
+              {day}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// === 주간 뷰 ===
+function WeekView({ cursor, setCursor, attendedSet, today }: any) {
+  // 주의 일요일 찾기
+  const sunday = new Date(cursor);
+  sunday.setDate(cursor.getDate() - cursor.getDay());
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    return d;
+  });
+  const weekCount = days.filter((d) => {
+    const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return attendedSet.has(s);
+  }).length;
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const prev = new Date(cursor);
+            prev.setDate(prev.getDate() - 7);
+            setCursor(prev);
+          }}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <p className="text-sm font-bold text-white">
+          {sunday.getMonth() + 1}/{sunday.getDate()} 주
+          <span className="text-violet-400 ml-2">{weekCount}/7일</span>
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const next = new Date(cursor);
+            next.setDate(next.getDate() + 7);
+            setCursor(next);
+          }}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((d, i) => {
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          const isAttended = attendedSet.has(dateStr);
+          const isToday = dateStr === today;
+          const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
+          return (
+            <div
+              key={i}
+              className={`flex flex-col items-center p-3 rounded-lg border ${
+                isAttended
+                  ? "bg-violet-500/20 border-violet-500/40"
+                  : "bg-zinc-800/30 border-zinc-700/50"
+              } ${isToday ? "ring-2 ring-cyan-400/50" : ""}`}
+            >
+              <p className="text-xs font-mono text-zinc-500 mb-1">{dayLabels[i]}</p>
+              <p className={`text-lg font-bold ${isAttended ? "text-violet-200" : "text-zinc-400"}`}>
+                {d.getDate()
