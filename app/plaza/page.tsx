@@ -9,19 +9,53 @@ import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
 import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
 
+// 60초 캐싱: 매번 새로 SSR하지 않고 1분간 캐시 활용
+export const revalidate = 60;
+
 export default async function PlazaPage() {
   const supabase = createClient();
+  const weekStart = getWeekStart();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // ⚡ 1단계: 독립 쿼리 6개 병렬 실행
+  const [
+    userResult,
+    recruitingResult,
+    allGuildsResult,
+    weeklyAttResult,
+    rawPostsResult,
+    totalCountResult,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("guilds")
+      .select("id, code, name, logo_url, member_count, max_members, description, is_recruiting")
+      .eq("is_recruiting", true)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("guilds")
+      .select("id, code, name, logo_url, member_count, total_points")
+      .limit(200),
+    supabase
+      .from("attendances")
+      .select("guild_id")
+      .gte("attendance_date", weekStart),
+    supabase
+      .from("posts")
+      .select("id, title, category, is_notice, view_count, created_at, guild_id, author_id")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase.from("guilds").select("*", { count: "exact", head: true }),
+  ]);
 
-  // === 1. 모집중 길드 ===
-  const { data: recruitingRaw } = await supabase
-    .from("guilds")
-    .select("id, code, name, logo_url, member_count, max_members, description, is_recruiting")
-    .eq("is_recruiting", true)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const user = userResult.data.user;
+  const recruitingRaw = recruitingResult.data;
+  const allGuilds = allGuildsResult.data;
+  const weeklyAttendances = weeklyAttResult.data;
+  const rawPosts = rawPostsResult.data;
+  const totalGuildCount = totalCountResult.count;
 
+  // 모집중 길드 필터링
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? [])
     .filter((g) => (g.member_count ?? 0) < (g.max_members ?? 50))
     .slice(0, 5)
@@ -35,18 +69,7 @@ export default async function PlazaPage() {
       description: g.description,
     }));
 
-  // === 2. 전체 길드 (랭킹용) ===
-  const { data: allGuilds } = await supabase
-    .from("guilds")
-    .select("id, code, name, logo_url, member_count, total_points")
-    .limit(200);
-
-  const weekStart = getWeekStart();
-  const { data: weeklyAttendances } = await supabase
-    .from("attendances")
-    .select("guild_id")
-    .gte("attendance_date", weekStart);
-
+  // 주간 랭킹 집계
   const weekCounts = new Map<string, number>();
   (weeklyAttendances ?? []).forEach((a) => {
     weekCounts.set(a.guild_id, (weekCounts.get(a.guild_id) ?? 0) + 1);
@@ -64,57 +87,48 @@ export default async function PlazaPage() {
     .sort((a, b) => b.points - a.points)
     .slice(0, 5);
 
-  // === 3. 내 프로필 + 내가 속한 길드 ===
-  let myProfile: { username: string | null; avatar_url: string | null } | null = null;
-  let myGuilds: MyGuildItem[] = [];
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profile) myProfile = profile;
-
-    const { data: memberships } = await supabase
-      .from("guild_members")
-      .select("role, points, guilds(id, code, name, logo_url)")
-      .eq("user_id", user.id)
-      .limit(5);
-
-    myGuilds = (memberships ?? [])
-      .filter((m: any) => m.guilds)
-      .map((m: any) => ({
-        id: m.guilds.id,
-        code: m.guilds.code,
-        name: m.guilds.name,
-        logo_url: m.guilds.logo_url,
-        role: m.role,
-        my_points: m.points ?? 0,
-      }));
-  }
-
-  // === 4. 게시판 글 ===
-  const { data: rawPosts } = await supabase
-    .from("posts")
-    .select("id, title, category, is_notice, view_count, created_at, guild_id, author_id")
-    .order("created_at", { ascending: false })
-    .limit(20);
-
+  // ⚡ 2단계: 사용자 의존 + 게시판 메타 4개 병렬
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
-  const { data: postGuilds } = await supabase
-    .from("guilds")
-    .select("id, name, code")
-    .in("id", postGuildIds.length > 0 ? postGuildIds : ["00000000-0000-0000-0000-000000000000"]);
-  const guildMap = new Map((postGuilds ?? []).map((g) => [g.id, g]));
+  const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
+    user
+      ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("guild_members")
+          .select("role, points, guilds(id, code, name, logo_url)")
+          .eq("user_id", user.id)
+          .limit(5)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("guilds")
+      .select("id, name, code")
+      .in("id", postGuildIds.length > 0 ? postGuildIds : ["00000000-0000-0000-0000-000000000000"]),
+    supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", postAuthorIds.length > 0 ? postAuthorIds : ["00000000-0000-0000-0000-000000000000"]),
+  ]);
 
-  const { data: postAuthors } = await supabase
-    .from("profiles")
-    .select("id, username")
-    .in("id", postAuthorIds.length > 0 ? postAuthorIds : ["00000000-0000-0000-0000-000000000000"]);
+  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null } | null;
+  const memberships = membershipsResult.data ?? [];
+  const postGuilds = postGuildsResult.data;
+  const postAuthors = postAuthorsResult.data;
+
+  const myGuilds: MyGuildItem[] = (memberships as any[])
+    .filter((m) => m.guilds)
+    .map((m) => ({
+      id: m.guilds.id,
+      code: m.guilds.code,
+      name: m.guilds.name,
+      logo_url: m.guilds.logo_url,
+      role: m.role,
+      my_points: m.points ?? 0,
+    }));
+
+  const guildMap = new Map((postGuilds ?? []).map((g) => [g.id, g]));
   const authorMap = new Map((postAuthors ?? []).map((a) => [a.id, a.username]));
 
   const plazaPosts: PlazaPost[] = (rawPosts ?? []).map((p) => {
@@ -131,11 +145,6 @@ export default async function PlazaPage() {
       author_name: authorMap.get(p.author_id) ?? "Unknown",
     };
   });
-
-  // === 5. 전체 길드 수 ===
-  const { count: totalGuildCount } = await supabase
-    .from("guilds")
-    .select("*", { count: "exact", head: true });
 
   return (
     <>
@@ -169,12 +178,9 @@ export default async function PlazaPage() {
         </div>
       </div>
 
-      {/* 메가폰 ticker - 청크 C에서 라이트화 예정 */}
       <MegaphoneTicker />
 
-      {/* 메인 컨테이너 */}
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
-        {/* === 섹션 1: 메인 3컬럼 (모집중 / 게시판 / 사이드) === */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <aside className="lg:col-span-2">
             <RecruitingGuilds guilds={recruitingGuilds} />
@@ -191,13 +197,11 @@ export default async function PlazaPage() {
           </aside>
         </div>
 
-        {/* === 섹션 2: 인게임 정보 (full width, 11단계 placeholder) === */}
         <section>
           <SectionHeader icon={Gamepad2} title="인게임 정보" />
           <ApiWidgetsPlaceholder />
         </section>
 
-        {/* === 섹션 3: 신규 포인트 상품 (full width, 12단계 placeholder) === */}
         <section>
           <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
           <ShopProductsPlaceholder />
@@ -207,7 +211,6 @@ export default async function PlazaPage() {
   );
 }
 
-// === 섹션 헤더 (재사용) ===
 function SectionHeader({
   icon: Icon,
   title,
@@ -227,7 +230,6 @@ function SectionHeader({
   );
 }
 
-// 11단계: 로아 API 위젯 placeholder
 function ApiWidgetsPlaceholder() {
   const items = [
     { icon: Sword, label: "이번 주 가디언토벌", sub: "API 연동 예정" },
@@ -254,7 +256,6 @@ function ApiWidgetsPlaceholder() {
   );
 }
 
-// 12단계: 포인트샵 신규 상품 placeholder
 function ShopProductsPlaceholder() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
