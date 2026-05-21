@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { Crown, Trophy, Award, ChevronRight } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
@@ -12,30 +11,29 @@ type Props = {
 export default function TopRankCompact({ guilds }: Props) {
   if (guilds.length === 0) {
     return (
-      <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6 text-center">
-        <p className="text-zinc-500 text-sm">아직 랭킹 데이터가 없습니다</p>
+      <div className="plaza-card p-6 text-center">
+        <p className="text-slate-400 text-sm">아직 랭킹 데이터가 없습니다</p>
       </div>
     );
   }
-
   return (
-    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl backdrop-blur overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-900/60">
+    <div className="plaza-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50/60">
         <div className="flex items-center gap-2">
-          <Crown className="w-3.5 h-3.5 text-yellow-400" />
-          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-[0.2em] font-bold">
+          <Crown className="w-3.5 h-3.5 text-yellow-500" />
+          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] font-bold">
             THIS WEEK · TOP 5
           </span>
         </div>
         <Link
           href="/plaza/ranking"
-          className="text-[11px] font-mono text-violet-400 hover:text-violet-300 transition flex items-center gap-0.5"
+          className="text-[11px] font-mono text-blue-600 hover:text-blue-700 transition flex items-center gap-0.5"
         >
           전체 랭킹
           <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
-      <div className="grid grid-cols-5 divide-x divide-zinc-800/60">
+      <div className="grid grid-cols-5 divide-x divide-slate-200">
         {guilds.slice(0, 5).map(function (g, i) {
           return <RankCard key={g.id} guild={g} rank={i + 1} />;
         })}
@@ -54,16 +52,16 @@ function RankCard(props: { guild: RankedGuild; rank: number }) {
   else if (rank === 2) Icon = Trophy;
   else if (rank === 3) Icon = Award;
 
-  let rankColor = "text-zinc-500";
-  if (rank === 1) rankColor = "text-yellow-300";
-  else if (rank === 2) rankColor = "text-zinc-300";
+  let rankColor = "text-slate-400";
+  if (rank === 1) rankColor = "text-yellow-500";
+  else if (rank === 2) rankColor = "text-slate-500";
   else if (rank === 3) rankColor = "text-amber-500";
 
   const cardClass = isFirst
-    ? "block p-3 transition hover:bg-zinc-800/30 bg-gradient-to-b from-yellow-500/5 to-transparent"
-    : "block p-3 transition hover:bg-zinc-800/30";
+    ? "block p-3 transition hover:bg-blue-50 bg-gradient-to-b from-yellow-50 to-transparent"
+    : "block p-3 transition hover:bg-blue-50";
 
-  const pointColor = isFirst ? "text-yellow-300" : "text-violet-300";
+  const pointColor = isFirst ? "text-yellow-600" : "text-blue-600";
 
   return (
     <Link href={"/guild/" + guild.code} className={cardClass}>
@@ -85,17 +83,17 @@ function RankCard(props: { guild: RankedGuild; rank: number }) {
             className="w-7 h-7 rounded-md object-cover shrink-0"
           />
         ) : (
-          <div className="w-7 h-7 rounded-md bg-violet-500/20 flex items-center justify-center text-violet-300 text-xs font-bold shrink-0">
+          <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold shrink-0">
             {guild.name.charAt(0)}
           </div>
         )}
-        <p className="text-xs font-bold text-white truncate flex-1">
+        <p className="text-xs font-bold text-slate-900 truncate flex-1">
           {guild.name}
         </p>
       </div>
       <p className={"text-sm font-bold font-mono " + pointColor}>
         {formatNumber(guild.points)}
-        <span className="text-[10px] text-zinc-500 ml-0.5">P</span>
+        <span className="text-[10px] text-slate-400 ml-0.5">P</span>
       </p>
     </Link>
   );
