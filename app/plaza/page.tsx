@@ -56,15 +56,9 @@ export default async function PlazaPage() {
     .order('score', { ascending: false })
     .limit(5)
 
-  const megaphoneItems = [
-    '🔥 아르카나 길드 카오스던전 공략 올라왔어요!',
-    '📢 이번 주 랭킹 1위 달성한 길드를 축하합니다!',
-    '⚔️ 군단장 레이드 팟 모집 중입니다.',
-  ]
-
   return (
     <div className="min-h-screen bg-[#0d0d14] text-white">
-      <MegaphoneTicker items={megaphoneItems} />
+      <MegaphoneTicker />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
 
