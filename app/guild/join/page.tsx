@@ -4,7 +4,7 @@ import GuildJoinForm from "@/components/GuildJoinForm";
 import Navbar from "@/components/Navbar";
 
 export default async function GuildJoinPage() {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -24,7 +24,6 @@ export default async function GuildJoinPage() {
           <p className="mb-8 text-gray-600">
             길드 마스터에게 받은 입장 코드를 입력하세요
           </p>
-
           <GuildJoinForm userId={user.id} />
         </div>
       </main>
