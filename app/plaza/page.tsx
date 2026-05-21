@@ -1,64 +1,108 @@
 // app/plaza/page.tsx
 import { createClient } from "@/lib/supabase/server";
-import { getWeekStart, getMonthStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles } from "lucide-react";
-import Link from "next/link";
+import { getWeekStart } from "@/lib/ranking";
+import { Trophy, ShoppingBag, Sparkles, Sword, Anchor, Skull } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
-import TopRankCompact from "@/components/plaza/TopRankCompact";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
-import type { RankedGuild } from "@/components/plaza/PodiumTop3";
+import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
+import MyProfileCard from "@/components/plaza/MyProfileCard";
+import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
+import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
 
 export default async function PlazaPage() {
   const supabase = createClient();
 
-  // === 1. 길드 기본 정보 (랭킹 + 메타) ===
+  // 현재 로그인 사용자
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // === 1. 모집중 길드 (좌측 5개) ===
+  const { data: recruitingRaw } = await supabase
+    .from("guilds")
+    .select("id, code, name, logo_url, member_count, max_members, description, is_recruiting")
+    .eq("is_recruiting", true)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? [])
+    .filter((g) => (g.member_count ?? 0) < (g.max_members ?? 50))
+    .slice(0, 5)
+    .map((g) => ({
+      id: g.id,
+      code: g.code,
+      name: g.name,
+      logo_url: g.logo_url,
+      member_count: g.member_count ?? 0,
+      max_members: g.max_members ?? 50,
+      description: g.description,
+    }));
+
+  // === 2. 전체 길드 (랭킹용) ===
   const { data: allGuilds } = await supabase
     .from("guilds")
-    .select("id, code, name, logo_url, member_count, total_points, master_id")
+    .select("id, code, name, logo_url, member_count, total_points")
     .limit(200);
 
-  // === 2. 이번 주 출석 집계 (메인은 주간 TOP 5만) ===
   const weekStart = getWeekStart();
   const { data: weeklyAttendances } = await supabase
     .from("attendances")
     .select("guild_id")
     .gte("attendance_date", weekStart);
 
-  // === 3. 마스터 닉네임 ===
-  const masterIds = (allGuilds ?? []).map((g) => g.master_id).filter(Boolean);
-  const { data: masters } = await supabase
-    .from("profiles")
-    .select("id, username")
-    .in("id", masterIds.length > 0 ? masterIds : ["00000000-0000-0000-0000-000000000000"]);
-  const masterMap = new Map((masters ?? []).map((m) => [m.id, m.username]));
-
-  // === 4. 주간 TOP 5 집계 ===
   const weekCounts = new Map<string, number>();
   (weeklyAttendances ?? []).forEach((a) => {
     weekCounts.set(a.guild_id, (weekCounts.get(a.guild_id) ?? 0) + 1);
   });
-  const weeklyTop5: RankedGuild[] = (allGuilds ?? [])
+
+  const sideRankings: RankedSide[] = (allGuilds ?? [])
     .map((g) => ({
       id: g.id,
       code: g.code,
       name: g.name,
       logo_url: g.logo_url,
-      member_count: g.member_count,
-      master_name: g.master_id ? masterMap.get(g.master_id) ?? null : null,
       points: weekCounts.get(g.id) ?? 0,
     }))
     .filter((g) => g.points > 0)
     .sort((a, b) => b.points - a.points)
     .slice(0, 5);
 
-  // === 5. 광장 게시판 최신 글 (전체 길드 공용) ===
+  // === 3. 내 프로필 + 내가 속한 길드 ===
+  let myProfile: { username: string | null; avatar_url: string | null } | null = null;
+  let myGuilds: MyGuildItem[] = [];
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile) myProfile = profile;
+
+    const { data: memberships } = await supabase
+      .from("guild_members")
+      .select("role, points, guilds(id, code, name, logo_url)")
+      .eq("user_id", user.id)
+      .limit(5);
+
+    myGuilds = (memberships ?? [])
+      .filter((m: any) => m.guilds)
+      .map((m: any) => ({
+        id: m.guilds.id,
+        code: m.guilds.code,
+        name: m.guilds.name,
+        logo_url: m.guilds.logo_url,
+        role: m.role,
+        my_points: m.points ?? 0,
+      }));
+  }
+
+  // === 4. 게시판 글 ===
   const { data: rawPosts } = await supabase
     .from("posts")
     .select("id, title, category, is_notice, view_count, created_at, guild_id, author_id")
     .order("created_at", { ascending: false })
     .limit(20);
 
-  // 길드 이름 + 작성자 이름 조회용
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
@@ -89,16 +133,16 @@ export default async function PlazaPage() {
     };
   });
 
-  // === 6. 전체 길드 수 ===
+  // === 5. 전체 길드 수 ===
   const { count: totalGuildCount } = await supabase
     .from("guilds")
     .select("*", { count: "exact", head: true });
 
   return (
     <>
-      {/* 컴팩트 헤더 - 화이트 + 블루 액센트 */}
+      {/* 컴팩트 헤더 */}
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-6 py-5">
+        <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.3)]">
@@ -126,61 +170,92 @@ export default async function PlazaPage() {
         </div>
       </div>
 
-      {/* 확성기 ticker (10%) - 청크 B에서 라이트화 예정 */}
+      {/* 메가폰 ticker (가로 전체) - 청크 C에서 라이트화 예정 */}
       <MegaphoneTicker />
 
-      <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
-        {/* 주간 TOP 5 (20%) - 청크 B에서 라이트화 예정 */}
-        <TopRankCompact guilds={weeklyTop5} />
-
-        {/* 메인 그리드: 게시판(50% = 8/12) + 상점(20% = 4/12) */}
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        {/* 메인 3컬럼 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 게시판 - 청크 B에서 라이트화 예정 */}
-          <div className="lg:col-span-8">
+          {/* 좌측: 모집중 길드 (lg:col-span-2) */}
+          <aside className="lg:col-span-2">
+            <RecruitingGuilds guilds={recruitingGuilds} />
+          </aside>
+
+          {/* 중앙: 게시판 + API placeholder (lg:col-span-7) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* 게시판 - 청크 C에서 라이트화 예정 */}
             <BoardPreview posts={plazaPosts} />
+            {/* API 위젯 placeholder - 11단계 */}
+            <ApiWidgetsPlaceholder />
           </div>
-          {/* 상점 placeholder - 라이트톤 완료 */}
-          <div className="lg:col-span-4">
-            <ShopPreviewPlaceholder />
-          </div>
+
+          {/* 우측: 프로필 + 내 길드 + 랭킹 (lg:col-span-3) */}
+          <aside className="lg:col-span-3 space-y-4">
+            <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
+            <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
+            <SideRanking guilds={sideRankings} />
+          </aside>
         </div>
+
+        {/* 최하단: 포인트 상품 placeholder - 12단계 */}
+        <ShopProductsPlaceholder />
       </div>
     </>
   );
 }
 
-// 12단계에서 진짜 상점 컴포넌트로 교체 예정
-function ShopPreviewPlaceholder() {
+// === 인라인 placeholder 컴포넌트들 ===
+
+// 11단계: 로아 API 위젯 placeholder
+function ApiWidgetsPlaceholder() {
+  const items = [
+    { icon: Sword, label: "이번 주 가디언토벌", sub: "API 연동 예정" },
+    { icon: Anchor, label: "오늘의 섬", sub: "API 연동 예정" },
+    { icon: Skull, label: "필드 보스", sub: "API 연동 예정" },
+  ];
   return (
-    <div className="plaza-card overflow-hidden h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-900">상점</h3>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {items.map((it) => {
+        const Icon = it.icon;
+        return (
+          <div key={it.label} className="plaza-card p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-sky-50 ring-1 ring-blue-200 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900 truncate">{it.label}</p>
+              <p className="text-[11px] text-slate-400 font-mono mt-0.5">{it.sub}</p>
+            </div>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// 12단계: 포인트샵 신규 상품 placeholder
+function ShopProductsPlaceholder() {
+  return (
+    <div className="plaza-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="w-4 h-4 text-blue-600" />
+          <h3 className="text-sm font-bold text-slate-900">신규 포인트 상품</h3>
           <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             Coming Soon
           </span>
         </div>
       </div>
-      <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3 ring-1 ring-blue-200">
-          <Sparkles className="w-6 h-6 text-blue-500" />
-        </div>
-        <p className="text-sm text-slate-900 font-bold mb-1">
-          포인트 상점 준비중
-        </p>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          길드 마크, 프로필 카드,<br />
-          뱃지, 확성기 등<br />
-          출석 포인트로 구매
-        </p>
-        <div className="mt-4 px-3 py-1 rounded-full bg-blue-50 border border-blue-200">
-          <span className="text-[10px] font-mono text-blue-600 uppercase tracking-wider">
-            오픈 예정
-          </span>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3"
+          >
+            <Sparkles className="w-6 h-6 text-slate-300" />
+            <p className="text-[11px] text-slate-400 leading-tight">오픈 예정</p>
+          </div>
+        ))}
       </div>
     </div>
   );
