@@ -190,4 +190,75 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
             >
               <p className="text-xs font-mono text-zinc-500 mb-1">{dayLabels[i]}</p>
               <p className={`text-lg font-bold ${isAttended ? "text-violet-200" : "text-zinc-400"}`}>
-                {d.getDate()
+                {d.getDate()}
+              </p>
+              <p className={`text-xs mt-1 ${isAttended ? "text-violet-300" : "text-zinc-600"}`}>
+                {isAttended ? "✓" : "—"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// === 일간 뷰 ===
+function DayView({ cursor, setCursor, attendedSet, today }: any) {
+  const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+  const isAttended = attendedSet.has(dateStr);
+  const isToday = dateStr === today;
+  const dayLabels = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const prev = new Date(cursor);
+            prev.setDate(prev.getDate() - 1);
+            setCursor(prev);
+          }}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <p className="text-sm font-bold text-white">
+          {cursor.getFullYear()}.{cursor.getMonth() + 1}.{cursor.getDate()}
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const next = new Date(cursor);
+            next.setDate(next.getDate() + 1);
+            setCursor(next);
+          }}
+          className="text-zinc-400 hover:text-white"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <div
+        className={`p-8 rounded-xl border text-center ${
+          isAttended
+            ? "bg-gradient-to-br from-violet-500/20 to-violet-500/5 border-violet-500/40"
+            : "bg-zinc-800/30 border-zinc-700/50"
+        } ${isToday ? "ring-2 ring-cyan-400/50" : ""}`}
+      >
+        <p className="text-xs font-mono text-zinc-500 uppercase mb-2">
+          {dayLabels[cursor.getDay()]}
+        </p>
+        <p className="text-5xl font-bold text-white mb-3">{cursor.getDate()}</p>
+        {isAttended ? (
+          <p className="text-violet-300 font-bold">✓ 출석 완료 (+1P)</p>
+        ) : (
+          <p className="text-zinc-500">미출석</p>
+        )}
+        {isToday && <p className="text-xs text-cyan-400 font-mono mt-2">TODAY</p>}
+      </div>
+    </>
+  );
+}
