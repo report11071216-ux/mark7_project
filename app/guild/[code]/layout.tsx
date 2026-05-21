@@ -10,44 +10,42 @@ export default async function GuildLayout({
   params: { code: string };
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
+  // 1. 유저 확인
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect(`/login?next=/guild/${params.code}`);
   }
 
-  // 길드 조회
+  const upperCode = params.code.toUpperCase();
+
+  // 2. 길드 조회 (한 번만)
   const { data: guild, error: guildError } = await supabase
     .from("guilds")
     .select("id, code, name, logo_url, member_count")
-    .eq("code", params.code.toUpperCase())
+    .eq("code", upperCode)
     .maybeSingle();
 
-  if (guildError || !guild) {
-    notFound();
-  }
+  if (guildError || !guild) notFound();
 
-  // 사용자가 이 길드 멤버인지 확인
-  const { data: membership } = await supabase
-    .from("guild_members")
-    .select("role")
-    .eq("guild_id", guild.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // 3. membership + profile 병렬 조회
+  const [{ data: membership }, { data: profile }] = await Promise.all([
+    supabase
+      .from("guild_members")
+      .select("role")
+      .eq("guild_id", guild.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("username, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
   if (!membership) {
-    // 멤버가 아니면 온보딩으로 (길드 코드 입력 권유)
     redirect("/onboarding/join");
   }
-
-  // 사용자 프로필 조회
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, avatar_url")
-    .eq("id", user.id)
-    .maybeSingle();
 
   return (
     <div className="flex min-h-screen bg-background">
