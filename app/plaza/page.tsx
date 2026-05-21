@@ -172,34 +172,18 @@ export default async function PlazaPage() {
       {/* 메가폰 ticker - 청크 C에서 라이트화 예정 */}
       <MegaphoneTicker />
 
-      {/* 메인 컨테이너 - space-y-6 → space-y-10 으로 확대 */}
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-10">
-        {/* 메인 3컬럼 그리드 */}
+      {/* 메인 컨테이너 */}
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
+        {/* === 섹션 1: 메인 3컬럼 (모집중 / 게시판 / 사이드) === */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 좌측: 모집중 길드 */}
           <aside className="lg:col-span-2">
             <RecruitingGuilds guilds={recruitingGuilds} />
           </aside>
 
-          {/* 중앙: 게시판 + 인게임 정보 */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7">
             <BoardPreview posts={plazaPosts} />
-
-            {/* 인게임 정보 섹션 - 명확한 섹션 헤더 추가 */}
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Gamepad2 className="w-4 h-4 text-blue-600" />
-                <h2 className="text-sm font-bold text-slate-900">인게임 정보</h2>
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-                  Coming Soon
-                </span>
-                <div className="flex-1 h-px bg-slate-200 ml-2" />
-              </div>
-              <ApiWidgetsPlaceholder />
-            </section>
           </div>
 
-          {/* 우측 */}
           <aside className="lg:col-span-3 space-y-4">
             <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
@@ -207,17 +191,15 @@ export default async function PlazaPage() {
           </aside>
         </div>
 
-        {/* 최하단: 포인트 상품 섹션 - 명확한 시각적 분리 */}
-        <section className="pt-6 border-t border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-blue-600" />
-              <h2 className="text-base font-bold text-slate-900">신규 포인트 상품</h2>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-                Coming Soon
-              </span>
-            </div>
-          </div>
+        {/* === 섹션 2: 인게임 정보 (full width, 11단계 placeholder) === */}
+        <section>
+          <SectionHeader icon={Gamepad2} title="인게임 정보" />
+          <ApiWidgetsPlaceholder />
+        </section>
+
+        {/* === 섹션 3: 신규 포인트 상품 (full width, 12단계 placeholder) === */}
+        <section>
+          <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
           <ShopProductsPlaceholder />
         </section>
       </div>
@@ -225,7 +207,25 @@ export default async function PlazaPage() {
   );
 }
 
-// === 인라인 placeholder ===
+// === 섹션 헤더 (재사용) ===
+function SectionHeader({
+  icon: Icon,
+  title,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <Icon className="w-5 h-5 text-blue-600" />
+      <h2 className="text-base font-bold text-slate-900">{title}</h2>
+      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+        Coming Soon
+      </span>
+      <div className="flex-1 h-px bg-slate-200 ml-2" />
+    </div>
+  );
+}
 
 // 11단계: 로아 API 위젯 placeholder
 function ApiWidgetsPlaceholder() {
