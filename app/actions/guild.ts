@@ -13,7 +13,7 @@ type GuildInfoInput = {
 };
 
 export async function updateGuildInfo(input: GuildInfoInput) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. 로그인 확인
   const {
@@ -32,17 +32,27 @@ export async function updateGuildInfo(input: GuildInfoInput) {
     .maybeSingle();
 
   if (!guild || guild.master_id !== user.id) {
-    return { success: false, error: "길드 마스터만 수정할 수 있습니다." };
+    return {
+      success: false,
+      error: "길드 마스터만 수정할 수 있습니다.",
+    };
   }
 
   // 3. 입력 검증
   const trimmedName = input.name.trim();
+
   if (trimmedName.length < 2 || trimmedName.length > 30) {
-    return { success: false, error: "길드 이름은 2~30자 사이여야 합니다." };
+    return {
+      success: false,
+      error: "길드 이름은 2~30자 사이여야 합니다.",
+    };
   }
 
   if (input.description.length > 1000) {
-    return { success: false, error: "길드 소개는 1000자 이내로 작성해주세요." };
+    return {
+      success: false,
+      error: "길드 소개는 1000자 이내로 작성해주세요.",
+    };
   }
 
   if (input.maxMembers < guild.member_count) {
@@ -53,7 +63,10 @@ export async function updateGuildInfo(input: GuildInfoInput) {
   }
 
   if (input.maxMembers < 1 || input.maxMembers > 500) {
-    return { success: false, error: "최대 인원은 1~500명으로 설정해주세요." };
+    return {
+      success: false,
+      error: "최대 인원은 1~500명으로 설정해주세요.",
+    };
   }
 
   // 4. 업데이트
@@ -71,9 +84,16 @@ export async function updateGuildInfo(input: GuildInfoInput) {
   if (error) {
     // 이름 UNIQUE 위반
     if (error.code === "23505") {
-      return { success: false, error: "이미 사용 중인 길드 이름입니다." };
+      return {
+        success: false,
+        error: "이미 사용 중인 길드 이름입니다.",
+      };
     }
-    return { success: false, error: "저장 중 오류: " + error.message };
+
+    return {
+      success: false,
+      error: "저장 중 오류: " + error.message,
+    };
   }
 
   // 5. 관련 페이지 캐시 갱신
