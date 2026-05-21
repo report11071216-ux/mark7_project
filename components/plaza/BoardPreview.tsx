@@ -28,7 +28,7 @@ const CATEGORIES = [
   { value: "질문", label: "질문" },
 ];
 
-const CATEGORY_STYLE: Record<string, string> = {
+const CATEGORY_STYLE: { [key: string]: string } = {
   자유: "bg-slate-100 text-slate-600",
   길드모집: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
   질문: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
@@ -51,7 +51,6 @@ export default function BoardPreview({ posts }: Props) {
 
   return (
     <div className="plaza-card overflow-hidden h-full flex flex-col">
-      {/* 헤더 + 카테고리 탭 */}
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -83,7 +82,6 @@ export default function BoardPreview({ posts }: Props) {
         </div>
       </div>
 
-      {/* 글 리스트 */}
       <div className="divide-y divide-slate-100 flex-1">
         {top5.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm">
@@ -113,3 +111,24 @@ export default function BoardPreview({ posts }: Props) {
                   </span>
                 )}
                 <p className="text-sm text-slate-900 truncate flex-1 group-hover:text-blue-700 transition">
+                  {post.title}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                <span className="text-blue-500 truncate">{post.guild_name}</span>
+                <span>·</span>
+                <span className="truncate">{post.author_name}</span>
+                <span>·</span>
+                <span className="flex items-center gap-0.5">
+                  <Eye className="w-3 h-3" />
+                  {post.view_count}
+                </span>
+                <span className="ml-auto shrink-0">{getRelativeTime(post.created_at)}</span>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
