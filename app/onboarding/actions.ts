@@ -1,9 +1,9 @@
+// app/onboarding/actions.ts 교체
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-// 6자리 길드 코드 생성 (헷갈리는 0/O/1/I 제외)
 function generateGuildCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -17,7 +17,7 @@ export async function createGuild(
   prevState: { error: string | null },
   formData: FormData
 ) {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,7 +37,6 @@ export async function createGuild(
     return { error: "길드 이름은 30자 이하여야 합니다." };
   }
 
-  // 고유 코드 생성 (중복 시 최대 10번 재시도)
   let code = generateGuildCode();
   for (let attempts = 0; attempts < 10; attempts++) {
     const { data: existing } = await supabase
@@ -49,7 +48,6 @@ export async function createGuild(
     code = generateGuildCode();
   }
 
-  // 길드 생성
   const { data: guild, error: guildError } = await supabase
     .from("guilds")
     .insert({
@@ -69,7 +67,6 @@ export async function createGuild(
     return { error: `길드 생성 실패: ${guildError?.message ?? "알 수 없는 오류"}` };
   }
 
-  // 마스터를 멤버로 추가
   const { error: memberError } = await supabase
     .from("guild_members")
     .insert({
@@ -90,7 +87,7 @@ export async function joinGuild(
   prevState: { error: string | null },
   formData: FormData
 ) {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -106,7 +103,6 @@ export async function joinGuild(
     return { error: "길드 코드는 6자리여야 합니다." };
   }
 
-  // 길드 조회
   const { data: guild, error: guildError } = await supabase
     .from("guilds")
     .select("id, code, name, member_count, max_members, is_recruiting")
@@ -125,7 +121,6 @@ export async function joinGuild(
     return { error: "이 길드는 정원이 가득 찼습니다." };
   }
 
-  // 이미 가입했는지 확인
   const { data: existing } = await supabase
     .from("guild_members")
     .select("id")
@@ -134,11 +129,9 @@ export async function joinGuild(
     .maybeSingle();
 
   if (existing) {
-    // 이미 멤버라면 그냥 해당 길드로 이동
     redirect(`/guild/${guild.code}`);
   }
 
-  // 멤버 추가
   const { error: memberError } = await supabase
     .from("guild_members")
     .insert({
@@ -152,7 +145,6 @@ export async function joinGuild(
     return { error: `가입 실패: ${memberError.message}` };
   }
 
-  // 길드 멤버 수 증가
   await supabase
     .from("guilds")
     .update({ member_count: (guild.member_count ?? 0) + 1 })
