@@ -15,7 +15,7 @@ const VALID_TABS = ["theme", "info", "members"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 export default async function GuildAdminPage({ params, searchParams }: Props) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const code = params.code.toUpperCase();
   const tab: TabKey = VALID_TABS.includes(searchParams.tab as TabKey)
     ? (searchParams.tab as TabKey)
