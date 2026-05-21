@@ -1,187 +1,155 @@
-// app/plaza/page.tsx
-import { createClient } from "@/lib/supabase/server";
-import { getWeekStart, getMonthStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles } from "lucide-react";
-import Link from "next/link";
-import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
-import TopRankCompact from "@/components/plaza/TopRankCompact";
-import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
-import type { RankedGuild } from "@/components/plaza/PodiumTop3";
+// app/plaza/page.tsx — 교체
+import { createClient } from '@/lib/supabase/server'
+import MegaphoneTicker from '@/components/plaza/MegaphoneTicker'
+import TopRankCompact from '@/components/plaza/TopRankCompact'
+import BoardPreview from '@/components/plaza/BoardPreview'
+import Link from 'next/link'
 
-export default async function PlazaPage() {
-  const supabase = createClient();
-
-  // === 1. 길드 기본 정보 (랭킹 + 메타) ===
-  const { data: allGuilds } = await supabase
-    .from("guilds")
-    .select("id, code, name, logo_url, member_count, total_points, master_id")
-    .limit(200);
-
-  // === 2. 이번 주 출석 집계 (메인은 주간 TOP 5만) ===
-  const weekStart = getWeekStart();
-  const { data: weeklyAttendances } = await supabase
-    .from("attendances")
-    .select("guild_id")
-    .gte("attendance_date", weekStart);
-
-  // === 3. 마스터 닉네임 ===
-  const masterIds = (allGuilds ?? []).map((g) => g.master_id).filter(Boolean);
-  const { data: masters } = await supabase
-    .from("profiles")
-    .select("id, username")
-    .in("id", masterIds.length > 0 ? masterIds : ["00000000-0000-0000-0000-000000000000"]);
-  const masterMap = new Map((masters ?? []).map((m) => [m.id, m.username]));
-
-  // === 4. 주간 TOP 5 집계 ===
-  const weekCounts = new Map<string, number>();
-  (weeklyAttendances ?? []).forEach((a) => {
-    weekCounts.set(a.guild_id, (weekCounts.get(a.guild_id) ?? 0) + 1);
-  });
-  const weeklyTop5: RankedGuild[] = (allGuilds ?? [])
-    .map((g) => ({
-      id: g.id,
-      code: g.code,
-      name: g.name,
-      logo_url: g.logo_url,
-      member_count: g.member_count,
-      master_name: g.master_id ? masterMap.get(g.master_id) ?? null : null,
-      points: weekCounts.get(g.id) ?? 0,
-    }))
-    .filter((g) => g.points > 0)
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 5);
-
-  // === 5. 광장 게시판 최신 글 (전체 길드 공용) ===
-  const { data: rawPosts } = await supabase
-    .from("posts")
-    .select("id, title, category, is_notice, view_count, created_at, guild_id, author_id")
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  // 길드 이름 + 작성자 이름 조회용
-  const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
-  const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
-
-  const { data: postGuilds } = await supabase
-    .from("guilds")
-    .select("id, name, code")
-    .in("id", postGuildIds.length > 0 ? postGuildIds : ["00000000-0000-0000-0000-000000000000"]);
-  const guildMap = new Map((postGuilds ?? []).map((g) => [g.id, g]));
-
-  const { data: postAuthors } = await supabase
-    .from("profiles")
-    .select("id, username")
-    .in("id", postAuthorIds.length > 0 ? postAuthorIds : ["00000000-0000-0000-0000-000000000000"]);
-  const authorMap = new Map((postAuthors ?? []).map((a) => [a.id, a.username]));
-
-  const plazaPosts: PlazaPost[] = (rawPosts ?? []).map((p) => {
-    const g = guildMap.get(p.guild_id);
-    return {
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      is_notice: p.is_notice,
-      view_count: p.view_count ?? 0,
-      created_at: p.created_at,
-      guild_name: g?.name ?? "Unknown",
-      guild_code: g?.code ?? "",
-      author_name: authorMap.get(p.author_id) ?? "Unknown",
-    };
-  });
-
-  // === 6. 전체 길드 수 ===
-  const { count: totalGuildCount } = await supabase
-    .from("guilds")
-    .select("*", { count: "exact", head: true });
-
-  return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* 컴팩트 헤더 */}
-      <div className="border-b border-zinc-800/80 bg-zinc-900/20 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(167,139,250,0.3)]">
-                <Trophy className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-mono text-violet-400 uppercase tracking-[0.2em] leading-none mb-1">
-                  GUILD PLAZA
-                </p>
-                <h1 className="text-lg font-bold text-white truncate leading-tight">
-                  광장
-                </h1>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider leading-none mb-1">
-                Total
-              </p>
-              <p className="text-base font-bold text-violet-300 font-mono leading-none">
-                {totalGuildCount ?? 0}
-                <span className="text-xs text-zinc-500 ml-1">개</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 확성기 ticker (10%) */}
-      <MegaphoneTicker />
-
-      <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
-        {/* 주간 TOP 5 (20%) */}
-        <TopRankCompact guilds={weeklyTop5} />
-
-        {/* 메인 그리드: 게시판(50% = 8/12) + 상점(20% = 4/12) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 게시판 */}
-          <div className="lg:col-span-8">
-            <BoardPreview posts={plazaPosts} />
-          </div>
-          {/* 상점 placeholder */}
-          <div className="lg:col-span-4">
-            <ShopPreviewPlaceholder />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+// ── 타입 ──────────────────────────────────────────
+type Post = {
+  id: string
+  title: string
+  content: string | null
+  created_at: string
+  guild_id: string
+  guilds?: { name: string } | null
 }
 
-// 12단계에서 진짜 상점 컴포넌트로 교체 예정
-function ShopPreviewPlaceholder() {
+type RankEntry = {
+  guild_id: string
+  score: number
+  guilds?: { name: string; logo_url: string | null } | null
+}
+
+// ── 비로그인 배너 ──────────────────────────────────
+function GuestBanner() {
   return (
-    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl backdrop-blur overflow-hidden h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-zinc-800/80 bg-zinc-900/60">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white">상점</h3>
-          </div>
-          <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
-            Coming Soon
-          </span>
-        </div>
-      </div>
-      <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-3">
-          <Sparkles className="w-6 h-6 text-cyan-300" />
-        </div>
-        <p className="text-sm text-zinc-300 font-bold mb-1">
-          포인트 상점 준비중
-        </p>
-        <p className="text-xs text-zinc-500 leading-relaxed">
-          길드 마크, 프로필 카드,<br />
-          뱃지, 확성기 등<br />
-          출석 포인트로 구매
-        </p>
-        <div className="mt-4 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-          <span className="text-[10px] font-mono text-cyan-300 uppercase tracking-wider">
-            오픈 예정
-          </span>
-        </div>
+    <div className="w-full bg-violet-600/10 border border-violet-500/30 rounded-xl px-5 py-3 flex items-center justify-between gap-4 mb-6 flex-wrap">
+      <p className="text-sm text-violet-200">
+        👋 <span className="font-semibold text-white">길드패스 광장</span>에 오신 걸 환영해요.
+        로그인하면 댓글 작성·길드 참여가 가능해요.
+      </p>
+      <div className="flex gap-2 shrink-0">
+        <Link
+          href="/login"
+          className="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+        >
+          Discord로 로그인
+        </Link>
       </div>
     </div>
-  );
+  )
+}
+
+// ── 메인 ──────────────────────────────────────────
+export default async function PlazaPage() {
+  const supabase = createClient()
+
+  // 현재 유저 (없으면 null — 에러 무시)
+  const { data: { user } } = await supabase.auth.getUser()
+  const isGuest = !user
+
+  // 게시글
+  const { data: posts } = await supabase
+    .from('posts')
+    .select('id, title, content, created_at, guild_id, guilds(name)')
+    .order('created_at', { ascending: false })
+    .limit(8)
+
+  // 주간 랭킹
+  const { data: weeklyRank } = await supabase
+    .from('weekly_guild_ranking')
+    .select('guild_id, score, guilds(name, logo_url)')
+    .order('score', { ascending: false })
+    .limit(5)
+
+  // 확성기 더미 (실제 테이블 연결 전)
+  const megaphoneItems = [
+    '🔥 아르카나 길드 카오스던전 공략 올라왔어요!',
+    '📢 이번 주 랭킹 1위 달성한 길드를 축하합니다!',
+    '⚔️ 군단장 레이드 팟 모집 중입니다.',
+  ]
+
+  return (
+    <div className="min-h-screen bg-[#0d0d14] text-white">
+      {/* 확성기 티커 */}
+      <MegaphoneTicker items={megaphoneItems} />
+
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+
+        {/* 비로그인 배너 */}
+        {isGuest && <GuestBanner />}
+
+        {/* 헤더 */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            🏛️ 길드 광장
+          </h1>
+          <p className="text-sm text-white/50 mt-1">
+            모든 길드의 소식과 랭킹을 한눈에 확인하세요
+          </p>
+        </div>
+
+        {/* 2단 레이아웃 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* 게시판 (2/3) */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
+                최근 게시글
+              </h2>
+              {isGuest && (
+                <span className="text-xs text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
+                  읽기 전용
+                </span>
+              )}
+            </div>
+
+            <BoardPreview
+              posts={(posts as Post[]) ?? []}
+              isGuest={isGuest}
+            />
+          </div>
+
+          {/* 랭킹 사이드 (1/3) */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
+              주간 랭킹
+            </h2>
+            <TopRankCompact
+              entries={(weeklyRank as RankEntry[]) ?? []}
+            />
+          </div>
+        </div>
+
+        {/* 비로그인: 하단 CTA 블록 */}
+        {isGuest && (
+          <div className="rounded-2xl border border-violet-500/20 bg-violet-600/5 p-8 text-center space-y-4">
+            <p className="text-lg font-bold text-white">
+              내 길드를 만들고 싶다면?
+            </p>
+            <p className="text-sm text-white/50">
+              Discord 계정 하나로 무료로 시작할 수 있어요.
+            </p>
+            <div className="flex justify-center gap-3 flex-wrap">
+              <Link
+                href="/login"
+                className="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-colors"
+              >
+                무료로 길드 만들기
+              </Link>
+              <Link
+                href="/login"
+                className="px-6 py-2.5 rounded-xl border border-white/20 hover:border-violet-400 text-white font-semibold text-sm transition-colors"
+              >
+                코드로 길드 참여
+              </Link>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
 }
