@@ -1,4 +1,3 @@
-// components/plaza/TopRankCompact.tsx
 "use client";
 
 import Link from "next/link";
@@ -7,7 +6,7 @@ import { formatNumber } from "@/lib/utils";
 import type { RankedGuild } from "./PodiumTop3";
 
 type Props = {
-  guilds: RankedGuild[]; // 최대 5개
+  guilds: RankedGuild[];
 };
 
 export default function TopRankCompact({ guilds }: Props) {
@@ -21,7 +20,6 @@ export default function TopRankCompact({ guilds }: Props) {
 
   return (
     <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl backdrop-blur overflow-hidden">
-      {/* 헤더 */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-900/60">
         <div className="flex items-center gap-2">
           <Crown className="w-3.5 h-3.5 text-yellow-400" />
@@ -37,42 +35,45 @@ export default function TopRankCompact({ guilds }: Props) {
           <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
-      {/* TOP 5 가로 리스트 */}
       <div className="grid grid-cols-5 divide-x divide-zinc-800/60">
-        {guilds.slice(0, 5).map((g, i) => (
-          <RankCard key={g.id} guild={g} rank={i + 1} />
-        ))}
+        {guilds.slice(0, 5).map(function (g, i) {
+          return <RankCard key={g.id} guild={g} rank={i + 1} />;
+        })}
       </div>
     </div>
   );
 }
 
-function RankCard({ guild, rank }: { guild: RankedGuild; rank: number }) {
+function RankCard(props: { guild: RankedGuild; rank: number }) {
+  const guild = props.guild;
+  const rank = props.rank;
   const isFirst = rank === 1;
-  const Icon = rank === 1 ? Crown : rank === 2 ? Trophy : rank === 3 ? Award : null;
-  const rankColor =
-    rank === 1
-      ? "text-yellow-300"
-      : rank === 2
-      ? "text-zinc-300"
-      : rank === 3
-      ? "text-amber-500"
-      : "text-zinc-500";
+
+  let Icon: any = null;
+  if (rank === 1) Icon = Crown;
+  else if (rank === 2) Icon = Trophy;
+  else if (rank === 3) Icon = Award;
+
+  let rankColor = "text-zinc-500";
+  if (rank === 1) rankColor = "text-yellow-300";
+  else if (rank === 2) rankColor = "text-zinc-300";
+  else if (rank === 3) rankColor = "text-amber-500";
+
+  const cardClass = isFirst
+    ? "block p-3 transition hover:bg-zinc-800/30 bg-gradient-to-b from-yellow-500/5 to-transparent"
+    : "block p-3 transition hover:bg-zinc-800/30";
+
+  const pointColor = isFirst ? "text-yellow-300" : "text-violet-300";
 
   return (
-    <Link
-      href={`/guild/${guild.code}`}
-      className={`block p-3 transition hover:bg-zinc-800/30 ${
-        isFirst ? "bg-gradient-to-b from-yellow-500/5 to-transparent" : ""
-      }`}
-    >
+    <Link href={"/guild/" + guild.code} className={cardClass}>
       <div className="flex items-center gap-1 mb-2">
         {Icon ? (
-          <Icon className={`w-3 h-3 ${rankColor}`} />
+          <Icon className={"w-3 h-3 " + rankColor} />
         ) : (
           <span className="w-3" />
         )}
-        <span className={`text-[10px] font-mono font-bold ${rankColor}`}>
+        <span className={"text-[10px] font-mono font-bold " + rankColor}>
           #{rank}
         </span>
       </div>
@@ -92,3 +93,10 @@ function RankCard({ guild, rank }: { guild: RankedGuild; rank: number }) {
           {guild.name}
         </p>
       </div>
+      <p className={"text-sm font-bold font-mono " + pointColor}>
+        {formatNumber(guild.points)}
+        <span className="text-[10px] text-zinc-500 ml-0.5">P</span>
+      </p>
+    </Link>
+  );
+}
