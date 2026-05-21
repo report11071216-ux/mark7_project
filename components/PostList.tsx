@@ -1,3 +1,4 @@
+// components/PostList.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils/time";
@@ -13,7 +14,7 @@ export default async function PostList({
   category,
   limit = 20,
 }: Props) {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
 
   let query = supabase
     .from("posts")
@@ -69,7 +70,6 @@ export default async function PostList({
                 👤
               </div>
             )}
-
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 {post.is_notice && (
