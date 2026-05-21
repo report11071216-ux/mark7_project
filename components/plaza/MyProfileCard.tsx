@@ -1,0 +1,69 @@
+import Link from "next/link";
+import { User, LogIn } from "lucide-react";
+
+type Profile = {
+  username: string | null;
+  avatar_url: string | null;
+};
+
+export default function MyProfileCard({
+  isLoggedIn,
+  profile,
+}: {
+  isLoggedIn: boolean;
+  profile: Profile | null;
+}) {
+  if (!isLoggedIn) {
+    return (
+      <div className="plaza-card p-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-sky-100 ring-1 ring-blue-200 flex items-center justify-center mx-auto mb-3">
+          <User className="w-6 h-6 text-blue-500" />
+        </div>
+        <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+          로그인하면 내 정보가<br />여기에 표시돼요
+        </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
+        >
+          <LogIn className="w-3.5 h-3.5" />
+          로그인
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="plaza-card p-4">
+      <div className="flex items-center gap-3 mb-3">
+        {profile?.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt={profile.username ?? "User"}
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
+            <span className="text-sm font-bold text-white">
+              {(profile?.username ?? "?").charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono text-blue-600 uppercase tracking-wider mb-0.5">
+            My Profile
+          </p>
+          <p className="text-sm font-bold text-slate-900 truncate">
+            {profile?.username ?? "이름없음"}
+          </p>
+        </div>
+      </div>
+      <Link
+        href="/mypage"
+        className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
+      >
+        마이페이지
+      </Link>
+    </div>
+  );
+}
