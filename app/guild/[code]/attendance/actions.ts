@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 const ATTENDANCE_POINTS = 1; // TODO: 8-E에서 platform_settings로 이관
 
 export async function checkAttendance(guildCode: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   // 1. 로그인 확인
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
