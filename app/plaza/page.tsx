@@ -95,89 +95,89 @@ export default async function PlazaPage() {
     .select("*", { count: "exact", head: true });
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* 컴팩트 헤더 */}
-      <div className="border-b border-zinc-800/80 bg-zinc-900/20 backdrop-blur">
+    <>
+      {/* 컴팩트 헤더 - 화이트 + 블루 액센트 */}
+      <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(167,139,250,0.3)]">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.3)]">
                 <Trophy className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-mono text-violet-400 uppercase tracking-[0.2em] leading-none mb-1">
+                <p className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">
                   GUILD PLAZA
                 </p>
-                <h1 className="text-lg font-bold text-white truncate leading-tight">
+                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">
                   광장
                 </h1>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider leading-none mb-1">
+              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">
                 Total
               </p>
-              <p className="text-base font-bold text-violet-300 font-mono leading-none">
+              <p className="text-base font-bold text-blue-600 font-mono leading-none">
                 {totalGuildCount ?? 0}
-                <span className="text-xs text-zinc-500 ml-1">개</span>
+                <span className="text-xs text-slate-400 ml-1">개</span>
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 확성기 ticker (10%) */}
+      {/* 확성기 ticker (10%) - 청크 B에서 라이트화 예정 */}
       <MegaphoneTicker />
 
       <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
-        {/* 주간 TOP 5 (20%) */}
+        {/* 주간 TOP 5 (20%) - 청크 B에서 라이트화 예정 */}
         <TopRankCompact guilds={weeklyTop5} />
 
         {/* 메인 그리드: 게시판(50% = 8/12) + 상점(20% = 4/12) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 게시판 */}
+          {/* 게시판 - 청크 B에서 라이트화 예정 */}
           <div className="lg:col-span-8">
             <BoardPreview posts={plazaPosts} />
           </div>
-          {/* 상점 placeholder */}
+          {/* 상점 placeholder - 라이트톤 완료 */}
           <div className="lg:col-span-4">
             <ShopPreviewPlaceholder />
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 // 12단계에서 진짜 상점 컴포넌트로 교체 예정
 function ShopPreviewPlaceholder() {
   return (
-    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl backdrop-blur overflow-hidden h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-zinc-800/80 bg-zinc-900/60">
+    <div className="plaza-card overflow-hidden h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white">상점</h3>
+            <ShoppingBag className="w-4 h-4 text-blue-600" />
+            <h3 className="text-sm font-bold text-slate-900">상점</h3>
           </div>
-          <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             Coming Soon
           </span>
         </div>
       </div>
       <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 flex items-center justify-center mb-3">
-          <Sparkles className="w-6 h-6 text-cyan-300" />
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3 ring-1 ring-blue-200">
+          <Sparkles className="w-6 h-6 text-blue-500" />
         </div>
-        <p className="text-sm text-zinc-300 font-bold mb-1">
+        <p className="text-sm text-slate-900 font-bold mb-1">
           포인트 상점 준비중
         </p>
-        <p className="text-xs text-zinc-500 leading-relaxed">
+        <p className="text-xs text-slate-500 leading-relaxed">
           길드 마크, 프로필 카드,<br />
           뱃지, 확성기 등<br />
           출석 포인트로 구매
         </p>
-        <div className="mt-4 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-          <span className="text-[10px] font-mono text-cyan-300 uppercase tracking-wider">
+        <div className="mt-4 px-3 py-1 rounded-full bg-blue-50 border border-blue-200">
+          <span className="text-[10px] font-mono text-blue-600 uppercase tracking-wider">
             오픈 예정
           </span>
         </div>
