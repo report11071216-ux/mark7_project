@@ -1,3 +1,4 @@
+// app/my-guilds/page.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -5,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import GuildCard from "@/components/GuildCard";
 
 export default async function MyGuildsPage() {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -14,7 +15,6 @@ export default async function MyGuildsPage() {
     redirect("/login");
   }
 
-  // 내가 속한 길드들 + 역할 가져오기
   const { data: memberships } = await supabase
     .from("guild_members")
     .select(
@@ -62,7 +62,6 @@ export default async function MyGuildsPage() {
             </Link>
           </div>
         </div>
-
         {memberships && memberships.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {memberships.map((m: any) => (
