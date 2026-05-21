@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  Trophy,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -59,6 +60,8 @@ export function Sidebar({
     { icon: Users, label: "멤버", href: `${baseUrl}/members`, badge: memberCount },
     { icon: MessageCircle, label: "채팅", href: `${baseUrl}/chat` },
   ];
+
+  const isPlazaActive = pathname.startsWith("/plaza");
 
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-border bg-card/30 backdrop-blur-sm">
@@ -120,6 +123,29 @@ export function Sidebar({
             </Link>
           );
         })}
+
+        {/* 광장 섹션 (전역) */}
+        <p className="mono-label px-3 pt-6 pb-2">DISCOVER</p>
+        <Link
+          href="/plaza"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative",
+            isPlazaActive
+              ? "bg-cyan-500/15 text-white shadow-[inset_2px_0_0_hsl(189_94%_55%)]"
+              : "text-muted-foreground hover:text-white hover:bg-cyan-500/5"
+          )}
+        >
+          <Trophy
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors",
+              isPlazaActive ? "text-cyan-300" : "text-muted-foreground group-hover:text-cyan-300"
+            )}
+          />
+          <span className="flex-1">광장</span>
+          <span className="text-[10px] font-mono text-cyan-400/60 uppercase">
+            랭킹
+          </span>
+        </Link>
 
         {isStaff && (
           <>
