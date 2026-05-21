@@ -70,4 +70,197 @@
   /* ========================================
      광장(/plaza) 전용 라이트 톤 토큰
      - .plaza-light 클래스가 적용된 영역에서만 활성화
-     - 다크/바이올렛 길드 영역
+     - 다크/바이올렛 길드 영역과 명확히 대비되는 화이트/블루 커뮤니티 톤
+     ======================================== */
+  .plaza-light {
+    --plaza-bg: 210 40% 98%;             /* slate-50 - 살짝 푸른빛 흰색 */
+    --plaza-bg-subtle: 214 32% 95%;      /* slate-100 - 살짝 강조 영역 */
+    --plaza-card: 0 0% 100%;             /* white - 카드 배경 */
+    --plaza-border: 214 32% 91%;         /* slate-200 - 기본 보더 */
+    --plaza-border-strong: 215 20% 80%;  /* slate-300 - 강조 보더 */
+    --plaza-text: 222 47% 11%;           /* slate-900 - 메인 텍스트 */
+    --plaza-text-muted: 215 16% 47%;     /* slate-500 - 보조 텍스트 */
+    --plaza-text-subtle: 215 16% 65%;    /* slate-400 - 더 옅은 텍스트 */
+    --plaza-accent: 221 83% 53%;         /* blue-600 - 메인 컬러 */
+    --plaza-accent-strong: 224 76% 48%;  /* blue-700 - 강조 호버 */
+    --plaza-accent-light: 199 89% 48%;   /* sky-500 - 보색 */
+    --plaza-accent-soft: 214 100% 97%;   /* blue-50 - soft 배경 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-pretendard);
+    font-feature-settings: "ss05", "ss06";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 노이즈 텍스처 오버레이 (전역 미세 효과) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  /* 광장 영역에서는 노이즈 텍스처 무력화 (라이트톤에서 어색함) */
+  .plaza-light ~ body::before,
+  body:has(.plaza-light)::before {
+    opacity: 0;
+  }
+
+  /* 텍스트 선택 컬러 */
+  ::selection {
+    background-color: hsl(263 80% 65% / 0.3);
+    color: hsl(0 0% 100%);
+  }
+
+  /* 광장 영역 텍스트 선택 컬러 (블루 톤) */
+  .plaza-light ::selection {
+    background-color: hsl(221 83% 53% / 0.2);
+    color: hsl(222 47% 11%);
+  }
+
+  /* 커스텀 스크롤바 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(263 30% 9%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(263 30% 22%);
+    border-radius: 8px;
+    border: 2px solid hsl(263 30% 9%);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(263 60% 40%);
+  }
+
+  /* 포커스 링 */
+  :focus-visible {
+    outline: 2px solid hsl(263 80% 65%);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* 광장 영역 포커스 링 (블루 톤) */
+  .plaza-light :focus-visible {
+    outline: 2px solid hsl(221 83% 53%);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  /* 그라데이션 텍스트 (헤드라인용 - 다크) */
+  .text-gradient-violet {
+    @apply bg-gradient-to-r from-violet-200 via-violet-400 to-cyan-300 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-violet-strong {
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* 광장 그라데이션 텍스트 (블루 톤) */
+  .text-gradient-plaza {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* 글래스모피즘 카드 (다크) */
+  .glass-card {
+    background: linear-gradient(160deg, rgba(28, 23, 51, 0.7) 0%, rgba(15, 13, 32, 0.85) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(139, 92, 246, 0.16);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  }
+
+  /* 광장 카드 (라이트) */
+  .plaza-card {
+    background: #ffffff;
+    border: 1px solid hsl(214 32% 91%);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+    border-radius: 0.75rem;
+  }
+
+  /* 카드 호버 시 글로우 (다크) */
+  .glow-on-hover {
+    transition: all 0.3s ease;
+  }
+  .glow-on-hover:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 32px rgba(139, 92, 246, 0.25);
+    transform: translateY(-2px);
+  }
+
+  /* 광장 카드 호버 (lift + 그림자) */
+  .plaza-lift-on-hover {
+    transition: all 0.2s ease;
+  }
+  .plaza-lift-on-hover:hover {
+    border-color: hsl(221 83% 53% / 0.3);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    transform: translateY(-2px);
+  }
+
+  /* 시머 효과 (스켈레톤/하이라이트) */
+  .shimmer {
+    background: linear-gradient(110deg, transparent 40%, rgba(167, 139, 250, 0.15) 50%, transparent 60%);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  /* 모노스페이스 라벨 (테크 느낌 - 다크) */
+  .mono-label {
+    font-family: var(--font-jetbrains);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.26em;
+    color: hsl(263 50% 75%);
+  }
+
+  /* 광장 모노 라벨 (블루 톤) */
+  .mono-label-plaza {
+    font-family: var(--font-jetbrains);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.26em;
+    color: hsl(221 83% 53%);
+  }
+
+  /* 컨테이너 가운데 정렬 (큰 패딩) */
+  .container-padded {
+    @apply max-w-7xl mx-auto px-6 md:px-8 lg:px-12;
+  }
+
+  /* 섹션 기본 패딩 */
+  .section-padding {
+    @apply py-24 md:py-32 lg:py-40;
+  }
+}
