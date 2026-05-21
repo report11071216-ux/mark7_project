@@ -135,6 +135,10 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translate(-72%, -62%) scale(0.5)" },
           "100%": { opacity: "1", transform: "translate(-50%, -40%) scale(1)" },
         },
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -146,6 +150,7 @@ const config: Config = {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
         "spotlight": "spotlight 2s ease-out forwards",
+        "marquee": "marquee 40s linear infinite",
       },
     },
   },
