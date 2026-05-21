@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { checkAttendance } from "@/app/guild/[code]/attendance/actions";
 import { getMsUntilNextReset, formatTimeUntilReset } from "@/lib/attendance";
 import { Flame, Check, Clock } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 type Props = {
   guildCode: string;
@@ -27,7 +27,6 @@ export default function AttendanceWidget({
   const [isPending, startTransition] = useTransition();
   const [timeLeft, setTimeLeft] = useState("");
 
-  // 리셋까지 남은 시간 업데이트 (1분마다)
   useEffect(() => {
     const update = () => setTimeLeft(formatTimeUntilReset(getMsUntilNextReset()));
     update();
