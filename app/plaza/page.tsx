@@ -2,13 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import MegaphoneTicker from '@/components/plaza/MegaphoneTicker'
 import TopRankCompact from '@/components/plaza/TopRankCompact'
 import BoardPreview, { PlazaPost } from '@/components/plaza/BoardPreview'
+import type { RankedGuild } from '@/components/plaza/PodiumTop3'
 import Link from 'next/link'
-
-type RankEntry = {
-  guild_id: string
-  score: number
-  guilds?: { name: string; logo_url: string | null } | null
-}
 
 function GuestBanner() {
   return (
@@ -35,7 +30,7 @@ export default async function PlazaPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const isGuest = !user
 
-  // PlazaPost 타입에 맞게 조인 쿼리
+  // 게시글 쿼리
   const { data: rawPosts } = await supabase
     .from('posts')
     .select(`
@@ -52,7 +47,6 @@ export default async function PlazaPage() {
     .order('created_at', { ascending: false })
     .limit(8)
 
-  // PlazaPost 형태로 변환
   const posts: PlazaPost[] = (rawPosts ?? []).map((p: any) => ({
     id: p.id,
     title: p.title,
@@ -65,11 +59,26 @@ export default async function PlazaPage() {
     author_name: p.profiles?.nickname ?? '알 수 없음',
   }))
 
-  const { data: weeklyRank } = await supabase
+  // 주간 랭킹 쿼리
+  const { data: rawRank } = await supabase
     .from('weekly_guild_ranking')
-    .select('guild_id, score, guilds(name, logo_url)')
+    .select(`
+      guild_id,
+      score,
+      guilds ( id, code, name, logo_url, member_count, master_name )
+    `)
     .order('score', { ascending: false })
     .limit(5)
+
+  const guilds: RankedGuild[] = (rawRank ?? []).map((r: any) => ({
+    id: r.guilds?.id ?? r.guild_id,
+    code: r.guilds?.code ?? '',
+    name: r.guilds?.name ?? '알 수 없는 길드',
+    logo_url: r.guilds?.logo_url ?? null,
+    member_count: r.guilds?.member_count ?? null,
+    master_name: r.guilds?.master_name ?? null,
+    points: r.score ?? 0,
+  }))
 
   return (
     <div className="min-h-screen bg-[#0d0d14] text-white">
@@ -108,9 +117,7 @@ export default async function PlazaPage() {
             <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
               주간 랭킹
             </h2>
-            <TopRankCompact
-              entries={(weeklyRank as RankEntry[]) ?? []}
-            />
+            <TopRankCompact guilds={guilds} />
           </div>
 
         </div>
