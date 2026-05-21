@@ -18,7 +18,7 @@ function getKstToday(): string {
 }
 
 export default async function GuildHomePage({ params }: Props) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const code = params.code.toUpperCase();
 
   // 길드 정보
