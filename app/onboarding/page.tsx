@@ -1,3 +1,4 @@
+// app/onboarding/page.tsx 교체
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +12,7 @@ import { AuroraBackground } from "@/components/landing/AuroraBackground";
 import { Plus, Hash, Shield } from "lucide-react";
 
 export default async function OnboardingPage() {
-  const supabase = createClient();
+  const supabase = await createClient(); // ← await 추가
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -20,7 +21,6 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  // 이미 가입한 길드 확인
   const { data: memberships } = await supabase
     .from("guild_members")
     .select("guilds(code)")
@@ -35,7 +35,6 @@ export default async function OnboardingPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden">
       <AuroraBackground variant="subtle" />
-
       <div className="relative z-10 w-full max-w-4xl">
         <div className="text-center mb-12">
           <Shield className="w-12 h-12 text-violet-400 mx-auto mb-4" />
@@ -47,7 +46,6 @@ export default async function OnboardingPage() {
             새로 길드를 만들거나, 친구의 길드에 참여할 수 있어요
           </p>
         </div>
-
         <div className="grid md:grid-cols-2 gap-6">
           <Link href="/onboarding/create" className="block">
             <Card variant="gradient" hover className="p-8 h-full">
@@ -62,7 +60,6 @@ export default async function OnboardingPage() {
               </CardDescription>
             </Card>
           </Link>
-
           <Link href="/onboarding/join" className="block">
             <Card variant="outlined" hover className="p-8 h-full">
               <Hash className="w-10 h-10 text-cyan-400 mb-6" />
@@ -76,7 +73,6 @@ export default async function OnboardingPage() {
             </Card>
           </Link>
         </div>
-
         <p className="text-center mt-12 text-xs text-muted-foreground font-mono tracking-wider">
           · 베타 기간 무료 · 카드 등록 불필요 · 언제든 길드 추가 가능
         </p>
