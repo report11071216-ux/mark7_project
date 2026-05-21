@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -56,7 +63,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className="dark" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className={`${jakarta.variable} min-h-screen bg-background font-sans antialiased`}>
         {children}
         <Toaster
           position="top-center"
