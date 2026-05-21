@@ -47,13 +47,14 @@ export function Hero() {
           </Badge>
         </div>
 
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.05] mb-6 animate-fade-up">
+        {/* 메인 제목: 사이즈 다운, 웨이트 다운, leading 여유 */}
+        <h1 className="font-sans text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] mb-6 animate-fade-up">
           <span className="block text-white">길드 운영,</span>
           <span className="block text-gradient-violet-strong">한 곳에서.</span>
         </h1>
 
         <p
-          className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed mb-12 animate-fade-up"
+          className="max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed mb-12 animate-fade-up"
           style={{ animationDelay: "0.2s", opacity: 0 }}
         >
           디스코드 채널은 흘러가고, 엑셀은 복잡해요.
@@ -79,6 +80,7 @@ export function Hero() {
           </Button>
         </div>
 
+        {/* 하단 통계: 숫자는 mono 유지(의도된 디자인), 라벨도 mono 유지 */}
         <div
           className="mt-20 grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-fade-up"
           style={{ animationDelay: "0.6s", opacity: 0 }}
@@ -87,7 +89,7 @@ export function Hero() {
             <div className="font-mono text-3xl md:text-4xl font-bold text-violet-300">
               12+
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
               위젯 종류
             </div>
           </div>
@@ -95,7 +97,7 @@ export function Hero() {
             <div className="font-mono text-3xl md:text-4xl font-bold text-cyan-300">
               ∞
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
               커스텀 가능
             </div>
           </div>
@@ -103,7 +105,7 @@ export function Hero() {
             <div className="font-mono text-3xl md:text-4xl font-bold text-violet-300">
               24/7
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-2">
               언제든 접속
             </div>
           </div>
