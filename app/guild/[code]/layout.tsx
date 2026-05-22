@@ -11,7 +11,6 @@ export default async function GuildLayout({
 }) {
   const supabase = await createClient();
 
-  // 1. 유저 확인
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect(`/login?next=/guild/${params.code}`);
@@ -19,7 +18,6 @@ export default async function GuildLayout({
 
   const upperCode = params.code.toUpperCase();
 
-  // 2. 길드 조회 (한 번만)
   const { data: guild, error: guildError } = await supabase
     .from("guilds")
     .select("id, code, name, logo_url, member_count")
@@ -28,19 +26,9 @@ export default async function GuildLayout({
 
   if (guildError || !guild) notFound();
 
-  // 3. membership + profile 병렬 조회
   const [{ data: membership }, { data: profile }] = await Promise.all([
-    supabase
-      .from("guild_members")
-      .select("role")
-      .eq("guild_id", guild.id)
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("username, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle(),
+    supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
+    supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle(),
   ]);
 
   if (!membership) {
@@ -58,7 +46,10 @@ export default async function GuildLayout({
         userName={profile?.username ?? "익명"}
         userAvatarUrl={profile?.avatar_url ?? null}
       />
-      <main className="flex-1 overflow-x-hidden">{children}</main>
+      {/* 모바일: 상단 헤더(56px) + 하단 탭(60px) 여백, 데스크탑: 여백 없음 */}
+      <main className="flex-1 overflow-x-hidden pt-14 pb-16 md:pt-0 md:pb-0">
+        {children}
+      </main>
     </div>
   );
 }
