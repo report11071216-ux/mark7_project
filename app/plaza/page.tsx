@@ -7,7 +7,6 @@ import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/Recru
 import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
 import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
-import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 
 export const revalidate = 60;
 
