@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
 import { Trophy, ShoppingBag, Sparkles, Gamepad2 } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
+import AnnouncementBanner from "@/components/plaza/AnnouncementBanner";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
 import MyProfileCard from "@/components/plaza/MyProfileCard";
@@ -154,7 +155,7 @@ export default async function PlazaPage() {
           </div>
         </div>
       </div>
-
+      <AnnouncementBanner />
       <MegaphoneTicker />
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
