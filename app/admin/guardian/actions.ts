@@ -24,10 +24,8 @@ export async function setGuardianImage(index: number, imageUrl: string) {
   const updated = { ...current, [String(index)]: imageUrl };
   const { error } = await supabase
     .from("platform_settings")
-    .upsert(
-      { key: "guardian_images", value: updated, description: "가디언별 이미지 URL" },
-      { onConflict: "key" }
-    );
+    .update({ value: updated })
+    .eq("key", "guardian_images");
   if (error) throw new Error(error.message);
   revalidatePath("/plaza");
   revalidatePath("/admin/guardian");
@@ -47,10 +45,8 @@ export async function setGuardianWeaknesses(
   const updated = { ...current, [String(index)]: weaknesses };
   const { error } = await supabase
     .from("platform_settings")
-    .upsert(
-      { key: "guardian_weaknesses", value: updated, description: "가디언별 취약속성" },
-      { onConflict: "key" }
-    );
+    .update({ value: updated })
+    .eq("key", "guardian_weaknesses");
   if (error) throw new Error(error.message);
   revalidatePath("/plaza");
   revalidatePath("/admin/guardian");
