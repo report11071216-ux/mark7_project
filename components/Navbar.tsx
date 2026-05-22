@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
-import { LayoutGrid, Trophy, Castle, LogIn } from "lucide-react";
+import { LayoutGrid, Trophy, Castle, LogIn, ShieldCheck } from "lucide-react";
 
 export default async function Navbar() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   const profile = user
     ? (await supabase
         .from("profiles")
-        .select("username, avatar_url")
+        .select("username, avatar_url, is_platform_admin")
         .eq("id", user.id)
         .single()
       ).data
@@ -50,6 +49,15 @@ export default async function Navbar() {
             >
               <Castle className="w-3.5 h-3.5" />
               내 길드
+            </Link>
+          )}
+          {profile?.is_platform_admin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              관리자
             </Link>
           )}
         </div>
