@@ -1,13 +1,13 @@
-// app/plaza/page.tsx 교체
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles, Sword, Anchor, Skull, Gamepad2 } from "lucide-react";
+import { Trophy, ShoppingBag, Sparkles, Gamepad2 } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
 import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
 import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
+import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 
 export const revalidate = 60;
 
@@ -15,11 +15,9 @@ export default async function PlazaPage() {
   const supabase = await createClient();
   const weekStart = getWeekStart();
 
-  // ⚡ 1단계: 유저 + 핵심 데이터 병렬 (5개로 줄임)
   const [
     userResult,
     recruitingResult,
-    // ✅ 변경: 200개 조회 → DB에서 바로 Top5 집계
     weeklyRankingResult,
     rawPostsResult,
     totalCountResult,
@@ -29,10 +27,9 @@ export default async function PlazaPage() {
       .from("guilds")
       .select("id, code, name, logo_url, member_count, max_members, description")
       .eq("is_recruiting", true)
-      .lt("member_count", 50) // ✅ 변경: JS 필터 → DB 필터
+      .lt("member_count", 50)
       .order("created_at", { ascending: false })
-      .limit(5), // ✅ 변경: 20개→5개 (JS slice 제거)
-    // ✅ 변경: attendances 200개 + guilds 200개 → weekly_guild_ranking 직접 조회
+      .limit(5),
     supabase
       .from("weekly_guild_ranking")
       .select("id, code, name, logo_url, weekly_points")
@@ -52,203 +49,6 @@ export default async function PlazaPage() {
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
 
-  // 모집중 길드 (DB에서 이미 필터/정렬됨)
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
     id: g.id,
-    code: g.code,
-    name: g.name,
-    logo_url: g.logo_url,
-    member_count: g.member_count ?? 0,
-    max_members: g.max_members ?? 50,
-    description: g.description,
-  }));
-
-  // 주간 랭킹 (DB에서 이미 Top5 정렬됨)
-  const sideRankings: RankedSide[] = (weeklyRaw ?? []).map((g) => ({
-    id: g.id,
-    code: g.code,
-    name: g.name,
-    logo_url: g.logo_url,
-    points: g.weekly_points ?? 0,
-  }));
-
-  // ⚡ 2단계: 유저 의존 + 게시판 메타 병렬
-  const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
-  const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
-
-  const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] =
-    await Promise.all([
-      user
-        ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
-        : Promise.resolve({ data: null }),
-      user
-        ? supabase
-            .from("guild_members")
-            .select("role, points, guilds(id, code, name, logo_url)")
-            .eq("user_id", user.id)
-            .limit(5)
-        : Promise.resolve({ data: [] }),
-      postGuildIds.length > 0
-        ? supabase.from("guilds").select("id, name, code").in("id", postGuildIds)
-        : Promise.resolve({ data: [] }),
-      postAuthorIds.length > 0
-        ? supabase.from("profiles").select("id, username").in("id", postAuthorIds)
-        : Promise.resolve({ data: [] }),
-    ]);
-
-  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null } | null;
-  const memberships = membershipsResult.data ?? [];
-  const postGuilds = postGuildsResult.data ?? [];
-  const postAuthors = postAuthorsResult.data ?? [];
-
-  const myGuilds: MyGuildItem[] = (memberships as any[])
-    .filter((m) => m.guilds)
-    .map((m) => ({
-      id: m.guilds.id,
-      code: m.guilds.code,
-      name: m.guilds.name,
-      logo_url: m.guilds.logo_url,
-      role: m.role,
-      my_points: m.points ?? 0,
-    }));
-
-  const guildMap = new Map(postGuilds.map((g) => [g.id, g]));
-  const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
-
-  const plazaPosts: PlazaPost[] = (rawPosts ?? []).map((p) => {
-    const g = guildMap.get(p.guild_id);
-    return {
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      is_notice: p.is_notice,
-      view_count: p.view_count ?? 0,
-      created_at: p.created_at,
-      guild_name: g?.name ?? "Unknown",
-      guild_code: g?.code ?? "",
-      author_name: authorMap.get(p.author_id) ?? "Unknown",
-    };
-  });
-
-  return (
-    <>
-      <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.3)]">
-                <Trophy className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">
-                  GUILD PLAZA
-                </p>
-                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">
-                  광장
-                </h1>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">
-                Total
-              </p>
-              <p className="text-base font-bold text-blue-600 font-mono leading-none">
-                {totalGuildCount ?? 0}
-                <span className="text-xs text-slate-400 ml-1">개</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <MegaphoneTicker />
-
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <aside className="lg:col-span-2">
-            <RecruitingGuilds guilds={recruitingGuilds} />
-          </aside>
-          <div className="lg:col-span-7">
-            <BoardPreview posts={plazaPosts} />
-          </div>
-          <aside className="lg:col-span-3 space-y-4">
-            <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
-            <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
-            <SideRanking guilds={sideRankings} />
-          </aside>
-        </div>
-
-        <section>
-          <SectionHeader icon={Gamepad2} title="인게임 정보" />
-          <ApiWidgetsPlaceholder />
-        </section>
-
-        <section>
-          <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
-          <ShopProductsPlaceholder />
-        </section>
-      </div>
-    </>
-  );
-}
-
-function SectionHeader({
-  icon: Icon,
-  title,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-4">
-      <Icon className="w-5 h-5 text-blue-600" />
-      <h2 className="text-base font-bold text-slate-900">{title}</h2>
-      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-        Coming Soon
-      </span>
-      <div className="flex-1 h-px bg-slate-200 ml-2" />
-    </div>
-  );
-}
-
-function ApiWidgetsPlaceholder() {
-  const items = [
-    { icon: Sword, label: "이번 주 가디언토벌", sub: "API 연동 예정" },
-    { icon: Anchor, label: "오늘의 섬", sub: "API 연동 예정" },
-    { icon: Skull, label: "필드 보스", sub: "API 연동 예정" },
-  ];
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {items.map((it) => {
-        const Icon = it.icon;
-        return (
-          <div key={it.label} className="plaza-card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-sky-50 ring-1 ring-blue-200 flex items-center justify-center shrink-0">
-              <Icon className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 truncate">{it.label}</p>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">{it.sub}</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function ShopProductsPlaceholder() {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div
-          key={i}
-          className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3 hover:ring-blue-300 transition-all"
-        >
-          <Sparkles className="w-6 h-6 text-slate-300" />
-          <p className="text-[11px] text-slate-400 leading-tight">오픈 예정</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+    code: g.cod
