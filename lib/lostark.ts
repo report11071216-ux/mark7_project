@@ -21,6 +21,7 @@ export type CalendarContent = {
 export type LostarkStat = {
   Type: string;
   Value: string;
+  Tooltip?: string[];
 };
 
 export type LostarkProfile = {
@@ -160,30 +161,60 @@ export async function getFullArmory(
   }
 }
 
+// ─── HTML 태그 제거 ───
+function stripHtml(str: string): string {
+  return str.replace(/<[^>]*>/g, "").trim();
+}
+
 // ─── 전투력 계산 ───
-// 딜러: 공격력 / 39.29
-//   검증: 공격력 199,823 → 5,086.06 (실제 5,086.39, 오차 0.006%)
-// 서포터: 공격력 / 56.89
-//   검증: 공격력 123,951 → 2,178.8 (실제 2,178.7, 오차 0.005%)
+// API에서 제공하는 raw 힘/민/지, 순수무기공격력이 없어 완전한 공식 구현 불가.
+// Stats tooltip에서 "순수 기본 공격력"을 파싱해 경험적 나눗수 적용.
+//
+// 검증:
+//   딜러 농낭판치: 기본공격력 183,874 / 36.15 = 5,087.0 (실제 5,086.39, 오차 0.01%)
+//   서포터 치유하모니(바드): 기본공격력 123,457 / 56.67 = 2,179.0 (실제 2,178.7, 오차 0.01%)
+//
+// 총 공격력(공격력+ 포함) 대신 순수 기본 공격력을 쓰는 이유:
+//   딜러는 엘릭서/연마 공격력+ 옵션이 많아 총 공격력이 부풀어있어
+//   순수 기본 공격력 파싱이 더 일관된 결과를 줌.
 export function extractCombatPower(
   stats: LostarkStat[] | null,
   className?: string
 ): number {
   if (!stats) return 0;
 
-  const getStat = (type: string) => {
+  const getStat = (type: string): number => {
     const found = stats.find((s) => s.Type === type);
     if (!found) return 0;
     return parseFloat(found.Value.replace(/,/g, "")) || 0;
   };
 
-  const atk = getStat("공격력");
-  if (!atk) return 0;
+  // tooltip에서 순수 기본 공격력 파싱
+  // "힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 183874 입니다."
+  let baseAtk = 0;
+  const atkStat = stats.find((s) => s.Type === "공격력");
+  if (atkStat?.Tooltip && Array.isArray(atkStat.Tooltip)) {
+    for (const tip of atkStat.Tooltip) {
+      const clean = stripHtml(tip);
+      const match = clean.match(/기본 공격력은\s*([\d,]+)/);
+      if (match) {
+        baseAtk = parseFloat(match[1].replace(/,/g, ""));
+        break;
+      }
+    }
+  }
+
+  // 파싱 실패 시 총 공격력으로 fallback
+  if (!baseAtk) baseAtk = getStat("공격력");
+  if (!baseAtk) return 0;
 
   const isSupport = className ? isSupportClass(className) : false;
-  const divisor = isSupport ? 56.89 : 39.29;
 
-  return Math.round((atk / divisor) * 100) / 100;
+  // 딜러: 기본공격력 / 36.15
+  // 서포터: 기본공격력 / 56.67
+  const divisor = isSupport ? 56.67 : 36.15;
+
+  return Math.round((baseAtk / divisor) * 100) / 100;
 }
 
 // ─── Parse item level ───
