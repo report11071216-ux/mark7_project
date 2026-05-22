@@ -18,17 +18,39 @@ export async function GET(request: Request) {
   );
   const data = await res.json();
 
-  // 최상위 키 목록 + 각 섹션의 첫번째 아이템만
-  const summary = {
-    topLevelKeys: Object.keys(data ?? {}),
-    ArmoryGem_keys: data?.ArmoryGem ? Object.keys(data.ArmoryGem) : null,
-    ArmoryGem_first: data?.ArmoryGem?.Gems?.[0] ?? data?.ArmoryGem?.[0] ?? null,
-    ArmoryEngraving_keys: data?.ArmoryEngraving ? Object.keys(data.ArmoryEngraving) : null,
-    ArmoryEngraving_first: data?.ArmoryEngraving?.Engravings?.[0] ?? null,
-    ArmorySkills_first: data?.ArmorySkills?.[0] ?? null,
-    ArkPassive_keys: data?.ArkPassive ? Object.keys(data.ArkPassive) : null,
-    raw: data,
-  };
+  return NextResponse.json({
+    // 보석 Effects 구조 확인
+    GemEffects_first: data?.ArmoryGem?.Effects?.[0] ?? null,
+    GemEffects_keys: data?.ArmoryGem?.Effects?.[0]
+      ? Object.keys(data.ArmoryGem.Effects[0])
+      : null,
 
-  return NextResponse.json(summary);
+    // 각인 구조
+    EngravingEffects_first: data?.ArmoryEngraving?.Effects?.[0] ?? null,
+    ArkPassiveEffects_first: data?.ArmoryEngraving?.ArkPassiveEffects?.[0] ?? null,
+
+    // 아크패시브 구조
+    ArkPassive_type: typeof data?.ArkPassive,
+    ArkPassive_isArray: Array.isArray(data?.ArkPassive),
+    ArkPassive_keys: data?.ArkPassive
+      ? Array.isArray(data.ArkPassive)
+        ? "ARRAY length=" + data.ArkPassive.length
+        : Object.keys(data.ArkPassive)
+      : null,
+    ArkPassive_first: Array.isArray(data?.ArkPassive)
+      ? data.ArkPassive[0]
+      : data?.ArkPassive,
+
+    // 아크그리드 구조
+    ArkGrid_type: typeof data?.ArkGrid,
+    ArkGrid_isArray: Array.isArray(data?.ArkGrid),
+    ArkGrid_keys: data?.ArkGrid
+      ? Array.isArray(data.ArkGrid)
+        ? "ARRAY length=" + data.ArkGrid.length
+        : Object.keys(data.ArkGrid)
+      : null,
+    ArkGrid_first: Array.isArray(data?.ArkGrid)
+      ? data.ArkGrid[0]
+      : data?.ArkGrid,
+  });
 }
