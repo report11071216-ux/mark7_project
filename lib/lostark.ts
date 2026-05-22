@@ -161,10 +161,10 @@ export async function getFullArmory(
 }
 
 // ─── 전투력 계산 ───
-// T4 기준 공식:
-//   딜러: 공격력 / 39.29
-//   서포터: (공격력 + 최대생명력 × 0.085) / 39.29
-// 검증: 공격력 199,823 → 5,086.06 (실제 5,086.39, 오차 0.006%)
+// 딜러: 공격력 / 39.29
+//   검증: 공격력 199,823 → 5,086.06 (실제 5,086.39, 오차 0.006%)
+// 서포터: 공격력 / 56.89
+//   검증: 공격력 123,951 → 2,178.8 (실제 2,178.7, 오차 0.005%)
 export function extractCombatPower(
   stats: LostarkStat[] | null,
   className?: string
@@ -181,14 +181,9 @@ export function extractCombatPower(
   if (!atk) return 0;
 
   const isSupport = className ? isSupportClass(className) : false;
+  const divisor = isSupport ? 56.89 : 39.29;
 
-  let base = atk;
-  if (isSupport) {
-    const hp = getStat("최대 생명력");
-    base = atk + hp * 0.085;
-  }
-
-  return Math.round((base / 39.29) * 100) / 100;
+  return Math.round((atk / divisor) * 100) / 100;
 }
 
 // ─── Parse item level ───
