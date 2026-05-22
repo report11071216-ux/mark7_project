@@ -81,8 +81,14 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   );
 }
 
-// ─── 가디언토벌 (DB 로테이션) ───
-function GuardianRaidWidget({ guardianIndex }: { guardianIndex: number }) {
+// ─── 가디언토벌 (DB 로테이션 + 이미지) ───
+function GuardianRaidWidget({
+  guardianIndex,
+  imageUrl,
+}: {
+  guardianIndex: number;
+  imageUrl: string | null;
+}) {
   const currentName = GUARDIAN_ORDER[guardianIndex] ?? null;
 
   return (
@@ -103,13 +109,21 @@ function GuardianRaidWidget({ guardianIndex }: { guardianIndex: number }) {
           </p>
         ) : (
           <div>
+            {imageUrl && (
+              <div className="mb-3 rounded-xl overflow-hidden aspect-video bg-slate-100">
+                <img
+                  src={imageUrl}
+                  alt={currentName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className="mb-3">
               <p className="text-sm font-bold text-slate-900">{currentName}</p>
               <p className="text-[10px] font-mono text-slate-400 mt-0.5">
                 매주 수요일 06:00 초기화
               </p>
             </div>
-            {/* 로테이션 트랙 */}
             <div className="flex gap-1 flex-wrap">
               {GUARDIAN_ORDER.map((name, i) => (
                 <span
@@ -198,16 +212,23 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
 export default async function GameContentWidgets() {
   const supabase = await createClient();
 
-  const [calendar, guardianSettingResult] = await Promise.all([
+  const [calendar, guardianSettingResult, guardianImagesResult] = await Promise.all([
     getCalendar(),
     supabase
       .from("platform_settings")
       .select("value")
       .eq("key", "current_guardian_index")
       .maybeSingle(),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "guardian_images")
+      .maybeSingle(),
   ]);
 
   const guardianIndex = Number(guardianSettingResult.data?.value ?? 0);
+  const guardianImages = (guardianImagesResult.data?.value ?? {}) as { [key: string]: string };
+  const guardianImageUrl = guardianImages[String(guardianIndex)] ?? null;
 
   const adventures = calendar.filter((c) => c.CategoryName?.includes("모험"));
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드"));
@@ -215,7 +236,7 @@ export default async function GameContentWidgets() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <AdventureIslandWidget items={adventures} />
-      <GuardianRaidWidget guardianIndex={guardianIndex} />
+      <GuardianRaidWidget guardianIndex={guardianIndex} imageUrl={guardianImageUrl} />
       <FieldBossWidget items={fieldBosses} />
     </div>
   );
