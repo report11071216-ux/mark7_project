@@ -174,4 +174,85 @@ export function Sidebar({
       {/* ── 모바일 하단 탭 ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center bg-card/90 backdrop-blur-sm border-t border-border">
         {menu.map((item) => {
-          con
+          const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
+          return (
+            <Link key={item.href} href={item.href} className={cn(
+              "flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors relative",
+              isActive ? "text-violet-300" : "text-muted-foreground"
+            )}>
+              <item.icon className="w-5 h-5" />
+              <span>{item.label}</span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute top-1.5 right-1/4 w-4 h-4 rounded-full bg-violet-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* ── 모바일 드로어 ── */}
+      {drawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} />
+          <div className="relative ml-auto w-72 h-full bg-card flex flex-col border-l border-border">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <p className="text-sm font-bold text-white">메뉴</p>
+              <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-lg hover:bg-violet-500/10 text-muted-foreground hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              <p className="mono-label px-3 pt-2 pb-2">DISCOVER</p>
+              <Link href="/plaza" onClick={() => setDrawerOpen(false)} className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                isPlazaActive ? "bg-cyan-500/15 text-white" : "text-muted-foreground hover:text-white hover:bg-cyan-500/5"
+              )}>
+                <Trophy className={cn("w-4 h-4", isPlazaActive ? "text-cyan-300" : "text-muted-foreground")} />
+                <span className="flex-1">광장</span>
+                <span className="text-[10px] font-mono text-cyan-400/60">랭킹</span>
+              </Link>
+
+              {isStaff && (
+                <>
+                  <p className="mono-label px-3 pt-4 pb-2">ADMIN</p>
+                  <Link href={`${baseUrl}/admin`} onClick={() => setDrawerOpen(false)} className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    pathname.startsWith(`${baseUrl}/admin`) ? "bg-amber-500/15 text-white" : "text-muted-foreground hover:text-white hover:bg-amber-500/5"
+                  )}>
+                    <Settings className="w-4 h-4 text-amber-400/80" />
+                    <span>관리자 패널</span>
+                  </Link>
+                </>
+              )}
+            </div>
+
+            <div className="p-3 border-t border-border space-y-2">
+              <Link href={`${baseUrl}/me`} onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-bold text-white">{userName[0]?.toUpperCase() ?? "?"}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">{userName}</div>
+                  <Badge variant={userRole === "master" ? "master" : "default"} size="sm" className="mt-0.5">
+                    {roleLabel}
+                  </Badge>
+                </div>
+              </Link>
+              <button type="button" onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-rose-300 hover:bg-rose-500/5 transition-colors">
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>로그아웃</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
