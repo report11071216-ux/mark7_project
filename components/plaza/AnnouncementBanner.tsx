@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Megaphone, X } from "lucide-react";
+import { Megaphone } from "lucide-react";
 
 export default async function AnnouncementBanner() {
   const supabase = await createClient();
@@ -14,7 +14,7 @@ export default async function AnnouncementBanner() {
 
   if (!value?.active || !value.message?.trim()) return null;
 
-  const content = (
+  const inner = (
     <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
       <div className="flex items-center gap-2 shrink-0">
         <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
@@ -35,20 +35,24 @@ export default async function AnnouncementBanner() {
     </div>
   );
 
-  return (
-    <div className="bg-blue-600 w-full">
-      {value.link ? (
+  if (value.link) {
+    return (
+      <div className="bg-blue-600 w-full">
         
           href={value.link}
           target="_blank"
           rel="noopener noreferrer"
           className="block hover:bg-blue-700 transition-colors"
         >
-          {content}
+          {inner}
         </a>
-      ) : (
-        content
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-blue-600 w-full">
+      {inner}
     </div>
   );
 }
