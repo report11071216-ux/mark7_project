@@ -25,10 +25,14 @@ export async function syncLostarkCharacter(
 
   const profile = await getCharacterProfile(characterName.trim());
   if (!profile) {
-    return { success: false, message: "캐릭터를 찾을 수 없어요. 이름을 다시 확인해주세요." };
+    return {
+      success: false,
+      message: "캐릭터를 찾을 수 없어요. 이름을 다시 확인해주세요.",
+    };
   }
 
-  const combatPower = extractCombatPower(profile.Stats);
+  // 직업 기반 전투력 계산 (딜러/서포터 분기)
+  const combatPower = extractCombatPower(profile.Stats, profile.CharacterClassName);
   const itemLevel = parseItemLevel(profile.ItemAvgLevel);
 
   const { error } = await supabase
@@ -51,7 +55,10 @@ export async function syncLostarkCharacter(
   if (error) return { success: false, message: "저장 중 오류가 발생했어요" };
 
   revalidatePath("/mypage");
-  return { success: true, message: `${profile.CharacterName} 연동 완료!` };
+  return {
+    success: true,
+    message: `${profile.CharacterName} 연동 완료!`,
+  };
 }
 
 export async function fetchArmoryData(characterName: string) {
