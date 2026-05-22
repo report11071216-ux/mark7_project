@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles, Gamepad2 } from "lucide-react";
+import { Trophy, ShoppingBag, Sparkles, Gamepad2, Megaphone } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
-import AnnouncementBanner from "@/components/plaza/AnnouncementBanner";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
 import MyProfileCard from "@/components/plaza/MyProfileCard";
@@ -22,6 +21,7 @@ export default async function PlazaPage() {
     weeklyRankingResult,
     rawPostsResult,
     totalCountResult,
+    announcementResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -42,6 +42,11 @@ export default async function PlazaPage() {
       .order("created_at", { ascending: false })
       .limit(20),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "plaza_announcement")
+      .maybeSingle(),
   ]);
 
   const user = userResult.data.user;
@@ -49,6 +54,12 @@ export default async function PlazaPage() {
   const weeklyRaw = weeklyRankingResult.data;
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
+  const announcementRaw = announcementResult.data?.value as {
+    message: string;
+    link: string;
+    active: boolean;
+  } | null;
+  const showAnnouncement = !!(announcementRaw?.active && announcementRaw.message?.trim());
 
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
     id: g.id,
@@ -160,7 +171,27 @@ export default async function PlazaPage() {
         </div>
       </div>
 
-      <AnnouncementBanner />
+      {showAnnouncement && (
+        <div className="bg-blue-600 w-full">
+          <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
+            <Megaphone className="w-4 h-4 text-white shrink-0" />
+            <p className="text-sm font-medium text-white truncate flex-1">
+              {announcementRaw!.message}
+            </p>
+            {announcementRaw!.link && (
+              
+                href={announcementRaw!.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold text-white/80 underline underline-offset-2 shrink-0 hidden sm:block"
+              >
+                자세히 보기 →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       <MegaphoneTicker />
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
