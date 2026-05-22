@@ -1,14 +1,12 @@
-// components/Navbar.tsx 교체
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
+import { LayoutGrid, Trophy, Castle, LogIn } from "lucide-react";
 
 export default async function Navbar() {
-  const supabase = await createClient(); // ← await 추가
-
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 프로필은 유저 있을 때만
   const profile = user
     ? (await supabase
         .from("profiles")
@@ -19,48 +17,68 @@ export default async function Navbar() {
     : null;
 
   return (
-    <nav className="border-b border-gray-200 bg-white shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+    <nav className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-30">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         <Link
           href="/"
-          className="text-xl font-bold text-gray-900 hover:text-blue-600"
+          className="flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors"
         >
-          🎮 길드패스
+          <span className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.2em]">
+            GUILDPASS
+          </span>
         </Link>
 
-        <div className="hidden gap-6 md:flex">
-          <Link href="/" className="text-gray-700 hover:text-blue-600">
-            🏛️ 광장
+        <div className="hidden md:flex items-center gap-1">
+          <Link
+            href="/plaza"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            광장
           </Link>
-          <Link href="/ranking" className="text-gray-700 hover:text-blue-600">
-            🏆 랭킹
+          <Link
+            href="/ranking"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            랭킹
           </Link>
           {user && (
-            <Link href="/my-guilds" className="text-gray-700 hover:text-blue-600">
-              🏰 내 길드
+            <Link
+              href="/my-guilds"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              <Castle className="w-3.5 h-3.5" />
+              내 길드
             </Link>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {user ? (
             <>
               <div className="flex items-center gap-2">
-                {profile?.avatar_url && (
+                {profile?.avatar_url ? (
                   <img
                     src={profile.avatar_url}
                     alt="프로필"
-                    className="h-8 w-8 rounded-full"
+                    className="w-7 h-7 rounded-full object-cover ring-2 ring-slate-100"
                   />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-white">
+                      {(profile?.username ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
                 )}
-                <span className="hidden text-sm font-medium text-gray-700 sm:inline">
-                  {profile?.username || "User"}
+                <span className="hidden sm:block text-xs font-bold text-slate-700">
+                  {profile?.username ?? "User"}
                 </span>
               </div>
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-100"
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   로그아웃
                 </button>
@@ -69,8 +87,9 @@ export default async function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="rounded-md bg-[#5865F2] px-4 py-1.5 text-sm font-medium text-white transition hover:bg-[#4752C4]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
             >
+              <LogIn className="w-3.5 h-3.5" />
               로그인
             </Link>
           )}
