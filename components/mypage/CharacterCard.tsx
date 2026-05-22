@@ -85,14 +85,14 @@ export default function CharacterCard({
               <h2 className="text-xl font-bold text-white tracking-tight">{name}</h2>
             </div>
 
-            <div className="flex items-end gap-6 mt-4">
+            <div className="flex items-end gap-5 mt-4">
               {/* 전투력 */}
               <div>
                 <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Zap className="w-2.5 h-2.5 text-amber-400" />
                   전투력
                 </p>
-                <p className="text-2xl font-bold font-mono text-amber-400 leading-none">
+                <p className="text-[22px] font-bold text-amber-400 leading-none tracking-tight">
                   {combatPower > 0
                     ? combatPower.toLocaleString("ko-KR", {
                         minimumFractionDigits: 2,
@@ -110,8 +110,13 @@ export default function CharacterCard({
                   <Sword className="w-2.5 h-2.5 text-zinc-400" />
                   아이템 레벨
                 </p>
-                <p className="text-xl font-bold font-mono text-zinc-200 leading-none">
-                  {itemLevel > 0 ? itemLevel.toLocaleString() : "—"}
+                <p className="text-[18px] font-bold text-zinc-200 leading-none tracking-tight">
+                  {itemLevel > 0
+                    ? itemLevel.toLocaleString("ko-KR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : "—"}
                 </p>
               </div>
 
@@ -123,7 +128,7 @@ export default function CharacterCard({
                   <Star className="w-2.5 h-2.5 text-zinc-400" />
                   원정대
                 </p>
-                <p className="text-xl font-bold font-mono text-zinc-200 leading-none">
+                <p className="text-[18px] font-bold text-zinc-200 leading-none tracking-tight">
                   Lv.{expeditionLevel}
                 </p>
               </div>
