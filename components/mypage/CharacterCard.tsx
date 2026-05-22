@@ -27,10 +27,6 @@ export default function CharacterCard({
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  function formatNumber(n: number) {
-    return n.toLocaleString("ko-KR");
-  }
-
   return (
     <>
       <div
@@ -90,16 +86,25 @@ export default function CharacterCard({
             </div>
 
             <div className="flex items-end gap-6 mt-4">
+              {/* 전투력 */}
               <div>
                 <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Zap className="w-2.5 h-2.5 text-amber-400" />
                   전투력
                 </p>
                 <p className="text-2xl font-bold font-mono text-amber-400 leading-none">
-                  {combatPower > 0 ? formatNumber(combatPower) : "—"}
+                  {combatPower > 0
+                    ? combatPower.toLocaleString("ko-KR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : "—"}
                 </p>
               </div>
+
               <div className="h-10 w-px bg-amber-500/10" />
+
+              {/* 아이템 레벨 */}
               <div>
                 <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Sword className="w-2.5 h-2.5 text-zinc-400" />
@@ -109,7 +114,10 @@ export default function CharacterCard({
                   {itemLevel > 0 ? itemLevel.toLocaleString() : "—"}
                 </p>
               </div>
+
               <div className="h-10 w-px bg-amber-500/10" />
+
+              {/* 원정대 레벨 */}
               <div>
                 <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Star className="w-2.5 h-2.5 text-zinc-400" />
@@ -125,7 +133,11 @@ export default function CharacterCard({
           {/* 우측 장식 */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 opacity-20">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-px bg-amber-400" style={{ width: i % 2 === 0 ? "16px" : "10px" }} />
+              <div
+                key={i}
+                className="h-px bg-amber-400"
+                style={{ width: i % 2 === 0 ? "16px" : "10px" }}
+              />
             ))}
           </div>
 
@@ -136,6 +148,7 @@ export default function CharacterCard({
           </div>
         </div>
 
+        {/* 하단 골드 라인 */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
       </div>
 
