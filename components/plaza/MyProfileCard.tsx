@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User, LogIn } from "lucide-react";
+import { User, LogIn, ShieldCheck } from "lucide-react";
 
 type Profile = {
   username: string | null;
@@ -9,9 +9,11 @@ type Profile = {
 export default function MyProfileCard({
   isLoggedIn,
   profile,
+  isAdmin = false,
 }: {
   isLoggedIn: boolean;
   profile: Profile | null;
+  isAdmin?: boolean;
 }) {
   if (!isLoggedIn) {
     return (
@@ -58,12 +60,24 @@ export default function MyProfileCard({
           </p>
         </div>
       </div>
-      <Link
-        href="/mypage"
-        className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
-      >
-        마이페이지
-      </Link>
+
+      <div className="flex flex-col gap-1.5">
+        <Link
+          href="/mypage"
+          className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
+        >
+          마이페이지
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-bold text-center transition-colors ring-1 ring-amber-200"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            관리자 콘솔
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
