@@ -6,6 +6,7 @@ import {
   type CalendarContent,
   type RewardItem,
 } from "@/lib/lostark";
+import { createClient } from "@/lib/supabase/server";
 import { Swords, Map, Skull } from "lucide-react";
 import AdventureIslandList from "./AdventureIslandList";
 
@@ -58,7 +59,6 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
   );
-
   const islandList = todayItems.map((item) => ({
     name: item.ContentsName,
     icon: item.ContentsIcon ?? null,
@@ -81,59 +81,43 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   );
 }
 
-// ─── 가디언토벌 ───
-function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
-  const current = items[0];
-
-  const guardianIndex = current
-    ? GUARDIAN_ORDER.findIndex((name) => current.ContentsName.includes(name))
-    : -1;
+// ─── 가디언토벌 (DB 로테이션) ───
+function GuardianRaidWidget({ guardianIndex }: { guardianIndex: number }) {
+  const currentName = GUARDIAN_ORDER[guardianIndex] ?? null;
 
   return (
     <div className="plaza-card overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
         <Swords className="w-4 h-4 text-blue-600" />
         <h3 className="text-xs font-bold text-slate-900">이번 주 가디언</h3>
-        {guardianIndex >= 0 && (
+        {currentName && (
           <span className="ml-auto text-[10px] font-mono text-slate-400">
             {guardianIndex + 1}/{GUARDIAN_ORDER.length}
           </span>
         )}
       </div>
       <div className="p-4">
-        {!current ? (
+        {!currentName ? (
           <p className="text-xs text-slate-400 text-center py-4">
             가디언 정보가 없어요
           </p>
         ) : (
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              {current.ContentsIcon && (
-                <img
-                  src={current.ContentsIcon}
-                  alt={current.ContentsName}
-                  className="w-12 h-12 rounded-xl object-cover ring-2 ring-blue-100"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-900">
-                  {current.ContentsName}
-                </p>
-                {current.MinItemLevel > 0 && (
-                  <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                    최소 {current.MinItemLevel.toLocaleString()}
-                  </p>
-                )}
-              </div>
+            <div className="mb-3">
+              <p className="text-sm font-bold text-slate-900">{currentName}</p>
+              <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                매주 수요일 06:00 초기화
+              </p>
             </div>
-            <div className="flex gap-1 mt-3 flex-wrap">
+            {/* 로테이션 트랙 */}
+            <div className="flex gap-1 flex-wrap">
               {GUARDIAN_ORDER.map((name, i) => (
                 <span
                   key={name}
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition ${
                     i === guardianIndex
                       ? "bg-blue-600 text-white"
-                      : i < (guardianIndex >= 0 ? guardianIndex : 0)
+                      : i < guardianIndex
                       ? "bg-slate-100 text-slate-400 line-through"
                       : "bg-slate-100 text-slate-500"
                   }`}
@@ -142,7 +126,6 @@ function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
                 </span>
               ))}
             </div>
-            <RewardItems items={current.RewardItems} />
           </div>
         )}
       </div>
@@ -213,17 +196,26 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
 
 // ─── 메인 export ───
 export default async function GameContentWidgets() {
-  const calendar = await getCalendar();
+  const supabase = await createClient();
 
-  // CategoryName 변형 대응 (띄어쓰기 유무 모두 커버)
+  const [calendar, guardianSettingResult] = await Promise.all([
+    getCalendar(),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "current_guardian_index")
+      .maybeSingle(),
+  ]);
+
+  const guardianIndex = Number(guardianSettingResult.data?.value ?? 0);
+
   const adventures = calendar.filter((c) => c.CategoryName?.includes("모험"));
-  const guardians = calendar.filter((c) => c.CategoryName?.includes("가디언"));
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드"));
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <AdventureIslandWidget items={adventures} />
-      <GuardianRaidWidget items={guardians} />
+      <GuardianRaidWidget guardianIndex={guardianIndex} />
       <FieldBossWidget items={fieldBosses} />
     </div>
   );
