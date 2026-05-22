@@ -91,7 +91,11 @@ export default async function PlazaPage() {
         : Promise.resolve({ data: [] }),
     ]);
 
-  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null; is_platform_admin: boolean } | null;
+  const myProfile = profileResult.data as {
+    username: string | null;
+    avatar_url: string | null;
+    is_platform_admin: boolean;
+  } | null;
   const memberships = membershipsResult.data ?? [];
   const postGuilds = postGuildsResult.data ?? [];
   const postAuthors = postAuthorsResult.data ?? [];
@@ -155,6 +159,7 @@ export default async function PlazaPage() {
           </div>
         </div>
       </div>
+
       <AnnouncementBanner />
       <MegaphoneTicker />
 
