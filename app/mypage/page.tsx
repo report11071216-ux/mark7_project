@@ -217,7 +217,7 @@ export default async function MyPage() {
                   characterClass={profile?.character_class ?? ""}
                   serverName={profile?.server_name ?? ""}
                   itemLevel={profile?.item_level ?? 0}
-                  combatPower={profile?.combat_power ?? 0}
+                  combatPower={parseFloat(String(profile?.combat_power ?? 0)) || 0}
                   expeditionLevel={profile?.expedition_level ?? 0}
                   imageUrl={profile?.character_image_url ?? null}
                   syncedAt={profile?.lostark_synced_at ?? null}
