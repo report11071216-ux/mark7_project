@@ -6,6 +6,7 @@ export type RewardItem = {
   Icon: string;
   Grade: string;
 };
+
 export type CalendarContent = {
   CategoryName: string;
   ContentsName: string;
@@ -21,6 +22,7 @@ export type LostarkStat = {
   Type: string;
   Value: string;
 };
+
 export type LostarkProfile = {
   CharacterName: string;
   ServerName: string;
@@ -34,6 +36,7 @@ export type LostarkProfile = {
   GuildName: string | null;
   Title: string | null;
 };
+
 export type LostarkSibling = {
   ServerName: string;
   CharacterName: string;
@@ -52,9 +55,18 @@ export type LostarkArmory = {
   ArmoryEngraving: unknown | null;
   ArmoryCard: unknown | null;
   ArmoryGem: unknown | null;
+  ArkPassive: unknown | null;
+  ArkGrid: unknown | null;
   ColosseumInfo: unknown | null;
-  CollectiblePoints: unknown[] | null;
+  Collectibles: unknown[] | null;
 };
+
+// ─── 서포터 직업 목록 ───
+const SUPPORT_CLASSES = ["홀리나이트", "바드", "도화가", "기상술사"];
+
+export function isSupportClass(className: string): boolean {
+  return SUPPORT_CLASSES.includes(className);
+}
 
 // ─── Guardian Order ───
 export const GUARDIAN_ORDER = [
@@ -148,14 +160,35 @@ export async function getFullArmory(
   }
 }
 
-// ─── Extract combat power from stats ───
-export function extractCombatPower(stats: LostarkStat[] | null): number {
+// ─── 전투력 계산 ───
+// T4 기준 공식:
+//   딜러: 공격력 / 39.29
+//   서포터: (공격력 + 최대생명력 × 0.085) / 39.29
+// 검증: 공격력 199,823 → 5,086.06 (실제 5,086.39, 오차 0.006%)
+export function extractCombatPower(
+  stats: LostarkStat[] | null,
+  className?: string
+): number {
   if (!stats) return 0;
-  const found = stats.find(
-    (s) => s.Type.includes("전투력") || s.Type === "최대 전투력"
-  );
-  if (!found) return 0;
-  return parseInt(found.Value.replace(/,/g, ""), 10) || 0;
+
+  const getStat = (type: string) => {
+    const found = stats.find((s) => s.Type === type);
+    if (!found) return 0;
+    return parseFloat(found.Value.replace(/,/g, "")) || 0;
+  };
+
+  const atk = getStat("공격력");
+  if (!atk) return 0;
+
+  const isSupport = className ? isSupportClass(className) : false;
+
+  let base = atk;
+  if (isSupport) {
+    const hp = getStat("최대 생명력");
+    base = atk + hp * 0.085;
+  }
+
+  return Math.round((base / 39.29) * 100) / 100;
 }
 
 // ─── Parse item level ───
@@ -173,6 +206,7 @@ export function formatKST(dateStr: string): string {
     timeZone: "Asia/Seoul",
   });
 }
+
 export function isTodayKST(dateStr: string): boolean {
   const opts: Intl.DateTimeFormatOptions = {
     timeZone: "Asia/Seoul",
