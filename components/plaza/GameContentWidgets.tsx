@@ -7,8 +7,8 @@ import {
   type RewardItem,
 } from "@/lib/lostark";
 import { Swords, Map, Skull } from "lucide-react";
+import AdventureIslandList from "./AdventureIslandList";
 
-// 아이템 등급 테두리 색상
 const GRADE_BORDER: { [key: string]: string } = {
   일반: "ring-slate-300",
   고급: "ring-green-400",
@@ -42,7 +42,6 @@ function RewardItems({ items }: { items: RewardItem[] }) {
               GRADE_BORDER[item.Grade] ?? "ring-slate-200"
             }`}
           />
-          {/* 툴팁 */}
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded-md bg-slate-900 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
             <span className={GRADE_LABEL[item.Grade] ?? "text-slate-400"}>
               {item.Name}
@@ -57,12 +56,17 @@ function RewardItems({ items }: { items: RewardItem[] }) {
 // ─── 모험섬 ───
 function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
-    (item) =>
-      item.StartTimes?.some((t) => isTodayKST(t))
+    (item) => item.StartTimes?.some((t) => isTodayKST(t))
   );
 
+  const islandList = todayItems.map((item) => ({
+    name: item.ContentsName,
+    icon: item.ContentsIcon ?? null,
+    times: (item.StartTimes ?? []).filter(isTodayKST).map(formatKST),
+  }));
+
   return (
-    <div className="plaza-card overflow-hidden h-full flex flex-col">
+    <div className="plaza-card overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
         <Map className="w-4 h-4 text-blue-600" />
         <h3 className="text-xs font-bold text-slate-900">오늘의 모험섬</h3>
@@ -70,40 +74,8 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
           Adventure Island
         </span>
       </div>
-      <div className="p-4 flex-1">
-        {todayItems.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4">
-            오늘 모험섬 정보가 없어요
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {todayItems.map((item, i) => {
-              const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
-              return (
-                <div key={i}>
-                  <div className="flex items-center gap-2 mb-1">
-                    {item.ContentsIcon && (
-                      <img
-                        src={item.ContentsIcon}
-                        alt={item.ContentsName}
-                        className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 truncate">
-                        {item.ContentsName}
-                      </p>
-                      <p className="text-[10px] font-mono text-blue-600">
-                        {todayTimes.map(formatKST).join(" · ")}
-                      </p>
-                    </div>
-                  </div>
-                  <RewardItems items={item.RewardItems} />
-                </div>
-              );
-            })}
-          </div>
-        )}
+      <div className="p-4">
+        <AdventureIslandList items={islandList} />
       </div>
     </div>
   );
@@ -114,13 +86,11 @@ function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
   const current = items[0];
 
   const guardianIndex = current
-    ? GUARDIAN_ORDER.findIndex((name) =>
-        current.ContentsName.includes(name)
-      )
+    ? GUARDIAN_ORDER.findIndex((name) => current.ContentsName.includes(name))
     : -1;
 
   return (
-    <div className="plaza-card overflow-hidden h-full flex flex-col">
+    <div className="plaza-card overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
         <Swords className="w-4 h-4 text-blue-600" />
         <h3 className="text-xs font-bold text-slate-900">이번 주 가디언</h3>
@@ -130,7 +100,7 @@ function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
           </span>
         )}
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4">
         {!current ? (
           <p className="text-xs text-slate-400 text-center py-4">
             가디언 정보가 없어요
@@ -156,7 +126,6 @@ function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
                 )}
               </div>
             </div>
-            {/* 순서 트랙 */}
             <div className="flex gap-1 mt-3 flex-wrap">
               {GUARDIAN_ORDER.map((name, i) => (
                 <span
@@ -184,12 +153,11 @@ function GuardianRaidWidget({ items }: { items: CalendarContent[] }) {
 // ─── 필드보스 ───
 function FieldBossWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
-    (item) =>
-      item.StartTimes?.some((t) => isTodayKST(t))
+    (item) => item.StartTimes?.some((t) => isTodayKST(t))
   );
 
   return (
-    <div className="plaza-card overflow-hidden h-full flex flex-col">
+    <div className="plaza-card overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
         <Skull className="w-4 h-4 text-blue-600" />
         <h3 className="text-xs font-bold text-slate-900">오늘의 필드보스</h3>
@@ -197,7 +165,7 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
           Field Boss
         </span>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4">
         {todayItems.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-4">
             오늘 필드보스 정보가 없어요
@@ -208,7 +176,7 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
               const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
               return (
                 <div key={i}>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2">
                     {item.ContentsIcon && (
                       <img
                         src={item.ContentsIcon}
@@ -247,15 +215,10 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
 export default async function GameContentWidgets() {
   const calendar = await getCalendar();
 
-  const adventures = calendar.filter((c) =>
-    c.CategoryName.includes("모험 섬") || c.CategoryName.includes("모험섬")
-  );
-  const guardians = calendar.filter((c) =>
-    c.CategoryName.includes("가디언 토벌") || c.CategoryName.includes("가디언토벌")
-  );
-  const fieldBosses = calendar.filter((c) =>
-    c.CategoryName.includes("필드 보스") || c.CategoryName.includes("필드보스")
-  );
+  // CategoryName 변형 대응 (띄어쓰기 유무 모두 커버)
+  const adventures = calendar.filter((c) => c.CategoryName?.includes("모험"));
+  const guardians = calendar.filter((c) => c.CategoryName?.includes("가디언"));
+  const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드"));
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
