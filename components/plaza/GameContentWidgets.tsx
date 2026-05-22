@@ -30,6 +30,8 @@ const GRADE_LABEL: { [key: string]: string } = {
   고대: "text-yellow-500",
 };
 
+type Weakness = { name: string; color: string };
+
 function RewardItems({ items }: { items: RewardItem[] }) {
   if (!items || items.length === 0) return null;
   return (
@@ -54,7 +56,6 @@ function RewardItems({ items }: { items: RewardItem[] }) {
   );
 }
 
-// ─── 모험섬 ───
 function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -81,13 +82,14 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   );
 }
 
-// ─── 가디언토벌 (DB 로테이션 + 이미지) ───
 function GuardianRaidWidget({
   guardianIndex,
   imageUrl,
+  weaknesses,
 }: {
   guardianIndex: number;
   imageUrl: string | null;
+  weaknesses: Weakness[];
 }) {
   const currentName = GUARDIAN_ORDER[guardianIndex] ?? null;
 
@@ -109,21 +111,46 @@ function GuardianRaidWidget({
           </p>
         ) : (
           <div>
-            {imageUrl && (
-              <div className="mb-3 rounded-xl overflow-hidden aspect-video bg-slate-100">
-                <img
-                  src={imageUrl}
-                  alt={currentName}
-                  className="w-full h-full object-cover"
-                />
+            {/* 썸네일 + 이름 가로 배치 */}
+            <div className="flex items-center gap-3 mb-3">
+              {imageUrl && (
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 ring-1 ring-slate-200">
+                  <img
+                    src={imageUrl}
+                    alt={currentName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900">{currentName}</p>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                  매주 수요일 06:00 초기화
+                </p>
+              </div>
+            </div>
+
+            {/* 취약속성 */}
+            {weaknesses.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
+                  취약속성
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {weaknesses.map((w, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                      style={{ backgroundColor: w.color }}
+                    >
+                      {w.name}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
-            <div className="mb-3">
-              <p className="text-sm font-bold text-slate-900">{currentName}</p>
-              <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                매주 수요일 06:00 초기화
-              </p>
-            </div>
+
+            {/* 로테이션 트랙 */}
             <div className="flex gap-1 flex-wrap">
               {GUARDIAN_ORDER.map((name, i) => (
                 <span
@@ -147,7 +174,6 @@ function GuardianRaidWidget({
   );
 }
 
-// ─── 필드보스 ───
 function FieldBossWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -208,27 +234,38 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
   );
 }
 
-// ─── 메인 export ───
 export default async function GameContentWidgets() {
   const supabase = await createClient();
 
-  const [calendar, guardianSettingResult, guardianImagesResult] = await Promise.all([
-    getCalendar(),
-    supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "current_guardian_index")
-      .maybeSingle(),
-    supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "guardian_images")
-      .maybeSingle(),
-  ]);
+  const [calendar, guardianSettingResult, guardianImagesResult, guardianWeaknessesResult] =
+    await Promise.all([
+      getCalendar(),
+      supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "current_guardian_index")
+        .maybeSingle(),
+      supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "guardian_images")
+        .maybeSingle(),
+      supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "guardian_weaknesses")
+        .maybeSingle(),
+    ]);
 
   const guardianIndex = Number(guardianSettingResult.data?.value ?? 0);
   const guardianImages = (guardianImagesResult.data?.value ?? {}) as { [key: string]: string };
+  const guardianWeaknessesAll = (guardianWeaknessesResult.data?.value ?? {}) as {
+    [key: string]: Weakness[];
+  };
   const guardianImageUrl = guardianImages[String(guardianIndex)] ?? null;
+  const currentWeaknesses: Weakness[] = Array.isArray(guardianWeaknessesAll[String(guardianIndex)])
+    ? guardianWeaknessesAll[String(guardianIndex)]
+    : [];
 
   const adventures = calendar.filter((c) => c.CategoryName?.includes("모험"));
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드"));
@@ -236,7 +273,11 @@ export default async function GameContentWidgets() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <AdventureIslandWidget items={adventures} />
-      <GuardianRaidWidget guardianIndex={guardianIndex} imageUrl={guardianImageUrl} />
+      <GuardianRaidWidget
+        guardianIndex={guardianIndex}
+        imageUrl={guardianImageUrl}
+        weaknesses={currentWeaknesses}
+      />
       <FieldBossWidget items={fieldBosses} />
     </div>
   );
