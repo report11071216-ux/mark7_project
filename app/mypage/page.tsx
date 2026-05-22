@@ -70,7 +70,6 @@ export default async function MyPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* 헤더 */}
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[11px] font-mono">
@@ -94,16 +93,12 @@ export default async function MyPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-6 space-y-4">
 
-        {/* ── 메인 그리드 ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
-          {/* 좌측 영역 (col-8): 프로필+길드 / 캐릭터카드 */}
           <div className="lg:col-span-8 space-y-4">
 
-            {/* 상단: 프로필카드 + 내길드 */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
 
-              {/* 프로필 카드 */}
               <div className="sm:col-span-5">
                 <div className="plaza-card p-4 h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-4">
@@ -139,7 +134,6 @@ export default async function MyPage() {
                 </div>
               </div>
 
-              {/* 내 길드 */}
               <div className="sm:col-span-7">
                 <div className="plaza-card p-4 h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-4">
@@ -206,7 +200,6 @@ export default async function MyPage() {
               </div>
             </div>
 
-            {/* 캐릭터 카드 */}
             <div className="plaza-card p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <Crown className="w-3.5 h-3.5 text-blue-600" />
@@ -240,13 +233,11 @@ export default async function MyPage() {
             </div>
           </div>
 
-          {/* 우측 영역 (col-4): 출석 캘린더 */}
           <div className="lg:col-span-4">
             <AttendanceCalendar attendedDates={attendedDates} />
           </div>
         </div>
 
-        {/* ── 내 게시글 ── */}
         <div className="plaza-card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -257,4 +248,51 @@ export default async function MyPage() {
             </div>
             <Link
               href="/plaza/board"
-              className="text-[11px] font-mono text-blue-600 hover:text-blue-700 transitio
+              className="text-[11px] font-mono text-blue-600 hover:text-blue-700 transition"
+            >
+              전체 보기 →
+            </Link>
+          </div>
+          {posts.length === 0 ? (
+            <div className="py-10 text-center">
+              <FileText className="w-6 h-6 text-slate-200 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">아직 작성한 글이 없어요</p>
+              <Link
+                href="/plaza/board/new"
+                className="inline-block mt-2 text-xs font-bold text-blue-600 hover:underline"
+              >
+                첫 글 작성하기 →
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/plaza/board/${post.id}`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 transition group"
+                >
+                  {post.category && (
+                    <span className="text-[10px] font-bold font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                      {post.category}
+                    </span>
+                  )}
+                  <p className="text-sm text-slate-700 truncate flex-1 group-hover:text-blue-700 transition">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400 shrink-0">
+                    <Eye className="w-3 h-3" />
+                    {post.view_count ?? 0}
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                    {getRelativeTime(post.created_at)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
