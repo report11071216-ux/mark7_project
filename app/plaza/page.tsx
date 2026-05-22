@@ -73,7 +73,7 @@ export default async function PlazaPage() {
   const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] =
     await Promise.all([
       user
-        ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
+        ? supabase.from("profiles").select("username, avatar_url, is_platform_admin").eq("id", user.id).maybeSingle()
         : Promise.resolve({ data: null }),
       user
         ? supabase
@@ -90,7 +90,7 @@ export default async function PlazaPage() {
         : Promise.resolve({ data: [] }),
     ]);
 
-  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null } | null;
+  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null; is_platform_admin: boolean } | null;
   const memberships = membershipsResult.data ?? [];
   const postGuilds = postGuildsResult.data ?? [];
   const postAuthors = postAuthorsResult.data ?? [];
@@ -166,7 +166,11 @@ export default async function PlazaPage() {
             <BoardPreview posts={plazaPosts} />
           </div>
           <aside className="lg:col-span-3 space-y-4">
-            <MyProfileCard isLoggedIn={!!user} profile={myProfile} />
+            <MyProfileCard
+              isLoggedIn={!!user}
+              profile={myProfile}
+              isAdmin={myProfile?.is_platform_admin === true}
+            />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
             <SideRanking guilds={sideRankings} />
           </aside>
