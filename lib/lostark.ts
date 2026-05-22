@@ -6,7 +6,6 @@ export type RewardItem = {
   Icon: string;
   Grade: string;
 };
-
 export type CalendarContent = {
   CategoryName: string;
   ContentsName: string;
@@ -22,7 +21,6 @@ export type LostarkStat = {
   Type: string;
   Value: string;
 };
-
 export type LostarkProfile = {
   CharacterName: string;
   ServerName: string;
@@ -36,7 +34,6 @@ export type LostarkProfile = {
   GuildName: string | null;
   Title: string | null;
 };
-
 export type LostarkSibling = {
   ServerName: string;
   CharacterName: string;
@@ -44,6 +41,19 @@ export type LostarkSibling = {
   CharacterClassName: string;
   ItemAvgLevel: string;
   ItemMaxLevel: string;
+};
+
+// ─── Full Armory Type ───
+export type LostarkArmory = {
+  ArmoryProfile: LostarkProfile | null;
+  ArmoryEquipment: unknown[] | null;
+  ArmoryAvatars: unknown[] | null;
+  ArmorySkills: unknown[] | null;
+  ArmoryEngraving: unknown | null;
+  ArmoryCard: unknown | null;
+  ArmoryGem: unknown | null;
+  ColosseumInfo: unknown | null;
+  CollectiblePoints: unknown[] | null;
 };
 
 // ─── Guardian Order ───
@@ -118,6 +128,26 @@ export async function getCharacterSiblings(
   }
 }
 
+// ─── Full Armory API ───
+export async function getFullArmory(
+  name: string
+): Promise<LostarkArmory | null> {
+  try {
+    const encoded = encodeURIComponent(name);
+    const res = await fetch(`${BASE}/armories/characters/${encoded}`, {
+      headers: {
+        Authorization: `bearer ${process.env.LOSTARK_API_KEY}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 // ─── Extract combat power from stats ───
 export function extractCombatPower(stats: LostarkStat[] | null): number {
   if (!stats) return 0;
@@ -143,7 +173,6 @@ export function formatKST(dateStr: string): string {
     timeZone: "Asia/Seoul",
   });
 }
-
 export function isTodayKST(dateStr: string): boolean {
   const opts: Intl.DateTimeFormatOptions = {
     timeZone: "Asia/Seoul",
