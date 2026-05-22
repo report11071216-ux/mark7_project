@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
   getCharacterProfile,
+  getFullArmory,
   extractCombatPower,
   parseItemLevel,
 } from "@/lib/lostark";
@@ -17,21 +18,14 @@ export async function syncLostarkCharacter(
   characterName: string
 ): Promise<SyncResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, message: "로그인이 필요합니다" };
-  if (!characterName.trim())
-    return { success: false, message: "캐릭터명을 입력해주세요" };
+  if (!characterName.trim()) return { success: false, message: "캐릭터명을 입력해주세요" };
 
   const profile = await getCharacterProfile(characterName.trim());
-
   if (!profile) {
-    return {
-      success: false,
-      message: "캐릭터를 찾을 수 없어요. 이름을 다시 확인해주세요.",
-    };
+    return { success: false, message: "캐릭터를 찾을 수 없어요. 이름을 다시 확인해주세요." };
   }
 
   const combatPower = extractCombatPower(profile.Stats);
@@ -40,6 +34,7 @@ export async function syncLostarkCharacter(
   const { error } = await supabase
     .from("profiles")
     .update({
+      username: profile.CharacterName,
       main_character_name: profile.CharacterName,
       lostark_character_name: profile.CharacterName,
       character_class: profile.CharacterClassName,
@@ -57,4 +52,9 @@ export async function syncLostarkCharacter(
 
   revalidatePath("/mypage");
   return { success: true, message: `${profile.CharacterName} 연동 완료!` };
+}
+
+export async function fetchArmoryData(characterName: string) {
+  if (!characterName) return null;
+  return await getFullArmory(characterName);
 }
