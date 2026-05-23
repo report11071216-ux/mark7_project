@@ -91,7 +91,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
 
         {/* 통계 */}
         {enabled("stats") && (
-          <div className="grid grid-cols-4 gap-px rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBorder, ringColor: cardBorder }}>
+          <div className="grid grid-cols-4 gap-px rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBorder }}>
             {[
               { label: "멤버", value: `${guild.member_count}/${guild.max_members}` },
               { label: "길드 포인트", value: formatNumber(guild.total_points), accent: true },
@@ -132,7 +132,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
               <div className="rounded-xl border p-4" style={{ backgroundColor: isLight ? "#f9fafb" : "#27272a", borderColor: cardBorder }}>
                 <div className="flex items-center gap-3">
                   {guardianImageUrl && (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 ring-1" style={{ ringColor: cardBorder }}>
+                    <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 ring-1" style={{ borderColor: cardBorder }}>
                       <img src={guardianImageUrl} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -174,7 +174,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
                 전체 보기 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            <div className="rounded-xl overflow-hidden ring-1" style={{ ringColor: cardBorder }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ borderColor: cardBorder }}>
               <div className="grid grid-cols-[1fr_100px_80px] px-4 py-2 border-b" style={{ backgroundColor: isLight ? "#f9fafb" : "#27272a", borderColor: cardBorder }}>
                 <span className="text-[10px] font-semibold uppercase" style={{ color: textSecondary }}>제목</span>
                 <span className="text-[10px] font-semibold uppercase" style={{ color: textSecondary }}>작성자</span>
