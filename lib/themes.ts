@@ -1,26 +1,18 @@
 export type WidgetId =
-  | "attendance"
-  | "calendar"
-  | "stats"
-  | "recentMembers"
-  | "notice"
-  | "guildIntro"
-  | "pointRanking"
-  | "guardian"
-  | "raidStatus"
-  | "onlineMembers";
+  | "attendance" | "calendar" | "stats" | "recentMembers"
+  | "notice" | "guildIntro" | "pointRanking" | "guardian"
+  | "raidStatus" | "onlineMembers";
 
-export type ThemeWidget = {
-  id: WidgetId;
-  wide: boolean;
-  enabled: boolean;
-};
+export type ThemeWidget = { id: WidgetId; wide: boolean; enabled: boolean };
+
+export type LayoutStyle = "naver" | "discord" | "notion" | "steam";
 
 export type Theme = {
   id: string;
   name: string;
   description: string;
   icon: string;
+  layoutStyle: LayoutStyle;
   widgets: ThemeWidget[];
 };
 
@@ -39,131 +31,65 @@ export const WIDGET_META: { [key: string]: { label: string; icon: string; descri
 
 export const THEMES: Theme[] = [
   {
-    id: "conquest",
-    name: "Conquest",
-    description: "정복자. 출석·랭킹 강조",
-    icon: "⚔️",
+    id: "naver",
+    name: "네이버 카페",
+    description: "포털 카페 스타일. 공지·랭킹 중심",
+    icon: "🟢",
+    layoutStyle: "naver",
     widgets: [
-      { id: "stats",         wide: true,  enabled: true },
+      { id: "notice",        wide: false, enabled: true },
+      { id: "pointRanking",  wide: false, enabled: true },
       { id: "attendance",    wide: false, enabled: true },
-      { id: "calendar",      wide: false, enabled: true },
+      { id: "guardian",      wide: false, enabled: true },
+      { id: "recentMembers", wide: false, enabled: true },
+      { id: "stats",         wide: false, enabled: true },
+      { id: "onlineMembers", wide: false, enabled: true },
+    ],
+  },
+  {
+    id: "discord",
+    name: "Discord",
+    description: "채널 기반 다크 커뮤니티",
+    icon: "💬",
+    layoutStyle: "discord",
+    widgets: [
+      { id: "attendance",    wide: false, enabled: true },
+      { id: "stats",         wide: false, enabled: true },
+      { id: "notice",        wide: false, enabled: true },
       { id: "pointRanking",  wide: false, enabled: true },
       { id: "guardian",      wide: false, enabled: true },
-    ],
-  },
-  {
-    id: "sanctuary",
-    name: "Sanctuary",
-    description: "커뮤니티. 공지·멤버 중심",
-    icon: "🏛️",
-    widgets: [
-      { id: "guildIntro",    wide: false, enabled: true },
-      { id: "notice",        wide: false, enabled: true },
       { id: "recentMembers", wide: false, enabled: true },
-      { id: "stats",         wide: false, enabled: true },
-      { id: "attendance",    wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "raid",
-    name: "Raid",
-    description: "레이드 특화. 일정·현황",
-    icon: "🗡️",
-    widgets: [
-      { id: "raidStatus",  wide: true,  enabled: true },
-      { id: "guardian",    wide: false, enabled: true },
-      { id: "attendance",  wide: false, enabled: true },
-      { id: "stats",       wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "honor",
-    name: "Honor",
-    description: "명예. 포인트 랭킹 강조",
-    icon: "🏆",
-    widgets: [
-      { id: "pointRanking", wide: true,  enabled: true },
-      { id: "stats",        wide: false, enabled: true },
-      { id: "attendance",   wide: false, enabled: true },
-      { id: "calendar",     wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "compact",
-    name: "Compact",
-    description: "미니멀. 핵심만",
-    icon: "📦",
-    widgets: [
-      { id: "attendance", wide: false, enabled: true },
-      { id: "stats",      wide: false, enabled: true },
-      { id: "notice",     wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "chronicle",
-    name: "Chronicle",
-    description: "기록. 캘린더·히스토리",
-    icon: "📅",
-    widgets: [
-      { id: "calendar",      wide: true,  enabled: true },
-      { id: "attendance",    wide: false, enabled: true },
-      { id: "stats",         wide: false, enabled: true },
-      { id: "recentMembers", wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "fortress",
-    name: "Fortress",
-    description: "요새. 멤버·온라인",
-    icon: "🏰",
-    widgets: [
       { id: "onlineMembers", wide: false, enabled: true },
-      { id: "recentMembers", wide: false, enabled: true },
+    ],
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    description: "미니멀 대시보드. 정보 중심",
+    icon: "📋",
+    layoutStyle: "notion",
+    widgets: [
       { id: "stats",         wide: true,  enabled: true },
-      { id: "guildIntro",    wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "vanguard",
-    name: "Vanguard",
-    description: "선봉대. 레이드·가디언",
-    icon: "🛡️",
-    widgets: [
-      { id: "raidStatus",   wide: false, enabled: true },
-      { id: "guardian",     wide: false, enabled: true },
-      { id: "pointRanking", wide: false, enabled: true },
-      { id: "stats",        wide: false, enabled: true },
-      { id: "attendance",   wide: true,  enabled: true },
-    ],
-  },
-  {
-    id: "harmony",
-    name: "Harmony",
-    description: "균형. 모든 위젯 고르게",
-    icon: "☯️",
-    widgets: [
       { id: "attendance",    wide: false, enabled: true },
-      { id: "stats",         wide: false, enabled: true },
-      { id: "notice",        wide: false, enabled: true },
       { id: "calendar",      wide: false, enabled: true },
+      { id: "notice",        wide: true,  enabled: true },
       { id: "pointRanking",  wide: false, enabled: true },
       { id: "recentMembers", wide: false, enabled: true },
-      { id: "guardian",      wide: true,  enabled: true },
     ],
   },
   {
-    id: "custom",
-    name: "Custom",
-    description: "직접 구성",
-    icon: "✨",
+    id: "steam",
+    name: "Steam",
+    description: "게이밍 스타일. 배너·스탯 강조",
+    icon: "🎮",
+    layoutStyle: "steam",
     widgets: [
       { id: "attendance",    wide: false, enabled: true },
-      { id: "stats",         wide: false, enabled: true },
-      { id: "notice",        wide: false, enabled: true },
-      { id: "calendar",      wide: false, enabled: true },
       { id: "pointRanking",  wide: false, enabled: true },
-      { id: "recentMembers", wide: false, enabled: true },
       { id: "guardian",      wide: true,  enabled: true },
+      { id: "stats",         wide: true,  enabled: true },
+      { id: "notice",        wide: false, enabled: true },
+      { id: "recentMembers", wide: false, enabled: true },
     ],
   },
 ];
@@ -173,7 +99,11 @@ export function getTheme(themeId: string | null | undefined): Theme {
   return THEMES.find((t) => t.id === themeId) ?? THEMES[0];
 }
 
-export function getLayoutWidgets(layoutConfig: { theme?: string; custom?: boolean; widgets?: ThemeWidget[] }): ThemeWidget[] {
+export function getLayoutWidgets(layoutConfig: {
+  theme?: string;
+  custom?: boolean;
+  widgets?: ThemeWidget[];
+}): ThemeWidget[] {
   if (layoutConfig.custom && Array.isArray(layoutConfig.widgets)) {
     return layoutConfig.widgets.filter((w) => w.enabled);
   }
