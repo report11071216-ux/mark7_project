@@ -27,7 +27,6 @@ export async function syncLostarkCharacter(
       message: "캐릭터를 찾을 수 없어요. 이름을 다시 확인해주세요.",
     };
   }
-  // 직업 기반 전투력 계산 (딜러/서포터 분기)
   const combatPower = extractCombatPower(profile.Stats, profile.CharacterClassName);
   const itemLevel = parseItemLevel(profile.ItemAvgLevel);
   const { error } = await supabase
@@ -68,6 +67,26 @@ export async function equipProfileCard(purchaseId: string | null) {
   }
 
   const { data, error } = await supabase.rpc("equip_profile_card", {
+    p_purchase_id: purchaseId,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/mypage");
+  return data as { success: boolean; error?: string };
+}
+
+export async function equipPersonalMark(purchaseId: string | null) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  const { data, error } = await supabase.rpc("equip_personal_mark", {
     p_purchase_id: purchaseId,
   });
 
