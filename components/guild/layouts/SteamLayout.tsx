@@ -48,7 +48,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
         <div className="relative max-w-5xl mx-auto px-6 h-full flex items-end pb-6">
           <div className="flex items-end gap-5 w-full">
             <div className="w-20 h-20 rounded-xl overflow-hidden ring-2 shrink-0 shadow-lg"
-              style={{ backgroundColor: cardBg, ringColor: primaryColor + "50", boxShadow: `0 0 24px ${primaryColor}33` }}>
+              style={{ backgroundColor: cardBg, boxShadow: `0 0 24px ${primaryColor}33` }}>
               {guild.logo_url
                 ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-3xl font-bold" style={{ color: primaryColor + "80" }}>{guild.name[0]}</div>
@@ -106,7 +106,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
         <div className="flex-1 min-w-0 space-y-5">
           {/* 가디언 */}
           {enabled("guardian") && (
-            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg, ringColor: primaryColor + "33" }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-stretch">
                 {guardianImageUrl ? (
                   <div className="w-40 shrink-0">
@@ -130,7 +130,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
                     {GUARDIAN_NAMES.map((name, i) => (
                       <span key={name} className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold" style={{
                         backgroundColor: i === guardianIndex ? primaryColor : i < guardianIndex ? headerBg : cardBg,
-                        color: i === guardianIndex ? "#ffffff" : i < guardianIndex ? textSecondary : textSecondary,
+                        color: i === guardianIndex ? "#ffffff" : textSecondary,
                         textDecoration: i < guardianIndex ? "line-through" : "none",
                       }}>{name}</span>
                     ))}
@@ -142,7 +142,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
 
           {/* 통계 */}
           {enabled("stats") && (
-            <div className="rounded-xl p-5 ring-1" style={{ backgroundColor: cardBg, ringColor: cardBorder }}>
+            <div className="rounded-xl p-5 ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 mb-4">
                 <Star className="w-4 h-4" style={{ color: primaryColor }} />
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: textSecondary }}>Guild Stats</p>
@@ -154,7 +154,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
                   { label: "내 출석", value: `${totalAttendances}일` },
                   { label: "연속 출석", value: `${streak}일` },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-lg p-3 text-center ring-1" style={{ backgroundColor: headerBg, ringColor: cardBorder }}>
+                  <div key={s.label} className="rounded-lg p-3 text-center ring-1" style={{ backgroundColor: headerBg }}>
                     <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: textSecondary }}>{s.label}</p>
                     <p className="text-lg font-bold" style={{ color: s.accent ? primaryColor : isLight ? "#111827" : "#ffffff" }}>{s.value}</p>
                   </div>
@@ -165,7 +165,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
 
           {/* 공지 */}
           {enabled("notice") && (
-            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg, ringColor: cardBorder }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4" style={{ color: primaryColor }} />
@@ -202,7 +202,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
         <div className="w-[220px] shrink-0 space-y-4">
           {/* 출석 */}
           {enabled("attendance") && (
-            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg, ringColor: cardBorder }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryColor }}>일일 출석</p>
               </div>
@@ -219,7 +219,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
 
           {/* 포인트 랭킹 */}
           {enabled("pointRanking") && (
-            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg, ringColor: cardBorder }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
                 <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryColor }}>랭킹</p>
@@ -250,7 +250,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
 
           {/* 최근 가입 */}
           {enabled("recentMembers") && (
-            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg, ringColor: cardBorder }}>
+            <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
                 <Users className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryColor }}>최근 가입</p>
