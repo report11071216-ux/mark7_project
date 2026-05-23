@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -7,18 +6,19 @@ import {
   Swords,
   SlidersHorizontal,
   Megaphone,
+  ShoppingBag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/guardian", label: "가디언 토벌", icon: Swords },
+  { href: "/admin/shop", label: "상품 관리", icon: ShoppingBag },
   { href: "/admin/settings", label: "플랫폼 설정", icon: SlidersHorizontal },
   { href: "/admin/announcement", label: "공지 배너", icon: Megaphone },
 ];
 
 export default function AdminNav() {
   const pathname = usePathname();
-
   return (
     <nav className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200">
       {NAV_ITEMS.map((item) => {
