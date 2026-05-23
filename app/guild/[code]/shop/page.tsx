@@ -56,7 +56,6 @@ export default async function GuildShopPage({ params }: Props) {
     duration_hours: it.duration_hours,
   }));
 
-  // 확성기 상품의 duration_hours 매핑
   const durationMap = new Map(
     (items ?? [])
       .filter((it) => it.category === "확성기")
@@ -72,7 +71,6 @@ export default async function GuildShopPage({ params }: Props) {
     megaphone_message: p.megaphone_message,
   }));
 
-  // 중복구매 체크용: 확성기(소모품)는 제외
   const consumableItemIds = new Set(
     (items ?? []).filter((it) => it.duration_hours !== null).map((it) => it.id)
   );
