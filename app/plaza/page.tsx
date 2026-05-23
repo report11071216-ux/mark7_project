@@ -115,11 +115,15 @@ export default async function PlazaPage() {
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.3)]">
-                <Trophy className="w-5 h-5 text-white" />
+              <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
+                <img
+                  src="https://prdcdrgxbtryrjjoasuc.supabase.co/storage/v1/object/public/platform-assets/plaza-icon.png.png"
+                  alt="광장"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
+                <p className="text-[11px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
                 <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
               </div>
             </div>
