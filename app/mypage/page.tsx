@@ -10,6 +10,7 @@ import CharacterCard from "@/components/mypage/CharacterCard";
 import CharacterSync from "@/components/mypage/CharacterSync";
 import ProfileEdit from "@/components/mypage/ProfileEdit";
 import AttendanceCalendar from "@/components/mypage/AttendanceCalendar";
+import MyInventory, { type MyInventoryItem } from "@/components/mypage/MyInventory";
 import { signOut } from "@/app/actions/auth";
 
 const ROLE_LABEL: { [key: string]: string } = {
@@ -35,7 +36,7 @@ export default async function MyPage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     .toISOString().split("T")[0];
 
-  const [profileResult, membershipsResult, postsResult, attendanceResult] =
+  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -58,6 +59,12 @@ export default async function MyPage() {
         .eq("user_id", user.id)
         .gte("attendance_date", firstDay)
         .lte("attendance_date", lastDay),
+      supabase
+        .from("purchases")
+        .select("id, item_name, item_category, price_paid, created_at")
+        .eq("buyer_id", user.id)
+        .eq("shop_type", "activity")
+        .order("created_at", { ascending: false }),
     ]);
 
   const profile = profileResult.data;
@@ -66,6 +73,13 @@ export default async function MyPage() {
   const attendedDates = (attendanceResult.data ?? []).map(
     (a) => a.attendance_date as string
   );
+  const myItems: MyInventoryItem[] = (purchasesResult.data ?? []).map((p) => ({
+    id: p.id,
+    item_name: p.item_name,
+    item_category: p.item_category,
+    price_paid: p.price_paid,
+    created_at: p.created_at,
+  }));
   const hasSynced = !!profile?.main_character_name;
 
   return (
@@ -237,6 +251,8 @@ export default async function MyPage() {
             <AttendanceCalendar attendedDates={attendedDates} />
           </div>
         </div>
+
+        <MyInventory items={myItems} />
 
         <div className="plaza-card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
