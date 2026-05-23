@@ -4,7 +4,7 @@ import { type ThemeWidget } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
-import { Users, ChevronRight, Swords } from "lucide-react";
+import { Users, ChevronRight } from "lucide-react";
 
 type Props = {
   data: GuildLayoutData;
@@ -15,7 +15,7 @@ type Props = {
 const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
 function isLightColor(hex: string) {
-  const h = hex.replace("#", "");
+  const h = (hex ?? "").replace("#", "");
   if (h.length < 6) return true;
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
@@ -35,31 +35,24 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
   const textSecondary = isLight ? "#6b7280" : "#a1a1aa";
   const cardBg = isLight ? "#ffffff" : "#18181b";
   const cardBorder = isLight ? "#e5e7eb" : "#27272a";
-  const rowHover = isLight ? "#f9fafb" : "#27272a";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
-      {/* 커버 */}
       <div className="h-28 relative overflow-hidden" style={{
         background: `linear-gradient(to bottom, ${primaryColor}22, ${backgroundColor})`
       }}>
         <div className="max-w-4xl mx-auto px-8 h-full flex items-end pb-0">
           <div className="flex items-center gap-4 translate-y-6">
-            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-md ring-4 shrink-0"
-              style={{ backgroundColor: cardBg }}>
+            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-md ring-4 shrink-0" style={{ backgroundColor: cardBg }}>
               {guild.logo_url
                 ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
-                    style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>
-                    {guild.name[0]}
-                  </div>
+                : <div className="w-full h-full flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>{guild.name[0]}</div>
               }
             </div>
           </div>
         </div>
       </div>
 
-      {/* 타이틀 */}
       <div className="max-w-4xl mx-auto px-8 pt-10 pb-6 border-b" style={{ borderColor: cardBorder }}>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -88,8 +81,6 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
       </div>
 
       <div className="max-w-4xl mx-auto px-8 py-6 space-y-8">
-
-        {/* 통계 */}
         {enabled("stats") && (
           <div className="grid grid-cols-4 gap-px rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBorder }}>
             {[
@@ -106,7 +97,6 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
           </div>
         )}
 
-        {/* 출석 + 가디언 */}
         <div className="grid grid-cols-2 gap-6">
           {enabled("attendance") && (
             <div>
@@ -114,12 +104,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
                 <span className="w-1 h-4 rounded-full inline-block" style={{ backgroundColor: primaryColor }} />
                 오늘의 출석
               </h2>
-              <AttendanceWidget
-                guildCode={guildCode}
-                alreadyAttended={alreadyAttended}
-                streak={streak}
-                totalAttendances={totalAttendances}
-              />
+              <AttendanceWidget guildCode={guildCode} alreadyAttended={alreadyAttended} streak={streak} totalAttendances={totalAttendances} />
             </div>
           )}
 
@@ -151,7 +136,6 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
           )}
         </div>
 
-        {/* 캘린더 */}
         {enabled("calendar") && (
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: textSecondary }}>
@@ -162,7 +146,6 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
           </div>
         )}
 
-        {/* 공지 */}
         {enabled("notice") && (
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -184,10 +167,8 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
                 <div className="px-4 py-8 text-center text-sm" style={{ backgroundColor: cardBg, color: textSecondary }}>공지가 없어요</div>
               ) : noticePosts.map((p) => (
                 <Link key={p.id} href={`/guild/${guildCode}/posts/${p.id}`}
-                  className="grid grid-cols-[1fr_100px_80px] px-4 py-3 border-b last:border-0 transition-colors"
+                  className="grid grid-cols-[1fr_100px_80px] px-4 py-3 border-b last:border-0 row-hover"
                   style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = cardBg)}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {p.is_notice && <span className="shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />}
@@ -197,19 +178,10 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
                   <span className="text-xs self-center text-right" style={{ color: textSecondary }}>{getRelativeTime(p.created_at)}</span>
                 </Link>
               ))}
-              <div className="px-4 py-2 border-t flex items-center gap-2 cursor-pointer transition-colors"
-                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = cardBg)}
-              >
-                <span className="text-sm" style={{ color: textSecondary }}>+</span>
-                <span className="text-sm" style={{ color: textSecondary }}>새 항목</span>
-              </div>
             </div>
           </div>
         )}
 
-        {/* 포인트 랭킹 + 최근 가입 */}
         <div className="grid grid-cols-2 gap-6">
           {enabled("pointRanking") && (
             <div>
@@ -219,11 +191,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
               </h2>
               <div className="space-y-1">
                 {rankingMembers.slice(0, 7).map((m, i) => (
-                  <div key={m.user_id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
+                  <div key={m.user_id} className="flex items-center gap-3 px-3 py-2 rounded-lg row-hover">
                     <span className="text-xs font-bold w-4 text-center shrink-0" style={{
                       color: i === 0 ? "#eab308" : i === 1 ? "#9ca3af" : i === 2 ? "#f97316" : textSecondary
                     }}>{i + 1}</span>
@@ -249,11 +217,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
               </h2>
               <div className="space-y-1">
                 {recentMembers.slice(0, 7).map((m) => (
-                  <div key={m.user_id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
+                  <div key={m.user_id} className="flex items-center gap-3 px-3 py-2 rounded-lg row-hover">
                     <div className="w-6 h-6 rounded-full overflow-hidden shrink-0" style={{ backgroundColor: primaryColor + "22" }}>
                       {m.profiles?.avatar_url
                         ? <img src={m.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
