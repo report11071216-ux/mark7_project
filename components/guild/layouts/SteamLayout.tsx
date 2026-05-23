@@ -15,7 +15,7 @@ type Props = {
 const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
 function isLightColor(hex: string) {
-  const h = hex.replace("#", "");
+  const h = (hex ?? "").replace("#", "");
   if (h.length < 6) return false;
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
@@ -36,19 +36,16 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
   const cardBg = isLight ? "#f3f4f6" : "#16202d";
   const cardBorder = isLight ? "#e5e7eb" : "rgba(255,255,255,0.05)";
   const headerBg = isLight ? "#e5e7eb" : "#1b2838";
-  const rowHover = isLight ? "#e5e7eb" : "rgba(42,71,94,0.3)";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
-      {/* 배너 헤더 */}
       <div className="relative h-52 overflow-hidden border-b" style={{ borderColor: primaryColor + "33" }}>
         <div className="absolute inset-0" style={{
           background: `radial-gradient(ellipse at 50% 100%, ${primaryColor}33 0%, transparent 70%)`
         }} />
         <div className="relative max-w-5xl mx-auto px-6 h-full flex items-end pb-6">
           <div className="flex items-end gap-5 w-full">
-            <div className="w-20 h-20 rounded-xl overflow-hidden ring-2 shrink-0 shadow-lg"
-              style={{ backgroundColor: cardBg, boxShadow: `0 0 24px ${primaryColor}33` }}>
+            <div className="w-20 h-20 rounded-xl overflow-hidden ring-2 shrink-0 shadow-lg" style={{ backgroundColor: cardBg, boxShadow: `0 0 24px ${primaryColor}33` }}>
               {guild.logo_url
                 ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-3xl font-bold" style={{ color: primaryColor + "80" }}>{guild.name[0]}</div>
@@ -85,7 +82,6 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
         </div>
       </div>
 
-      {/* 서브 탭 */}
       <div className="border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
         <div className="max-w-5xl mx-auto px-6 flex">
           {["홈", "공지", "멤버", "랭킹", "레이드"].map((tab, i) => (
@@ -100,11 +96,8 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
         </div>
       </div>
 
-      {/* 바디 */}
       <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
-        {/* 메인 */}
         <div className="flex-1 min-w-0 space-y-5">
-          {/* 가디언 */}
           {enabled("guardian") && (
             <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-stretch">
@@ -140,7 +133,6 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
             </div>
           )}
 
-          {/* 통계 */}
           {enabled("stats") && (
             <div className="rounded-xl p-5 ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 mb-4">
@@ -163,7 +155,6 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
             </div>
           )}
 
-          {/* 공지 */}
           {enabled("notice") && (
             <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
@@ -179,10 +170,8 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
                 <p className="text-sm text-center py-8" style={{ color: textSecondary }}>공지가 없어요</p>
               ) : noticePosts.map((p) => (
                 <Link key={p.id} href={`/guild/${guildCode}/posts/${p.id}`}
-                  className="flex items-center gap-3 px-5 py-3 border-b last:border-0 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3 border-b last:border-0 row-hover"
                   style={{ borderColor: cardBorder }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
                   {p.is_notice && (
                     <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>공지</span>
@@ -194,30 +183,21 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
             </div>
           )}
 
-          {/* 캘린더 */}
           {enabled("calendar") && <MiniCalendar attendanceDates={attendanceDates} />}
         </div>
 
-        {/* 우측 사이드 */}
         <div className="w-[220px] shrink-0 space-y-4">
-          {/* 출석 */}
           {enabled("attendance") && (
             <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryColor }}>일일 출석</p>
               </div>
               <div className="p-3">
-                <AttendanceWidget
-                  guildCode={guildCode}
-                  alreadyAttended={alreadyAttended}
-                  streak={streak}
-                  totalAttendances={totalAttendances}
-                />
+                <AttendanceWidget guildCode={guildCode} alreadyAttended={alreadyAttended} streak={streak} totalAttendances={totalAttendances} />
               </div>
             </div>
           )}
 
-          {/* 포인트 랭킹 */}
           {enabled("pointRanking") && (
             <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
@@ -226,11 +206,7 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
               </div>
               <div className="py-1">
                 {rankingMembers.slice(0, 8).map((m, i) => (
-                  <div key={m.user_id}
-                    className="flex items-center gap-2.5 px-4 py-2 transition-colors"
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
+                  <div key={m.user_id} className="flex items-center gap-2.5 px-4 py-2 row-hover">
                     <span className="text-[10px] font-bold w-4 text-center shrink-0" style={{
                       color: i === 0 ? "#eab308" : i === 1 ? "#9ca3af" : i === 2 ? "#f97316" : textSecondary
                     }}>{i + 1}</span>
@@ -248,7 +224,6 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
             </div>
           )}
 
-          {/* 최근 가입 */}
           {enabled("recentMembers") && (
             <div className="rounded-xl overflow-hidden ring-1" style={{ backgroundColor: cardBg }}>
               <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ backgroundColor: headerBg, borderColor: cardBorder }}>
