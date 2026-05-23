@@ -70,7 +70,8 @@ export default async function PlazaPage() {
   }));
 
   const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
-    id: g.id, code: g.code, name: g.name, logo_url: g.logo_url, points: g.weekly_points ?? 0,
+    id: g.id, code: g.code, name: g.name, logo_url: g.logo_url,
+    points: g.weekly_points ?? 0, member_count: 0, master_name: "",
   }));
 
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
@@ -110,7 +111,6 @@ export default async function PlazaPage() {
 
   return (
     <div>
-      {/* 헤더 */}
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
@@ -152,10 +152,8 @@ export default async function PlazaPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-8">
 
-        {/* 주간 랭킹 — 풀너비 상단 */}
         <TopRankCompact guilds={topRankings} />
 
-        {/* 게시판(메인) + 우측 사이드 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
             <BoardPreview posts={plazaPosts} />
@@ -171,13 +169,11 @@ export default async function PlazaPage() {
           </aside>
         </div>
 
-        {/* 인게임 정보 */}
         <section>
           <SectionHeader icon={Gamepad2} title="인게임 정보" />
           <GameContentWidgets />
         </section>
 
-        {/* 포인트 상점 */}
         <section>
           <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
           <ShopProductsPlaceholder />
