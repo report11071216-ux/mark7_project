@@ -40,7 +40,7 @@ export default async function MyPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("username, avatar_url, main_character_name, lostark_character_name, character_class, item_level, combat_power, server_name, expedition_level, character_image_url, lostark_synced_at, equipped_card_id")
+        .select("username, avatar_url, main_character_name, lostark_character_name, character_class, item_level, combat_power, server_name, expedition_level, character_image_url, lostark_synced_at, equipped_card_id, equipped_mark_id")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -114,6 +114,16 @@ export default async function MyPage() {
     }
   }
 
+  // 장착한 마크 이미지 URL 찾기 (없으면 디스코드 아바타)
+  let equippedMarkUrl: string | null = null;
+  if (profile?.equipped_mark_id) {
+    const markPurchase = rawPurchases.find((p) => p.id === profile.equipped_mark_id);
+    if (markPurchase?.item_id) {
+      equippedMarkUrl = itemImageMap[markPurchase.item_id]?.image_url ?? null;
+    }
+  }
+  const displayAvatarUrl = equippedMarkUrl ?? profile?.avatar_url ?? null;
+
   const hasSynced = !!profile?.main_character_name;
 
   return (
@@ -156,10 +166,10 @@ export default async function MyPage() {
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center mb-4">
-                    {profile?.avatar_url ? (
+                    {displayAvatarUrl ? (
                       <img
-                        src={profile.avatar_url}
-                        alt={profile.username ?? ""}
+                        src={displayAvatarUrl}
+                        alt={profile?.username ?? ""}
                         className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-100 mb-2"
                       />
                     ) : (
@@ -287,7 +297,11 @@ export default async function MyPage() {
           </div>
         </div>
 
-        <MyInventory items={myItems} equippedCardId={profile?.equipped_card_id ?? null} />
+        <MyInventory
+          items={myItems}
+          equippedCardId={profile?.equipped_card_id ?? null}
+          equippedMarkId={profile?.equipped_mark_id ?? null}
+        />
 
         <div className="plaza-card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
