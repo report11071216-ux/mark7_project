@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2 } from "lucide-react";
 import { purchaseItem } from "@/app/guild/[code]/shop/actions";
+import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
 export type ShopItem = {
@@ -26,11 +27,12 @@ type Props = {
   isStaff: boolean;
   items: ShopItem[];
   ownedItemIds: string[];
+  megaphoneItems: MegaphoneItem[];
 };
 
 export default function GuildShop({
   guildCode, guildId, guildName, guildPoints, myPoints,
-  isStaff, items, ownedItemIds,
+  isStaff, items, ownedItemIds, megaphoneItems,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
@@ -119,6 +121,15 @@ export default function GuildShop({
           </span>
         </div>
       </div>
+
+      {/* 보유 확성기 — 길드샵 탭에서만 */}
+      {tab === "guild" && isStaff && (
+        <MegaphoneInventory
+          guildCode={guildCode}
+          items={megaphoneItems}
+          canUse={isStaff}
+        />
+      )}
 
       {tab === "guild" && !isStaff ? (
         <div className="rounded-xl bg-card/40 ring-1 ring-border p-12 text-center">
