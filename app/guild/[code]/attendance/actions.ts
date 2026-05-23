@@ -1,79 +1,81 @@
-// app/guild/[code]/attendance/actions.ts
-"use server";
-
 import { createClient } from "@/lib/supabase/server";
-import { getAttendanceDate } from "@/lib/attendance";
-import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
 
-const ATTENDANCE_POINTS = 1; // TODO: 8-E에서 platform_settings로 이관
+export const dynamic = "force-dynamic";
 
-export async function checkAttendance(guildCode: string) {
+export async function GET(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = await createClient();
-  // 1. 로그인 확인
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: "로그인이 필요합니다" };
-  }
-  // 2. 길드 조회
-  const { data: guild } = await supabase
-    .from("guilds")
-    .select("id")
-    .eq("code", guildCode)
-    .single();
-  if (!guild) {
-    return { success: false, error: "길드를 찾을 수 없습니다" };
-  }
-  // 3. 멤버십 확인
-  const { data: member } = await supabase
-    .from("guild_members")
-    .select("id, points")
-    .eq("guild_id", guild.id)
-    .eq("user_id", user.id)
-    .single();
-  if (!member) {
-    return { success: false, error: "길드원이 아닙니다" };
-  }
-  // 4. 오늘 출석일 계산 (오전 6시 리셋)
-  const today = getAttendanceDate();
-  // 5. 중복 출석 체크
-  const { data: existing } = await supabase
-    .from("attendances")
-    .select("id")
-    .eq("guild_id", guild.id)
-    .eq("user_id", user.id)
-    .eq("attendance_date", today)
+
+  // 정산 대상 날짜 = 어제 (KST 기준)
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  kstNow.setUTCHours(kstNow.getUTCHours() - 6); // 06시 리셋 보정
+  kstNow.setUTCDate(kstNow.getUTCDate() - 1);
+  const targetDate = kstNow.toISOString().split("T")[0];
+
+  // 중복 정산 방지
+  const { data: lastPayout } = await supabase
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "last_guild_point_payout")
     .maybeSingle();
-  if (existing) {
-    return { success: false, error: "오늘 이미 출석했습니다" };
+
+  if (lastPayout?.value === targetDate) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "already paid", date: targetDate });
   }
-  // 6. 출석 기록 insert
-  const { error: insertError } = await supabase
+
+  // 해당 날짜 출석 기록 전부 조회
+  const { data: attendances, error: attError } = await supabase
     .from("attendances")
-    .insert({
-      guild_id: guild.id,
-      user_id: user.id,
-      attendance_date: today,
-      points_earned: ATTENDANCE_POINTS,
-    });
-  if (insertError) {
-    return { success: false, error: "출석 기록 실패" };
+    .select("guild_id")
+    .eq("attendance_date", targetDate);
+
+  if (attError) {
+    return NextResponse.json({ error: attError.message }, { status: 500 });
   }
-  // 7. 개인 포인트 +1
+
+  // 길드별 출석자 수 집계
+  const countMap: { [key: string]: number } = {};
+  for (const a of attendances ?? []) {
+    if (!a.guild_id) continue;
+    countMap[a.guild_id] = (countMap[a.guild_id] ?? 0) + 1;
+  }
+
+  const guildIds = Object.keys(countMap);
+  let updatedCount = 0;
+
+  for (const gid of guildIds) {
+    const { data: guild } = await supabase
+      .from("guilds")
+      .select("total_points")
+      .eq("id", gid)
+      .maybeSingle();
+
+    if (!guild) continue;
+
+    const { error: updateError } = await supabase
+      .from("guilds")
+      .update({ total_points: (guild.total_points ?? 0) + countMap[gid] })
+      .eq("id", gid);
+
+    if (!updateError) updatedCount++;
+  }
+
+  // 정산일 기록
   await supabase
-    .from("guild_members")
-    .update({ points: (member.points ?? 0) + ATTENDANCE_POINTS })
-    .eq("id", member.id);
-  // 8. 길드 포인트 +1 (현재 값 조회 후 업데이트)
-  const { data: guildData } = await supabase
-    .from("guilds")
-    .select("total_points")
-    .eq("id", guild.id)
-    .single();
-  await supabase
-    .from("guilds")
-    .update({ total_points: (guildData?.total_points ?? 0) + ATTENDANCE_POINTS })
-    .eq("id", guild.id);
-  // 9. 페이지 캐시 무효화
-  revalidatePath(`/guild/${guildCode}`);
-  return { success: true, points: ATTENDANCE_POINTS };
+    .from("platform_settings")
+    .update({ value: targetDate })
+    .eq("key", "last_guild_point_payout");
+
+  return NextResponse.json({
+    ok: true,
+    date: targetDate,
+    guildsUpdated: updatedCount,
+    breakdown: countMap,
+  });
 }
