@@ -1,13 +1,9 @@
-// components/guild/AttendanceWidget.tsx
 "use client";
-
 import { useState, useEffect, useTransition } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { checkAttendance } from "@/app/guild/[code]/attendance/actions";
 import { getMsUntilNextReset, formatTimeUntilReset } from "@/lib/attendance";
-import { Flame, Check, Clock } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Props = {
@@ -47,45 +43,34 @@ export default function AttendanceWidget({
   };
 
   return (
-    <Card className="p-6 bg-zinc-900/50 border-zinc-800 backdrop-blur">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
-            DAILY ATTENDANCE
-          </p>
-          <h3 className="text-lg font-bold text-white">오늘의 출석</h3>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 rounded-lg bg-zinc-800/40 px-2.5 py-2 text-center">
+          <p className="text-[10px] text-zinc-500 mb-0.5">총 출석</p>
+          <p className="text-sm font-bold text-white">{totalAttendances}일</p>
         </div>
-        <Badge variant="outline" className="border-violet-500/30 text-violet-300">
-          <Flame className="w-3 h-3 mr-1" />
-          {streak}일 연속
-        </Badge>
-      </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-zinc-800/50 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 mb-1">총 출석</p>
-          <p className="text-xl font-bold text-white">{totalAttendances}일</p>
-        </div>
-        <div className="bg-zinc-800/50 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 mb-1 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            리셋까지
+        <div className="flex-1 rounded-lg bg-zinc-800/40 px-2.5 py-2 text-center">
+          <p className="text-[10px] text-zinc-500 mb-0.5 flex items-center justify-center gap-0.5">
+            <Clock className="w-2.5 h-2.5" />
+            리셋
           </p>
-          <p className="text-xl font-bold text-cyan-300">{timeLeft}</p>
+          <p className="text-sm font-bold text-cyan-300 whitespace-nowrap">{timeLeft}</p>
         </div>
       </div>
+
       <Button
         onClick={handleCheck}
         disabled={attended || isPending}
-        className={`w-full h-12 font-bold transition-all ${
+        className={`w-full h-10 text-sm font-bold transition-all ${
           attended
             ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-            : "bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white shadow-lg shadow-violet-500/20"
+            : "bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white"
         }`}
       >
         {attended ? (
           <>
-            <Check className="w-5 h-5 mr-2" />
-            오늘 출석 완료
+            <Check className="w-4 h-4 mr-1.5" />
+            출석 완료
           </>
         ) : isPending ? (
           "처리 중..."
@@ -93,6 +78,6 @@ export default function AttendanceWidget({
           "출석 체크 (+1P)"
         )}
       </Button>
-    </Card>
+    </div>
   );
 }
