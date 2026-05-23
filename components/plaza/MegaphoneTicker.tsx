@@ -45,9 +45,9 @@ export default async function MegaphoneTicker() {
   const loop = [...items, ...items];
 
   return (
-    <div className="bg-gradient-to-r from-cyan-600 to-blue-600 overflow-hidden">
+    <div className="bg-slate-900 overflow-hidden border-y border-slate-700">
       <div className="max-w-7xl mx-auto flex items-center">
-        <div className="flex items-center gap-1.5 px-4 py-2 bg-black/15 shrink-0">
+       <div className="flex items-center gap-1.5 px-4 py-2 bg-cyan-500 shrink-0">
           <Megaphone className="w-4 h-4 text-white" />
           <span className="text-xs font-bold text-white uppercase tracking-wider hidden sm:block">
             LIVE
