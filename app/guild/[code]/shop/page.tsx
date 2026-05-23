@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import GuildShop, { type ShopItem } from "@/components/guild/shop/GuildShop";
+import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function GuildShopPage({ params }: Props) {
 
   if (!membership) notFound();
 
-  const [{ data: items }, { data: purchases }] = await Promise.all([
+  const [{ data: items }, { data: purchases }, { data: megaphonePurchases }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours")
@@ -36,6 +37,12 @@ export default async function GuildShopPage({ params }: Props) {
       .from("purchases")
       .select("item_id")
       .or(`buyer_id.eq.${user.id},guild_id.eq.${guild.id}`),
+    supabase
+      .from("purchases")
+      .select("id, item_id, item_name, item_category, activated_at, expires_at, megaphone_message")
+      .eq("guild_id", guild.id)
+      .eq("item_category", "확성기")
+      .order("created_at", { ascending: false }),
   ]);
 
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
@@ -49,8 +56,32 @@ export default async function GuildShopPage({ params }: Props) {
     duration_hours: it.duration_hours,
   }));
 
+  // 확성기 상품의 duration_hours 매핑
+  const durationMap = new Map(
+    (items ?? [])
+      .filter((it) => it.category === "확성기")
+      .map((it) => [it.id, it.duration_hours])
+  );
+
+  const megaphoneItems: MegaphoneItem[] = (megaphonePurchases ?? []).map((p) => ({
+    id: p.id,
+    item_name: p.item_name,
+    duration_hours: durationMap.get(p.item_id) ?? null,
+    activated_at: p.activated_at,
+    expires_at: p.expires_at,
+    megaphone_message: p.megaphone_message,
+  }));
+
+  // 중복구매 체크용: 확성기(소모품)는 제외
+  const consumableItemIds = new Set(
+    (items ?? []).filter((it) => it.duration_hours !== null).map((it) => it.id)
+  );
   const ownedItemIds = Array.from(
-    new Set((purchases ?? []).map((p) => p.item_id).filter(Boolean))
+    new Set(
+      (purchases ?? [])
+        .map((p) => p.item_id)
+        .filter((id) => id && !consumableItemIds.has(id))
+    )
   ) as string[];
 
   const isStaff = membership.role === "master" || membership.role === "submaster";
@@ -66,6 +97,7 @@ export default async function GuildShopPage({ params }: Props) {
       isStaff={isStaff}
       items={shopItems}
       ownedItemIds={ownedItemIds}
+      megaphoneItems={megaphoneItems}
     />
   );
 }
