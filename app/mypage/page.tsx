@@ -40,7 +40,7 @@ export default async function MyPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("username, avatar_url, main_character_name, lostark_character_name, character_class, item_level, combat_power, server_name, expedition_level, character_image_url, lostark_synced_at")
+        .select("username, avatar_url, main_character_name, lostark_character_name, character_class, item_level, combat_power, server_name, expedition_level, character_image_url, lostark_synced_at, equipped_card_id")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -252,7 +252,7 @@ export default async function MyPage() {
           </div>
         </div>
 
-        <MyInventory items={myItems} />
+        <MyInventory items={myItems} equippedCardId={profile?.equipped_card_id ?? null} />
 
         <div className="plaza-card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
