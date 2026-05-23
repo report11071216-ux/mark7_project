@@ -10,6 +10,7 @@ type CreateItemInput = {
   description: string;
   price: number;
   image_url: string;
+  frame_url: string;
   duration_hours: number | null;
 };
 
@@ -31,6 +32,7 @@ export async function createShopItem(input: CreateItemInput) {
     description: input.description.trim() || null,
     price: input.price,
     image_url: input.image_url || null,
+    frame_url: input.frame_url || null,
     duration_hours: input.duration_hours,
     is_active: true,
   });
