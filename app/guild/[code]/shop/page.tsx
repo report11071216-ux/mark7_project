@@ -49,7 +49,6 @@ export default async function GuildShopPage({ params }: Props) {
     duration_hours: it.duration_hours,
   }));
 
-  // 이미 보유한 상품 id 집합 (확성기 등 소모품은 제외)
   const ownedItemIds = Array.from(
     new Set((purchases ?? []).map((p) => p.item_id).filter(Boolean))
   ) as string[];
@@ -59,6 +58,7 @@ export default async function GuildShopPage({ params }: Props) {
   return (
     <GuildShop
       guildCode={guild.code}
+      guildId={guild.id}
       guildName={guild.name}
       guildPoints={guild.total_points ?? 0}
       myPoints={membership.points ?? 0}
