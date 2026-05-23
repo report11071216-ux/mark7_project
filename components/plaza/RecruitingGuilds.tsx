@@ -13,20 +13,17 @@ export type RecruitingGuild = {
 
 export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[] }) {
   return (
-    <div className="plaza-card overflow-hidden">
-      <div className="px-3 py-3 border-b border-slate-200 bg-slate-50/60">
-        <div className="flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-blue-600" />
-          <h3 className="text-xs font-bold text-slate-900">모집중 길드</h3>
-        </div>
-        <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mt-0.5">
-          Recruiting
-        </p>
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
+      {/* 파란 제목띠 */}
+      <div className="flex items-center gap-2 px-5 py-3 bg-blue-600">
+        <Users className="w-5 h-5 text-white" />
+        <h3 className="text-base font-bold text-white">모집중 길드</h3>
       </div>
-      <div className="p-2 space-y-1.5">
+
+      <div className="p-2.5 space-y-1.5">
         {guilds.length === 0 ? (
-          <div className="text-center py-6 px-2">
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+          <div className="text-center py-8 px-2">
+            <p className="text-sm text-slate-400 leading-relaxed">
               지금 모집중인<br />길드가 없어요
             </p>
           </div>
@@ -35,28 +32,28 @@ export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[]
             <Link
               key={g.id}
               href={`/guild/${g.code}`}
-              className="group block p-2 rounded-lg hover:bg-blue-50 transition-colors"
+              className="group block p-2.5 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 {g.logo_url ? (
                   <img
                     src={g.logo_url}
                     alt={g.name}
-                    className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                    className="w-10 h-10 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-white">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-white">
                       {g.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                  <p className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                     {g.name}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                    {g.member_count}/{g.max_members}
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {g.member_count}/{g.max_members}명
                   </p>
                 </div>
               </div>
@@ -64,13 +61,13 @@ export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[]
           ))
         )}
       </div>
-      <div className="px-3 py-2 border-t border-slate-200">
+      <div className="px-3 py-2.5 border-t border-slate-200">
         <Link
           href="/plaza/recruiting"
-          className="flex items-center justify-center gap-1 text-[10px] font-mono text-blue-600 hover:text-blue-700 uppercase tracking-wider"
+          className="flex items-center justify-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
         >
           전체 보기
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
     </div>
