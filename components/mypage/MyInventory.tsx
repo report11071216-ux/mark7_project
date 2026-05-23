@@ -3,7 +3,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Calendar, Coins, Check, Loader2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
-import { equipProfileCard } from "@/app/mypage/actions";
+import { equipProfileCard, equipPersonalMark } from "@/app/mypage/actions";
 import toast from "react-hot-toast";
 
 export type MyInventoryItem = {
@@ -19,15 +19,21 @@ export type MyInventoryItem = {
 type Props = {
   items: MyInventoryItem[];
   equippedCardId: string | null;
+  equippedMarkId: string | null;
 };
 
-export default function MyInventory({ items, equippedCardId }: Props) {
+export default function MyInventory({ items, equippedCardId, equippedMarkId }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const handleEquip = (item: MyInventoryItem, isEquipped: boolean) => {
+  const handleEquip = (
+    item: MyInventoryItem,
+    type: "card" | "mark",
+    isEquipped: boolean
+  ) => {
     startTransition(async () => {
-      const result = await equipProfileCard(isEquipped ? null : item.id);
+      const fn = type === "card" ? equipProfileCard : equipPersonalMark;
+      const result = await fn(isEquipped ? null : item.id);
       if (result.success) {
         toast.success(isEquipped ? "장착 해제됨" : `'${item.item_name}' 장착 완료!`);
         router.refresh();
@@ -59,11 +65,22 @@ export default function MyInventory({ items, equippedCardId }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
           {items.map((item) => {
             const isCard = item.item_category.includes("프로필카드");
-            const isEquipped = equippedCardId === item.id;
-            // 프로필카드는 프레임 이미지, 그 외는 썸네일
+            const isMark = item.item_category.includes("마크");
+            const equipType: "card" | "mark" | null = isCard
+              ? "card"
+              : isMark
+              ? "mark"
+              : null;
+            const isEquipped = isCard
+              ? equippedCardId === item.id
+              : isMark
+              ? equippedMarkId === item.id
+              : false;
+
             const previewUrl = isCard
               ? item.frame_url ?? item.image_url
               : item.image_url;
+
             return (
               <div
                 key={item.id}
@@ -73,7 +90,6 @@ export default function MyInventory({ items, equippedCardId }: Props) {
                     : "bg-slate-50 border-slate-100"
                 }`}
               >
-                {/* 이미지 미리보기 */}
                 <div className={`rounded-lg overflow-hidden bg-slate-100 mb-2.5 flex items-center justify-center ${
                   isCard ? "aspect-[3/2]" : "aspect-square"
                 }`}>
@@ -103,10 +119,10 @@ export default function MyInventory({ items, equippedCardId }: Props) {
                   {getRelativeTime(item.created_at)} 구매
                 </p>
 
-                {isCard && (
+                {equipType && (
                   <button
                     type="button"
-                    onClick={() => handleEquip(item, isEquipped)}
+                    onClick={() => handleEquip(item, equipType, isEquipped)}
                     disabled={isPending}
                     className={`mt-2.5 w-full h-8 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-60 ${
                       isEquipped
