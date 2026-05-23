@@ -6,16 +6,17 @@ import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
 import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
-import SideRanking, { type RankedSide } from "@/components/plaza/SideRanking";
+import TopRankCompact from "@/components/plaza/TopRankCompact";
+import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 
 export const revalidate = 60;
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string }>; title: string }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
+    <div className="flex items-center gap-2 mb-3">
       <Icon className="w-5 h-5 text-blue-600" />
-      <h2 className="text-base font-bold text-slate-900">{title}</h2>
+      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <div className="flex-1 h-px bg-slate-200 ml-2" />
     </div>
   );
@@ -27,7 +28,7 @@ function ShopProductsPlaceholder() {
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3 hover:ring-blue-300 transition-all">
           <Sparkles className="w-6 h-6 text-slate-300" />
-          <p className="text-[11px] text-slate-400 leading-tight">오픈 예정</p>
+          <p className="text-xs text-slate-400 leading-tight">오픈 예정</p>
         </div>
       ))}
     </div>
@@ -68,7 +69,7 @@ export default async function PlazaPage() {
     member_count: g.member_count ?? 0, max_members: g.max_members ?? 50, description: g.description,
   }));
 
-  const sideRankings: RankedSide[] = (weeklyRaw ?? []).map((g) => ({
+  const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
     id: g.id, code: g.code, name: g.name, logo_url: g.logo_url, points: g.weekly_points ?? 0,
   }));
 
@@ -87,10 +88,12 @@ export default async function PlazaPage() {
   const postGuilds = postGuildsResult.data ?? [];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  const myGuilds: MyGuildItem[] = (memberships as any[]).filter((m) => m.guilds).map((m) => ({
-    id: m.guilds.id, code: m.guilds.code, name: m.guilds.name,
-    logo_url: m.guilds.logo_url, role: m.role, my_points: m.points ?? 0,
-  }));
+  const myGuilds: MyGuildItem[] = (memberships as any[])
+    .filter((m) => m.guilds)
+    .map((m) => ({
+      id: m.guilds.id, code: m.guilds.code, name: m.guilds.name,
+      logo_url: m.guilds.logo_url, role: m.role, my_points: m.points ?? 0,
+    }));
 
   const guildMap = new Map(postGuilds.map((g) => [g.id, g]));
   const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
@@ -107,6 +110,7 @@ export default async function PlazaPage() {
 
   return (
     <div>
+      {/* 헤더 */}
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
@@ -116,14 +120,14 @@ export default async function PlazaPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
-                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">광장</h1>
+                <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
               </div>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
-              <p className="text-base font-bold text-blue-600 font-mono leading-none">
+              <p className="text-lg font-bold text-blue-600 leading-none">
                 {totalGuildCount ?? 0}
-                <span className="text-xs text-slate-400 ml-1">개</span>
+                <span className="text-sm text-slate-400 ml-1">개</span>
               </p>
             </div>
           </div>
@@ -136,7 +140,7 @@ export default async function PlazaPage() {
             <Megaphone className="w-4 h-4 text-white shrink-0" />
             <p className="text-sm font-medium text-white truncate flex-1">{annMessage}</p>
             {annLink.length > 0 && (
-              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-white/80 underline underline-offset-2 shrink-0 hidden sm:block">
+              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-white/80 underline underline-offset-2 shrink-0 hidden sm:block">
                 자세히 보기 →
               </a>
             )}
@@ -146,26 +150,34 @@ export default async function PlazaPage() {
 
       <MegaphoneTicker />
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-12">
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-8">
+
+        {/* 주간 랭킹 — 풀너비 상단 */}
+        <TopRankCompact guilds={topRankings} />
+
+        {/* 게시판(메인) + 우측 사이드 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <aside className="lg:col-span-2">
-            <RecruitingGuilds guilds={recruitingGuilds} />
-          </aside>
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-8">
             <BoardPreview posts={plazaPosts} />
           </div>
-          <aside className="lg:col-span-3 space-y-4">
-            <MyProfileCard isLoggedIn={!!user} profile={myProfile} isAdmin={myProfile?.is_platform_admin === true} />
+          <aside className="lg:col-span-4 space-y-6">
+            <MyProfileCard
+              isLoggedIn={!!user}
+              profile={myProfile}
+              isAdmin={myProfile?.is_platform_admin === true}
+            />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
-            <SideRanking guilds={sideRankings} />
+            <RecruitingGuilds guilds={recruitingGuilds} />
           </aside>
         </div>
 
+        {/* 인게임 정보 */}
         <section>
           <SectionHeader icon={Gamepad2} title="인게임 정보" />
           <GameContentWidgets />
         </section>
 
+        {/* 포인트 상점 */}
         <section>
           <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
           <ShopProductsPlaceholder />
