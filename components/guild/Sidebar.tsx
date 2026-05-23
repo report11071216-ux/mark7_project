@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, Bell, CalendarDays, Users, MessageCircle,
-  Settings, LogOut, Shield, Trophy, Menu, X,
+  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useState } from "react";
@@ -49,6 +49,7 @@ export function Sidebar({
     { icon: CalendarDays, label: "레이드", href: `${baseUrl}/raids` },
     { icon: Users, label: "멤버", href: `${baseUrl}/members`, badge: memberCount },
     { icon: MessageCircle, label: "채팅", href: `${baseUrl}/chat` },
+    { icon: ShoppingBag, label: "상점", href: `${baseUrl}/shop` },
   ];
 
   const isPlazaActive = pathname.startsWith("/plaza");
