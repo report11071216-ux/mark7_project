@@ -12,13 +12,15 @@ type Props = {
   widgets: ThemeWidget[];
 };
 
+const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
+
 function isOnline(t: string | null) {
   if (!t) return false;
   return Date.now() - new Date(t).getTime() < 5 * 60 * 1000;
 }
 
 function isLightColor(hex: string) {
-  const h = hex.replace("#", "");
+  const h = (hex ?? "").replace("#", "");
   if (h.length < 6) return false;
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
@@ -39,21 +41,17 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
   const textSecondary = isLight ? "#6b7280" : "#a1a1aa";
   const cardBg = isLight ? "#ffffff" : "#18181b";
   const cardBorder = isLight ? "#e5e7eb" : "#27272a";
-  const rowHover = isLight ? "#f9fafb" : "#27272a";
   const dividerColor = isLight ? "#f3f4f6" : "#27272a";
-
-  const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
-      {/* 헤더 */}
       <div className="border-b shadow-sm" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
         <div className="max-w-[1080px] mx-auto px-4">
           <div className="flex items-center gap-4 py-3">
             <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
               {guild.logo_url
                 ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
-                : <span className="text-white font-bold text-xl">{guild.name[0]}</span>
+                : <span className="text-white font-bold text-xl">{guild.name?.[0] ?? "G"}</span>
               }
             </div>
             <div>
@@ -75,7 +73,6 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
             </div>
           </div>
 
-          {/* 탭 */}
           <div className="flex" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
             {["홈", "공지", "멤버", "랭킹", "레이드"].map((menu, i) => (
               <div key={menu} className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
@@ -90,10 +87,7 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
         </div>
       </div>
 
-      {/* 바디 */}
       <div className="max-w-[1080px] mx-auto px-4 py-4 flex gap-4">
-
-        {/* 왼쪽 사이드바 */}
         <div className="w-[168px] shrink-0 space-y-3">
           {enabled("pointRanking") && (
             <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
@@ -103,11 +97,7 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
               </div>
               <div className="py-1">
                 {rankingMembers.slice(0, 7).map((m, i) => (
-                  <div key={m.user_id} className="flex items-center gap-2 px-3 py-1.5 transition-colors"
-                    style={{ "--hover-bg": rowHover } as any}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
+                  <div key={m.user_id} className="flex items-center gap-2 px-3 py-1.5 row-hover">
                     <span className="text-[10px] font-bold w-4 text-center" style={{
                       color: i === 0 ? "#eab308" : i === 1 ? "#9ca3af" : i === 2 ? "#f97316" : textSecondary
                     }}>{i + 1}</span>
@@ -146,7 +136,6 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
           )}
         </div>
 
-        {/* 메인 */}
         <div className="flex-1 min-w-0 space-y-3">
           {enabled("notice") && (
             <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
@@ -169,10 +158,8 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
                 ? <p className="text-sm text-center py-8" style={{ color: textSecondary }}>등록된 공지가 없어요</p>
                 : noticePosts.map((p) => (
                   <Link key={p.id} href={`/guild/${guildCode}/posts/${p.id}`}
-                    className="grid grid-cols-[auto_1fr_80px_70px] gap-2 items-center px-4 py-2.5 border-b last:border-0 transition-colors"
+                    className="grid grid-cols-[auto_1fr_80px_70px] gap-2 items-center px-4 py-2.5 border-b last:border-0 row-hover"
                     style={{ borderColor: dividerColor }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = rowHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
                     <span className="w-8">
                       {p.is_notice
@@ -242,7 +229,6 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
           {enabled("calendar") && <MiniCalendar attendanceDates={attendanceDates} />}
         </div>
 
-        {/* 우측 */}
         <div className="w-[176px] shrink-0 space-y-3">
           {enabled("attendance") && (
             <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
