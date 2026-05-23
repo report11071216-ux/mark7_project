@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createShopItem, toggleShopItem, deleteShopItem } from "@/app/admin/shop/actions";
-import { Upload, Loader2, Trash2, Eye, EyeOff, Plus } from "lucide-react";
+import { Upload, Loader2, Trash2, Eye, EyeOff, Plus, Image } from "lucide-react";
 import toast from "react-hot-toast";
 
 export type ShopItem = {
@@ -32,21 +32,25 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
   const [price, setPrice] = useState("");
   const [durationHours, setDurationHours] = useState(1);
   const [imageUrl, setImageUrl] = useState("");
+  const [frameUrl, setFrameUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadingFrame, setUploadingFrame] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const categories = shopType === "guild" ? GUILD_CATEGORIES : ACTIVITY_CATEGORIES;
   const isMegaphone = shopType === "guild" && category === "확성기";
+  const isProfileCard = category.includes("프로필카드");
 
   const handleShopTypeChange = (type: string) => {
     setShopType(type);
     setCategory(type === "guild" ? "길드 마크" : "개인 프로필카드");
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (
+    file: File,
+    setUrl: (u: string) => void,
+    setBusy: (b: boolean) => void
+  ) => {
     if (!file.type.startsWith("image/")) {
       toast.error("이미지 파일만 업로드할 수 있어요");
       return;
@@ -56,7 +60,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       return;
     }
 
-    setUploading(true);
+    setBusy(true);
     const supabase = createClient();
     const ext = file.name.split(".").pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -67,14 +71,24 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
 
     if (error) {
       toast.error("업로드 실패: " + error.message);
-      setUploading(false);
+      setBusy(false);
       return;
     }
 
     const { data } = supabase.storage.from("shop-items").getPublicUrl(fileName);
-    setImageUrl(data.publicUrl);
-    setUploading(false);
+    setUrl(data.publicUrl);
+    setBusy(false);
     toast.success("이미지 업로드 완료");
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file, setImageUrl, setUploading);
+  };
+
+  const handleFrameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file, setFrameUrl, setUploadingFrame);
   };
 
   const handleSubmit = async () => {
@@ -96,6 +110,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       description,
       price: priceNum,
       image_url: imageUrl,
+      frame_url: frameUrl,
       duration_hours: isMegaphone ? durationHours : null,
     });
     setSubmitting(false);
@@ -106,6 +121,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       setDescription("");
       setPrice("");
       setImageUrl("");
+      setFrameUrl("");
       router.refresh();
     } else {
       toast.error(result.error ?? "등록 실패");
@@ -135,13 +151,11 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
 
   return (
     <div className="space-y-6">
-      {/* 등록 폼 + 미리보기 */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
         {/* 폼 */}
         <div className="bg-white rounded-xl ring-1 ring-slate-200 p-5 space-y-4">
           <h2 className="text-sm font-bold text-slate-900">새 상품 등록</h2>
 
-          {/* 상점 종류 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">상점 종류</label>
             <div className="flex gap-2">
@@ -170,7 +184,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
             </div>
           </div>
 
-          {/* 카테고리 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">카테고리</label>
             <select
@@ -184,7 +197,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
             </select>
           </div>
 
-          {/* 확성기 지속시간 */}
           {isMegaphone && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">지속 시간</label>
@@ -207,18 +219,16 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
             </div>
           )}
 
-          {/* 상품명 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">상품명</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="예: 불꽃 길드 마크"
+              placeholder="예: 검은 뱀 프로필카드"
               className="w-full h-10 px-3 rounded-lg ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
 
-          {/* 설명 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">설명 (선택)</label>
             <input
@@ -229,7 +239,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
             />
           </div>
 
-          {/* 가격 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">가격 (P)</label>
             <input
@@ -241,37 +250,51 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
             />
           </div>
 
-          {/* 이미지 업로드 */}
+          {/* 썸네일 이미지 */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1.5">상품 이미지</label>
+            <label className="block text-xs font-bold text-slate-500 mb-1.5">
+              상점 썸네일 이미지
+            </label>
             <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-slate-200 text-sm cursor-pointer transition ${
               uploading ? "bg-slate-100 text-slate-400" : "hover:bg-slate-50 text-slate-600"
             }`}>
               {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  업로드 중...
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
               ) : (
-                <>
-                  <Upload className="w-4 h-4" />
-                  {imageUrl ? "이미지 변경" : "이미지 선택 (2MB 이하)"}
-                </>
+                <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (2MB 이하)"}</>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={uploading}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="hidden" />
             </label>
           </div>
+
+          {/* 프레임 이미지 — 프로필카드 카테고리일 때만 */}
+          {isProfileCard && (
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">
+                프레임 이미지 <span className="text-blue-500">(프로필카드 적용용 · 3:2 가로형 PNG)</span>
+              </label>
+              <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-blue-200 text-sm cursor-pointer transition ${
+                uploadingFrame ? "bg-slate-100 text-slate-400" : "bg-blue-50/50 hover:bg-blue-50 text-blue-600"
+              }`}>
+                {uploadingFrame ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
+                ) : (
+                  <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택"}</>
+                )}
+                <input type="file" accept="image/*" onChange={handleFrameChange} disabled={uploadingFrame} className="hidden" />
+              </label>
+              {frameUrl && (
+                <div className="mt-2 rounded-lg overflow-hidden ring-1 ring-slate-200">
+                  <img src={frameUrl} alt="프레임 미리보기" className="w-full" />
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || uploading}
+            disabled={submitting || uploading || uploadingFrame}
             className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:bg-slate-300 transition flex items-center justify-center gap-2"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -279,7 +302,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           </button>
         </div>
 
-        {/* 실시간 미리보기 */}
+        {/* 미리보기 */}
         <div className="bg-slate-50 rounded-xl ring-1 ring-slate-200 p-4 flex flex-col">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">미리보기</p>
           <div className="flex-1 flex items-center justify-center">
@@ -306,6 +329,11 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
                   {durationHours}시간 지속
                 </span>
               )}
+              {isProfileCard && (
+                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
+                  프로필카드
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -325,7 +353,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {/* 헤더 행 */}
             <div className="grid grid-cols-[48px_1fr_90px_90px_80px_88px] gap-3 px-5 py-2 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase">
               <span>이미지</span>
               <span>상품명</span>
