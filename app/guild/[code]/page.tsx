@@ -1,36 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
+import { getTheme } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
-import { Card } from "@/components/ui/card";
-import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
-import { Users, TrendingUp, Calendar, Award } from "lucide-react";
-import { formatNumber, getRelativeTime } from "@/lib/utils";
+import StatsWidget from "@/components/guild/StatsWidget";
+import RecentMembersWidget from "@/components/guild/RecentMembersWidget";
+import NoticeWidget from "@/components/guild/NoticeWidget";
+import GuildIntroWidget from "@/components/guild/GuildIntroWidget";
+import PointRankingWidget from "@/components/guild/PointRankingWidget";
+import GuardianWidget from "@/components/guild/GuardianWidget";
+import RaidStatusWidget from "@/components/guild/RaidStatusWidget";
+import OnlineMembersWidget from "@/components/guild/OnlineMembersWidget";
+import ThemeSelector from "@/components/guild/ThemeSelector";
 
-type Props = {
-  params: { code: string };
-};
+type Props = { params: { code: string } };
 
 export default async function GuildHomePage({ params }: Props) {
   const supabase = await createClient();
+  const code = params.code.toUpperCase();
 
-  // 유저 + 길드 병렬 조회 (layout과 중복이지만 Next.js가 캐싱함)
-  const [
-    { data: { user } },
-    { data: guild },
-  ] = await Promise.all([
+  const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("guilds")
-      .select("id, name, code, description, total_points, member_count, max_members")
-      .eq("code", params.code.toUpperCase())
+      .select("id, name, code, description, total_points, member_count, max_members, logo_url, is_recruiting")
+      .eq("code", code)
       .single(),
   ]);
 
   if (!user || !guild) notFound();
 
-  // 출석 + 최근 멤버 병렬 조회
-  const [{ data: myAttendances }, { data: recentMembers }] = await Promise.all([
+  const [
+    { data: myAttendances },
+    { data: allMembers },
+    { data: posts },
+    { data: raids },
+    { data: themeRow },
+    { data: myMembership },
+  ] = await Promise.all([
     supabase
       .from("attendances")
       .select("attendance_date")
@@ -40,10 +48,34 @@ export default async function GuildHomePage({ params }: Props) {
       .limit(60),
     supabase
       .from("guild_members")
-      .select("user_id, points, joined_at, profiles(username, avatar_url)")
+      .select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at)")
       .eq("guild_id", guild.id)
-      .order("joined_at", { ascending: false })
+      .order("joined_at", { ascending: false }),
+    supabase
+      .from("posts")
+      .select("id, title, created_at, is_notice")
+      .eq("guild_id", guild.id)
+      .order("is_notice", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("raids")
+      .select("id, title, raid_date, raid_time, difficulty, max_members")
+      .eq("guild_id", guild.id)
+      .gte("raid_date", new Date().toISOString().split("T")[0])
+      .order("raid_date", { ascending: true })
+      .limit(5),
+    supabase
+      .from("guild_themes")
+      .select("layout_config, welcome_message")
+      .eq("guild_id", guild.id)
+      .maybeSingle(),
+    supabase
+      .from("guild_members")
+      .select("role")
+      .eq("guild_id", guild.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   const attendanceDates = (myAttendances ?? []).map((a) => a.attendance_date);
@@ -52,9 +84,56 @@ export default async function GuildHomePage({ params }: Props) {
   const streak = calculateStreak(attendanceDates);
   const totalAttendances = attendanceDates.length;
 
+  const members = (allMembers ?? []) as any[];
+  const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
+  const layoutConfig = (themeRow?.layout_config ?? {}) as { theme?: string };
+  const themeId = layoutConfig.theme ?? "conquest";
+  const theme = getTheme(themeId);
+
+  const recentMembers = members.slice(0, 5).map((m) => ({
+    user_id: m.user_id,
+    points: m.points ?? 0,
+    joined_at: m.joined_at,
+    profiles: m.profiles ?? null,
+  }));
+
+  const rankingMembers = [...members]
+    .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+    .map((m) => ({
+      user_id: m.user_id,
+      points: m.points ?? 0,
+      role: m.role,
+      profiles: m.profiles ?? null,
+    }));
+
+  const onlineMembers = members.map((m) => ({
+    user_id: m.user_id,
+    last_seen_at: m.profiles?.last_seen_at ?? null,
+    profiles: m.profiles
+      ? { username: m.profiles.username ?? null, avatar_url: m.profiles.avatar_url ?? null }
+      : null,
+  }));
+
+  const noticePosts = (posts ?? []).map((p) => ({
+    id: p.id,
+    title: p.title,
+    created_at: p.created_at,
+    is_notice: p.is_notice ?? false,
+    author: null,
+  }));
+
+  const raidList = (raids ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    raid_date: r.raid_date,
+    raid_time: r.raid_time ?? null,
+    difficulty: r.difficulty ?? null,
+    max_members: r.max_members ?? 8,
+    members: [],
+  }));
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* 헤더 */}
       <div className="border-b border-zinc-800 bg-zinc-900/30 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
@@ -62,120 +141,97 @@ export default async function GuildHomePage({ params }: Props) {
           </p>
           <h1 className="text-2xl font-bold">{guild.name}</h1>
           {guild.description && (
-            <p className="text-sm text-zinc-400 mt-1">{guild.description}</p>
+            <p className="text-sm text-zinc-400 mt-1 line-clamp-1">{guild.description}</p>
           )}
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* 통계 카드 4개 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            icon={<Users className="w-4 h-4" />}
-            label="멤버"
-            value={`${guild.member_count ?? 0}/${guild.max_members ?? 100}`}
-          />
-          <StatCard
-            icon={<TrendingUp className="w-4 h-4" />}
-            label="길드 포인트"
-            value={formatNumber(guild.total_points ?? 0)}
-            accent
-          />
-          <StatCard
-            icon={<Calendar className="w-4 h-4" />}
-            label="내 출석"
-            value={`${totalAttendances}일`}
-          />
-          <StatCard
-            icon={<Award className="w-4 h-4" />}
-            label="연속 출석"
-            value={`${streak}일`}
-          />
-        </div>
-
-        {/* 위젯 영역: 출석 + 캘린더 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-1">
-            <AttendanceWidget
-              guildCode={guild.code}
-              alreadyAttended={alreadyAttended}
-              streak={streak}
-              totalAttendances={totalAttendances}
-            />
-          </div>
-          <div className="lg:col-span-2">
-            <MiniCalendar attendanceDates={attendanceDates} />
-          </div>
-        </div>
-
-        {/* 최근 멤버 */}
-        <Card className="p-6 bg-zinc-900/50 border-zinc-800 backdrop-blur">
-          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
-            RECENT MEMBERS
-          </p>
-          <h3 className="text-lg font-bold text-white mb-4">최근 가입 멤버</h3>
-          <div className="space-y-3">
-            {(recentMembers ?? []).map((m: any) => (
-              <div
-                key={m.user_id}
-                className="flex items-center justify-between py-2 border-b border-zinc-800/50 last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  {m.profiles?.avatar_url ? (
-                    <img
-                      src={m.profiles.avatar_url}
-                      alt=""
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-xs font-mono text-violet-300">
-                      {m.profiles?.username?.[0] ?? "?"}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-bold text-white">
-                      {m.profiles?.username ?? "Unknown"}
-                    </p>
-                    <p className="text-xs text-zinc-500 font-mono">
-                      {getRelativeTime(m.joined_at)}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm font-mono text-violet-300">{m.points ?? 0}P</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {theme.widgets.map((w) => {
+            const cls = w.wide ? "md:col-span-2" : "";
+            if (w.id === "attendance") return (
+              <div key={w.id} className={cls}>
+                <AttendanceWidget
+                  guildCode={guild.code}
+                  alreadyAttended={alreadyAttended}
+                  streak={streak}
+                  totalAttendances={totalAttendances}
+                />
               </div>
-            ))}
-            {(!recentMembers || recentMembers.length === 0) && (
-              <p className="text-sm text-zinc-500 text-center py-4">
-                아직 멤버가 없습니다
-              </p>
-            )}
-          </div>
-        </Card>
+            );
+            if (w.id === "calendar") return (
+              <div key={w.id} className={cls}>
+                <MiniCalendar attendanceDates={attendanceDates} />
+              </div>
+            );
+            if (w.id === "stats") return (
+              <div key={w.id} className={cls}>
+                <StatsWidget
+                  memberCount={guild.member_count ?? 0}
+                  maxMembers={(guild as any).max_members ?? 50}
+                  totalPoints={guild.total_points ?? 0}
+                  myAttendances={totalAttendances}
+                  streak={streak}
+                />
+              </div>
+            );
+            if (w.id === "recentMembers") return (
+              <div key={w.id} className={cls}>
+                <RecentMembersWidget members={recentMembers} />
+              </div>
+            );
+            if (w.id === "notice") return (
+              <div key={w.id} className={cls}>
+                <NoticeWidget posts={noticePosts} guildCode={guild.code} />
+              </div>
+            );
+            if (w.id === "guildIntro") return (
+              <div key={w.id} className={cls}>
+                <GuildIntroWidget
+                  guildName={guild.name}
+                  guildCode={guild.code}
+                  description={guild.description ?? null}
+                  welcomeMessage={themeRow?.welcome_message ?? null}
+                  logoUrl={(guild as any).logo_url ?? null}
+                  memberCount={guild.member_count ?? 0}
+                  maxMembers={(guild as any).max_members ?? 50}
+                  isRecruiting={(guild as any).is_recruiting ?? false}
+                />
+              </div>
+            );
+            if (w.id === "pointRanking") return (
+              <div key={w.id} className={cls}>
+                <PointRankingWidget members={rankingMembers} />
+              </div>
+            );
+            if (w.id === "guardian") return (
+              <div key={w.id} className={cls}>
+                <GuardianWidget />
+              </div>
+            );
+            if (w.id === "raidStatus") return (
+              <div key={w.id} className={cls}>
+                <RaidStatusWidget raids={raidList} guildCode={guild.code} />
+              </div>
+            );
+            if (w.id === "onlineMembers") return (
+              <div key={w.id} className={cls}>
+                <OnlineMembersWidget members={onlineMembers} />
+              </div>
+            );
+            return null;
+          })}
+        </div>
       </div>
-    </div>
-  );
-}
 
-function StatCard({
-  icon,
-  label,
-  value,
-  accent = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <Card className="p-4 bg-zinc-900/50 border-zinc-800 backdrop-blur">
-      <div className="flex items-center gap-2 text-zinc-500 mb-2">
-        {icon}
-        <p className="text-xs font-mono uppercase tracking-wider">{label}</p>
-      </div>
-      <p className={`text-2xl font-bold ${accent ? "text-violet-300" : "text-white"}`}>
-        {value}
-      </p>
-    </Card>
+      {isStaff && (
+        <ThemeSelector
+          guildId={guild.id}
+          guildCode={guild.code}
+          currentThemeId={themeId}
+        />
+      )}
+    </div>
   );
 }
