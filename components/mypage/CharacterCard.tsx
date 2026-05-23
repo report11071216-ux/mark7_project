@@ -44,7 +44,6 @@ export default function CharacterCard({
         })
       : "—";
 
-  // ───── 프레임 장착 버전 ─────
   if (frameUrl) {
     return (
       <>
@@ -53,42 +52,23 @@ export default function CharacterCard({
           className="relative w-full overflow-hidden cursor-pointer group"
           style={{ aspectRatio: "3 / 2" }}
         >
-          {/* 프레임 배경 이미지 */}
           <img
             src={frameUrl}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* 호버 힌트 */}
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-20">
             <span className="text-[10px] font-mono text-white/90 bg-black/50 px-2 py-0.5 rounded-full">
               전투정보실 보기
             </span>
           </div>
 
-          <div className="relative h-full flex items-center">
-            {/* 좌측 — 캐릭터 이미지 (프레임 육각형 영역 안에) */}
-            <div className="relative w-[28%] h-full shrink-0 flex items-center justify-center">
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt={name}
-                  className="max-h-[60%] max-w-[78%] object-contain"
-                  style={{
-                    maskImage:
-                      "radial-gradient(ellipse 70% 80% at 50% 45%, black 55%, transparent 80%)",
-                    WebkitMaskImage:
-                      "radial-gradient(ellipse 70% 80% at 50% 45%, black 55%, transparent 80%)",
-                  }}
-                />
-              )}
-            </div>
-
-            {/* 우측 — 정보 */}
-            <div className="flex-1 flex flex-col justify-center pr-[14%] pl-1 -mt-1">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <p className="text-[9px] font-mono text-amber-300/90 uppercase tracking-[0.15em] drop-shadow">
+          {/* 정보 — 검은 띠 영역에 맞춰 배치 */}
+          <div className="absolute inset-0 flex items-center">
+            <div className="flex flex-col justify-center pl-[34%] pr-[12%] w-full">
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-[9px] font-mono text-amber-300/90 uppercase tracking-[0.15em] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
                   {characterClass}
                 </p>
                 <span className="text-white/30 text-[9px]">·</span>
@@ -97,17 +77,17 @@ export default function CharacterCard({
                   <p className="text-[9px] font-mono text-white/60">{serverName}</p>
                 </div>
               </div>
-              <h2 className="text-lg font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] mb-2.5">
+              <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] mb-3">
                 {name}
               </h2>
 
-              <div className="flex items-end gap-3.5">
+              <div className="flex items-end gap-4">
                 <div>
                   <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
                     <Zap className="w-2.5 h-2.5 text-amber-300" />
                     전투력
                   </p>
-                  <p className="text-[17px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+                  <p className="text-[19px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     {cpText}
                   </p>
                 </div>
@@ -117,7 +97,7 @@ export default function CharacterCard({
                     <Sword className="w-2.5 h-2.5 text-white/60" />
                     아이템
                   </p>
-                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+                  <p className="text-[15px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     {ilvlText}
                   </p>
                 </div>
@@ -127,7 +107,7 @@ export default function CharacterCard({
                     <Star className="w-2.5 h-2.5 text-white/60" />
                     원정대
                   </p>
-                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+                  <p className="text-[15px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     Lv.{expeditionLevel}
                   </p>
                 </div>
@@ -147,7 +127,6 @@ export default function CharacterCard({
     );
   }
 
-  // ───── 기본 골드 카드 (프레임 미장착) ─────
   return (
     <>
       <div
@@ -238,7 +217,7 @@ export default function CharacterCard({
           </div>
 
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 opacity-20">
-            {[...Array(4)].map((_, i) => (
+            {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
                 className="h-px bg-amber-400"
