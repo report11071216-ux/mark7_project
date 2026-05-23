@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Sparkles, Gamepad2, Megaphone } from "lucide-react";
+import { Trophy, ShoppingBag, Gamepad2, Megaphone } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
@@ -9,6 +9,7 @@ import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList"
 import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
+import ShopPreview, { type ShopPreviewItem } from "@/components/plaza/ShopPreview";
 
 export const revalidate = 60;
 
@@ -18,19 +19,6 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ComponentType<{ clas
       <Icon className="w-5 h-5 text-blue-600" />
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <div className="flex-1 h-px bg-slate-200 ml-2" />
-    </div>
-  );
-}
-
-function ShopProductsPlaceholder() {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="aspect-square rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 ring-1 ring-slate-200 flex flex-col items-center justify-center gap-2 text-center p-3 hover:ring-blue-300 transition-all">
-          <Sparkles className="w-6 h-6 text-slate-300" />
-          <p className="text-xs text-slate-400 leading-tight">오픈 예정</p>
-        </div>
-      ))}
     </div>
   );
 }
@@ -45,6 +33,7 @@ export default async function PlazaPage() {
     rawPostsResult,
     totalCountResult,
     announcementResult,
+    shopItemsResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds").select("id, code, name, logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -52,6 +41,7 @@ export default async function PlazaPage() {
     supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").order("created_at", { ascending: false }).limit(20),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
+    supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
   ]);
 
   const user = userResult.data.user;
@@ -59,6 +49,7 @@ export default async function PlazaPage() {
   const weeklyRaw = weeklyRankingResult.data;
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
+  const shopRaw = shopItemsResult.data;
 
   const annRaw = announcementResult.data?.value as { message: string; link: string; active: boolean } | null;
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
@@ -72,6 +63,12 @@ export default async function PlazaPage() {
   const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
     id: g.id, code: g.code, name: g.name, logo_url: g.logo_url,
     points: g.weekly_points ?? 0, member_count: 0, master_name: "",
+  }));
+
+  const shopItems: ShopPreviewItem[] = (shopRaw ?? []).map((s) => ({
+    id: s.id, shop_type: s.shop_type, category: s.category,
+    name: s.name, price: s.price, image_url: s.image_url,
+    duration_hours: s.duration_hours,
   }));
 
   const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
@@ -180,7 +177,7 @@ export default async function PlazaPage() {
 
         <section>
           <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
-          <ShopProductsPlaceholder />
+          <ShopPreview items={shopItems} />
         </section>
       </div>
     </div>
