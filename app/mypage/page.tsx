@@ -61,7 +61,7 @@ export default async function MyPage() {
         .lte("attendance_date", lastDay),
       supabase
         .from("purchases")
-        .select("id, item_name, item_category, price_paid, created_at")
+        .select("id, item_id, item_name, item_category, price_paid, created_at")
         .eq("buyer_id", user.id)
         .eq("shop_type", "activity")
         .order("created_at", { ascending: false }),
@@ -73,13 +73,37 @@ export default async function MyPage() {
   const attendedDates = (attendanceResult.data ?? []).map(
     (a) => a.attendance_date as string
   );
-  const myItems: MyInventoryItem[] = (purchasesResult.data ?? []).map((p) => ({
-    id: p.id,
-    item_name: p.item_name,
-    item_category: p.item_category,
-    price_paid: p.price_paid,
-    created_at: p.created_at,
-  }));
+
+  const rawPurchases = purchasesResult.data ?? [];
+
+  // 구매한 상품들의 이미지 가져오기
+  const purchaseItemIds = Array.from(
+    new Set(rawPurchases.map((p) => p.item_id).filter(Boolean))
+  ) as string[];
+
+  let itemImageMap: { [key: string]: { image_url: string | null; frame_url: string | null } } = {};
+  if (purchaseItemIds.length > 0) {
+    const { data: shopItemsData } = await supabase
+      .from("shop_items")
+      .select("id, image_url, frame_url")
+      .in("id", purchaseItemIds);
+    for (const it of shopItemsData ?? []) {
+      itemImageMap[it.id] = { image_url: it.image_url, frame_url: it.frame_url };
+    }
+  }
+
+  const myItems: MyInventoryItem[] = rawPurchases.map((p) => {
+    const img = p.item_id ? itemImageMap[p.item_id] : undefined;
+    return {
+      id: p.id,
+      item_name: p.item_name,
+      item_category: p.item_category,
+      price_paid: p.price_paid,
+      created_at: p.created_at,
+      image_url: img?.image_url ?? null,
+      frame_url: img?.frame_url ?? null,
+    };
+  });
   const hasSynced = !!profile?.main_character_name;
 
   return (
