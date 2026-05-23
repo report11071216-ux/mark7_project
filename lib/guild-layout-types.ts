@@ -66,4 +66,7 @@ export type GuildLayoutData = {
   guardianIndex: number;
   guardianImageUrl: string | null;
   weaknesses: Array<{ name: string; color: string }>;
+  primaryColor: string;
+  backgroundColor: string;
+  bannerUrl: string | null;
 };
