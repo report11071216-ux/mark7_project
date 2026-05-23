@@ -46,7 +46,7 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
         <div className="max-w-4xl mx-auto px-8 h-full flex items-end pb-0">
           <div className="flex items-center gap-4 translate-y-6">
             <div className="w-16 h-16 rounded-xl overflow-hidden shadow-md ring-4 shrink-0"
-              style={{ backgroundColor: cardBg, ringColor: cardBg }}>
+              style={{ backgroundColor: cardBg }}>
               {guild.logo_url
                 ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
