@@ -1,6 +1,9 @@
 "use client";
-import { useState } from "react";
-import { ShoppingBag, Coins, User, Lock, Check, Clock } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2 } from "lucide-react";
+import { purchaseItem } from "@/app/guild/[code]/shop/actions";
+import toast from "react-hot-toast";
 
 export type ShopItem = {
   id: string;
@@ -15,6 +18,7 @@ export type ShopItem = {
 
 type Props = {
   guildCode: string;
+  guildId: string;
   guildName: string;
   guildPoints: number;
   myPoints: number;
@@ -25,16 +29,18 @@ type Props = {
 };
 
 export default function GuildShop({
-  guildCode, guildName, guildPoints, myPoints,
+  guildCode, guildId, guildName, guildPoints, myPoints,
   isStaff, items, ownedItemIds,
 }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const activityItems = items.filter((i) => i.shop_type === "activity");
   const guildItems = items.filter((i) => i.shop_type === "guild");
   const currentItems = tab === "activity" ? activityItems : guildItems;
 
-  // 카테고리별 그룹
   const grouped: { [key: string]: ShopItem[] } = {};
   for (const it of currentItems) {
     if (!grouped[it.category]) grouped[it.category] = [];
@@ -43,6 +49,23 @@ export default function GuildShop({
   const categories = Object.keys(grouped);
 
   const currentBalance = tab === "activity" ? myPoints : guildPoints;
+
+  const handlePurchase = (item: ShopItem) => {
+    if (!confirm(`'${item.name}'을(를) ${item.price.toLocaleString()}P에 구매할까요?`)) {
+      return;
+    }
+    setPendingId(item.id);
+    startTransition(async () => {
+      const result = await purchaseItem(guildCode, item.id, guildId);
+      setPendingId(null);
+      if (result.success) {
+        toast.success(`'${result.item_name}' 구매 완료!`);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "구매에 실패했습니다");
+      }
+    });
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
@@ -97,7 +120,6 @@ export default function GuildShop({
         </div>
       </div>
 
-      {/* 길드샵인데 권한 없음 */}
       {tab === "guild" && !isStaff ? (
         <div className="rounded-xl bg-card/40 ring-1 ring-border p-12 text-center">
           <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -130,6 +152,9 @@ export default function GuildShop({
                       owned={owned}
                       canAfford={canAfford}
                       accent={tab}
+                      loading={pendingId === item.id && isPending}
+                      disabled={isPending}
+                      onBuy={() => handlePurchase(item)}
                     />
                   );
                 })}
@@ -143,14 +168,18 @@ export default function GuildShop({
 }
 
 function ShopCard({
-  item, owned, canAfford, accent,
+  item, owned, canAfford, accent, loading, disabled, onBuy,
 }: {
   item: ShopItem;
   owned: boolean;
   canAfford: boolean;
   accent: "activity" | "guild";
+  loading: boolean;
+  disabled: boolean;
+  onBuy: () => void;
 }) {
   const accentText = accent === "activity" ? "text-violet-300" : "text-cyan-300";
+  const buyable = !owned && canAfford && !disabled;
 
   return (
     <div className="rounded-xl bg-card/60 ring-1 ring-border overflow-hidden flex flex-col">
@@ -179,18 +208,21 @@ function ShopCard({
 
         <button
           type="button"
-          disabled={owned || !canAfford}
+          onClick={onBuy}
+          disabled={!buyable}
           className={`mt-2 w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 ${
             owned
               ? "bg-white/5 text-muted-foreground cursor-not-allowed"
               : !canAfford
               ? "bg-white/5 text-muted-foreground cursor-not-allowed"
               : accent === "activity"
-              ? "bg-violet-600 text-white hover:bg-violet-500"
-              : "bg-cyan-600 text-white hover:bg-cyan-500"
+              ? "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60"
+              : "bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-60"
           }`}
         >
-          {owned ? (
+          {loading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : owned ? (
             <>
               <Check className="w-3.5 h-3.5" />
               보유중
