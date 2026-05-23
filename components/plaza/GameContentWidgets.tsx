@@ -56,6 +56,27 @@ function RewardItems({ items }: { items: RewardItem[] }) {
   );
 }
 
+function CardHeader({
+  icon: Icon,
+  title,
+  right,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3 bg-blue-600">
+      <div className="flex items-center gap-2">
+        <Icon className="w-5 h-5 text-white" />
+        <h3 className="text-base font-bold text-white">{title}</h3>
+      </div>
+      {right && <div className="text-xs font-medium text-blue-100">{right}</div>}
+    </div>
+  );
+}
+
+// ─── 모험섬 ───
 function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -67,14 +88,8 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   }));
 
   return (
-    <div className="plaza-card overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
-        <Map className="w-4 h-4 text-blue-600" />
-        <h3 className="text-xs font-bold text-slate-900">오늘의 모험섬</h3>
-        <span className="ml-auto text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-          Adventure Island
-        </span>
-      </div>
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+      <CardHeader icon={Map} title="오늘의 모험섬" />
       <div className="p-4">
         <AdventureIslandList items={islandList} />
       </div>
@@ -82,6 +97,7 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   );
 }
 
+// ─── 가디언토벌 ───
 function GuardianRaidWidget({
   guardianIndex,
   imageUrl,
@@ -94,16 +110,12 @@ function GuardianRaidWidget({
   const currentName = GUARDIAN_ORDER[guardianIndex] ?? null;
 
   return (
-    <div className="plaza-card overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
-        <Swords className="w-4 h-4 text-blue-600" />
-        <h3 className="text-xs font-bold text-slate-900">이번 주 가디언</h3>
-        {currentName && (
-          <span className="ml-auto text-[10px] font-mono text-slate-400">
-            {guardianIndex + 1}/{GUARDIAN_ORDER.length}
-          </span>
-        )}
-      </div>
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+      <CardHeader
+        icon={Swords}
+        title="이번 주 가디언"
+        right={currentName ? `${guardianIndex + 1}/${GUARDIAN_ORDER.length}` : undefined}
+      />
       <div className="p-4">
         {!currentName ? (
           <p className="text-xs text-slate-400 text-center py-4">
@@ -111,15 +123,10 @@ function GuardianRaidWidget({
           </p>
         ) : (
           <div>
-            {/* 썸네일 + 이름 가로 배치 */}
             <div className="flex items-center gap-3 mb-3">
               {imageUrl && (
                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 ring-1 ring-slate-200">
-                  <img
-                    src={imageUrl}
-                    alt={currentName}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={imageUrl} alt={currentName} className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="min-w-0">
@@ -130,7 +137,6 @@ function GuardianRaidWidget({
               </div>
             </div>
 
-            {/* 취약속성 */}
             {weaknesses.length > 0 && (
               <div className="mb-3">
                 <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
@@ -150,7 +156,6 @@ function GuardianRaidWidget({
               </div>
             )}
 
-            {/* 로테이션 트랙 */}
             <div className="flex gap-1 flex-wrap">
               {GUARDIAN_ORDER.map((name, i) => (
                 <span
@@ -174,20 +179,15 @@ function GuardianRaidWidget({
   );
 }
 
+// ─── 필드보스 ───
 function FieldBossWidget({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
   );
 
   return (
-    <div className="plaza-card overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
-        <Skull className="w-4 h-4 text-blue-600" />
-        <h3 className="text-xs font-bold text-slate-900">오늘의 필드보스</h3>
-        <span className="ml-auto text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-          Field Boss
-        </span>
-      </div>
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+      <CardHeader icon={Skull} title="오늘의 필드보스" />
       <div className="p-4">
         {todayItems.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-4">
@@ -240,28 +240,14 @@ export default async function GameContentWidgets() {
   const [calendar, guardianSettingResult, guardianImagesResult, guardianWeaknessesResult] =
     await Promise.all([
       getCalendar(),
-      supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "current_guardian_index")
-        .maybeSingle(),
-      supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "guardian_images")
-        .maybeSingle(),
-      supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "guardian_weaknesses")
-        .maybeSingle(),
+      supabase.from("platform_settings").select("value").eq("key", "current_guardian_index").maybeSingle(),
+      supabase.from("platform_settings").select("value").eq("key", "guardian_images").maybeSingle(),
+      supabase.from("platform_settings").select("value").eq("key", "guardian_weaknesses").maybeSingle(),
     ]);
 
   const guardianIndex = Number(guardianSettingResult.data?.value ?? 0);
   const guardianImages = (guardianImagesResult.data?.value ?? {}) as { [key: string]: string };
-  const guardianWeaknessesAll = (guardianWeaknessesResult.data?.value ?? {}) as {
-    [key: string]: Weakness[];
-  };
+  const guardianWeaknessesAll = (guardianWeaknessesResult.data?.value ?? {}) as { [key: string]: Weakness[] };
   const guardianImageUrl = guardianImages[String(guardianIndex)] ?? null;
   const currentWeaknesses: Weakness[] = Array.isArray(guardianWeaknessesAll[String(guardianIndex)])
     ? guardianWeaknessesAll[String(guardianIndex)]
@@ -273,11 +259,7 @@ export default async function GameContentWidgets() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <AdventureIslandWidget items={adventures} />
-      <GuardianRaidWidget
-        guardianIndex={guardianIndex}
-        imageUrl={guardianImageUrl}
-        weaknesses={currentWeaknesses}
-      />
+      <GuardianRaidWidget guardianIndex={guardianIndex} imageUrl={guardianImageUrl} weaknesses={currentWeaknesses} />
       <FieldBossWidget items={fieldBosses} />
     </div>
   );
