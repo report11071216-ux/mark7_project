@@ -104,6 +104,16 @@ export default async function MyPage() {
       frame_url: img?.frame_url ?? null,
     };
   });
+
+  // 장착한 프로필카드의 프레임 URL 찾기
+  let equippedFrameUrl: string | null = null;
+  if (profile?.equipped_card_id) {
+    const equippedPurchase = rawPurchases.find((p) => p.id === profile.equipped_card_id);
+    if (equippedPurchase?.item_id) {
+      equippedFrameUrl = itemImageMap[equippedPurchase.item_id]?.frame_url ?? null;
+    }
+  }
+
   const hasSynced = !!profile?.main_character_name;
 
   return (
@@ -259,6 +269,7 @@ export default async function MyPage() {
                   expeditionLevel={profile?.expedition_level ?? 0}
                   imageUrl={profile?.character_image_url ?? null}
                   syncedAt={profile?.lostark_synced_at ?? null}
+                  frameUrl={equippedFrameUrl}
                 />
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
