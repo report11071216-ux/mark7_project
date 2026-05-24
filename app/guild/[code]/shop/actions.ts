@@ -63,3 +63,34 @@ export async function activateMegaphone(
 
   return result;
 }
+
+export async function equipGuildMark(
+  guildCode: string,
+  purchaseId: string | null,
+  guildId: string
+) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  const { data, error } = await supabase.rpc("equip_guild_mark", {
+    p_purchase_id: purchaseId,
+    p_guild_id: guildId,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  const result = data as { success: boolean; error?: string };
+
+  if (result.success) {
+    revalidatePath(`/guild/${guildCode}/inventory`);
+    revalidatePath(`/guild/${guildCode}`);
+  }
+
+  return result;
+}
