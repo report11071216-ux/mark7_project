@@ -1,6 +1,10 @@
 "use client";
-import { Package, Megaphone, Clock, Calendar, Coins } from "lucide-react";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Package, Megaphone, Clock, Calendar, Coins, Check, Loader2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
+import { equipGuildMark } from "@/app/guild/[code]/shop/actions";
+import toast from "react-hot-toast";
 
 export type InventoryItem = {
   id: string;
@@ -11,12 +15,16 @@ export type InventoryItem = {
   expires_at: string | null;
   activated_at: string | null;
   megaphone_message: string | null;
+  image_url: string | null;
 };
 
 type Props = {
+  guildCode: string;
+  guildId: string;
   guildName: string;
   items: InventoryItem[];
   isStaff: boolean;
+  equippedMarkId: string | null;
 };
 
 function megaphoneStatus(item: InventoryItem): "ready" | "active" | "done" {
@@ -28,13 +36,29 @@ function megaphoneStatus(item: InventoryItem): "ready" | "active" | "done" {
   return "done";
 }
 
-export default function GuildInventory({ guildName, items, isStaff }: Props) {
+export default function GuildInventory({
+  guildCode, guildId, guildName, items, isStaff, equippedMarkId,
+}: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const cosmetics = items.filter((i) => i.item_category !== "확성기");
   const megaphones = items.filter((i) => i.item_category === "확성기");
 
+  const handleEquipMark = (item: InventoryItem, isEquipped: boolean) => {
+    startTransition(async () => {
+      const result = await equipGuildMark(guildCode, isEquipped ? null : item.id, guildId);
+      if (result.success) {
+        toast.success(isEquipped ? "장착 해제됨" : `'${item.item_name}' 장착 완료!`);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "장착에 실패했습니다");
+      }
+    });
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
-      {/* 헤더 */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
           <Package className="w-5 h-5 text-white" />
@@ -63,7 +87,6 @@ export default function GuildInventory({ guildName, items, isStaff }: Props) {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* 코스메틱 아이템 */}
           {cosmetics.length > 0 && (
             <div>
               <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
@@ -71,29 +94,76 @@ export default function GuildInventory({ guildName, items, isStaff }: Props) {
                 보유 아이템
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {cosmetics.map((item) => (
-                  <div key={item.id} className="rounded-xl bg-card/60 ring-1 ring-border p-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 text-violet-300">
-                        {item.item_category}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                        <Coins className="w-3 h-3" />
-                        {item.price_paid.toLocaleString()}P
-                      </span>
+                {cosmetics.map((item) => {
+                  const isMark = item.item_category.includes("마크");
+                  const isEquipped = equippedMarkId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rounded-xl ring-1 p-3.5 transition ${
+                        isEquipped
+                          ? "bg-cyan-500/10 ring-cyan-500/40"
+                          : "bg-card/60 ring-border"
+                      }`}
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-black/30 mb-2.5 flex items-center justify-center">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.item_name}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <Package className="w-7 h-7 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 text-violet-300">
+                          {item.item_category}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-0.5 shrink-0">
+                          <Coins className="w-3 h-3" />
+                          {item.price_paid.toLocaleString()}P
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-white">{item.item_name}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 mt-1">
+                        <Calendar className="w-3 h-3" />
+                        {getRelativeTime(item.created_at)} 구매
+                      </p>
+
+                      {isMark && (
+                        <button
+                          type="button"
+                          onClick={() => handleEquipMark(item, isEquipped)}
+                          disabled={isPending || !isStaff}
+                          className={`mt-2.5 w-full h-8 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isEquipped
+                              ? "bg-cyan-600 text-white hover:bg-cyan-500"
+                              : "bg-white/10 text-white hover:bg-white/20"
+                          }`}
+                        >
+                          {isPending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : isEquipped ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              장착중
+                            </>
+                          ) : isStaff ? (
+                            "길드 로고로 장착"
+                          ) : (
+                            "마스터·부마스터만"
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <p className="text-sm font-bold text-white">{item.item_name}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 mt-1.5">
-                      <Calendar className="w-3 h-3" />
-                      {getRelativeTime(item.created_at)} 구매
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* 확성기 기록 */}
           {megaphones.length > 0 && (
             <div>
               <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
