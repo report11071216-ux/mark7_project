@@ -36,7 +36,7 @@ export default async function PlazaPage() {
     shopItemsResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("guilds").select("id, code, name, logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
+    supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
     supabase.from("weekly_guild_ranking").select("id, code, name, logo_url, weekly_points").order("weekly_points", { ascending: false }).limit(5),
     supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").order("created_at", { ascending: false }).limit(20),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
@@ -56,12 +56,24 @@ export default async function PlazaPage() {
   const annLink = annRaw?.link ?? "";
 
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
-    id: g.id, code: g.code, name: g.name, logo_url: g.logo_url,
+    id: g.id, code: g.code, name: g.name, logo_url: g.display_logo_url,
     member_count: g.member_count ?? 0, max_members: g.max_members ?? 50, description: g.description,
   }));
 
+  // 주간 랭킹 길드들의 표시용 로고 가져오기
+  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
+  let weeklyLogoMap = new Map<string, string | null>();
+  if (weeklyGuildIds.length > 0) {
+    const { data: weeklyDisplay } = await supabase
+      .from("guilds_display")
+      .select("id, display_logo_url")
+      .in("id", weeklyGuildIds);
+    weeklyLogoMap = new Map((weeklyDisplay ?? []).map((g) => [g.id, g.display_logo_url]));
+  }
+
   const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
-    id: g.id, code: g.code, name: g.name, logo_url: g.logo_url,
+    id: g.id, code: g.code, name: g.name,
+    logo_url: weeklyLogoMap.get(g.id) ?? g.logo_url,
     points: g.weekly_points ?? 0, member_count: 0, master_name: "",
   }));
 
@@ -76,22 +88,36 @@ export default async function PlazaPage() {
 
   const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
     user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    user ? supabase.from("guild_members").select("role, points, guilds(id, code, name, logo_url)").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
+    user ? supabase.from("guild_members").select("role, points, guild_id").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
     postGuildIds.length > 0 ? supabase.from("guilds").select("id, name, code").in("id", postGuildIds) : Promise.resolve({ data: [] }),
     postAuthorIds.length > 0 ? supabase.from("profiles").select("id, username").in("id", postAuthorIds) : Promise.resolve({ data: [] }),
   ]);
 
   const myProfile = profileResult.data as { username: string | null; avatar_url: string | null; is_platform_admin: boolean } | null;
-  const memberships = membershipsResult.data ?? [];
+  const memberships = (membershipsResult.data ?? []) as any[];
   const postGuilds = postGuildsResult.data ?? [];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  const myGuilds: MyGuildItem[] = (memberships as any[])
-    .filter((m) => m.guilds)
-    .map((m) => ({
-      id: m.guilds.id, code: m.guilds.code, name: m.guilds.name,
-      logo_url: m.guilds.logo_url, role: m.role, my_points: m.points ?? 0,
-    }));
+  // 내 길드들의 표시용 정보 가져오기
+  const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
+  let myGuildMap = new Map<string, { id: string; code: string; name: string; display_logo_url: string | null }>();
+  if (myGuildIds.length > 0) {
+    const { data: myGuildsDisplay } = await supabase
+      .from("guilds_display")
+      .select("id, code, name, display_logo_url")
+      .in("id", myGuildIds);
+    myGuildMap = new Map((myGuildsDisplay ?? []).map((g) => [g.id, g]));
+  }
+
+  const myGuilds: MyGuildItem[] = memberships
+    .filter((m) => myGuildMap.has(m.guild_id))
+    .map((m) => {
+      const g = myGuildMap.get(m.guild_id)!;
+      return {
+        id: g.id, code: g.code, name: g.name,
+        logo_url: g.display_logo_url, role: m.role, my_points: m.points ?? 0,
+      };
+    });
 
   const guildMap = new Map(postGuilds.map((g) => [g.id, g]));
   const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
