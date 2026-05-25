@@ -43,4 +43,111 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.from("raids").select("id, title, raid_date, raid_time, difficulty, max_members").eq("guild_id", guild.id).gte("raid_date", new Date().toISOString().split("T")[0]).order("raid_date", { ascending: true }).limit(5),
     supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url").eq("guild_id", guild.id).maybeSingle(),
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
-    supabase.from("platform_settings").select("value").eq("key", "c
+    supabase.from("platform_settings").select("value").eq("key", "current_guardian_index").maybeSingle(),
+    supabase.from("platform_settings").select("value").eq("key", "guardian_images").maybeSingle(),
+    supabase.from("platform_settings").select("value").eq("key", "guardian_weaknesses").maybeSingle(),
+  ]);
+
+  const attendanceDates = (myAttendances ?? []).map((a) => a.attendance_date);
+  const today = getAttendanceDate();
+  const alreadyAttended = attendanceDates.includes(today);
+  const streak = calculateStreak(attendanceDates);
+  const totalAttendances = attendanceDates.length;
+
+  const members = (allMembers ?? []) as any[];
+  const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
+
+  const layoutConfig = (themeRow?.layout_config ?? {}) as { theme?: string; custom?: boolean; widgets?: ThemeWidget[] };
+  const themeId = layoutConfig.theme ?? "naver";
+  const isCustom = layoutConfig.custom === true;
+  const activeWidgets = getLayoutWidgets(layoutConfig);
+  const allWidgets: ThemeWidget[] = layoutConfig.widgets ?? activeWidgets;
+  const theme = getTheme(themeId);
+
+  const primaryColor = themeRow?.primary_color ?? "#7c3aed";
+  const backgroundColor = themeRow?.background_color ?? "#09090b";
+  const bannerUrl = themeRow?.banner_url ?? null;
+
+  const guardianIndex = Number(indexResult.data?.value ?? 0);
+  const guardianImages = (imagesResult.data?.value ?? {}) as { [key: string]: string };
+  const guardianWeaknessesAll = (weaknessesResult.data?.value ?? {}) as { [key: string]: { name: string; color: string }[] };
+  const guardianImageUrl = guardianImages[String(guardianIndex)] ?? null;
+  const weaknesses = Array.isArray(guardianWeaknessesAll[String(guardianIndex)])
+    ? guardianWeaknessesAll[String(guardianIndex)]
+    : [];
+
+  const recentMembers = members.slice(0, 7).map((m) => ({
+    user_id: m.user_id, points: m.points ?? 0,
+    joined_at: m.joined_at, profiles: m.profiles ?? null,
+  }));
+
+  const rankingMembers = [...members]
+    .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+    .map((m) => ({ user_id: m.user_id, points: m.points ?? 0, role: m.role, profiles: m.profiles ?? null }));
+
+  const onlineMembers = members.map((m) => ({
+    user_id: m.user_id,
+    last_seen_at: m.profiles?.last_seen_at ?? null,
+    profiles: m.profiles ? { username: m.profiles.username ?? null, avatar_url: m.profiles.avatar_url ?? null } : null,
+  }));
+
+  const noticePosts = (posts ?? []).map((p: any) => ({
+    id: p.id, title: p.title, created_at: p.created_at,
+    is_notice: p.is_notice ?? false,
+    author: p.author ? { username: p.author.username ?? null } : null,
+  }));
+
+  const raidList = (raids ?? []).map((r) => ({
+    id: r.id, title: r.title, raid_date: r.raid_date,
+    raid_time: r.raid_time ?? null, difficulty: r.difficulty ?? null,
+    max_members: r.max_members ?? 8, members: [],
+  }));
+
+  const layoutData: GuildLayoutData = {
+    guild: {
+      id: guild.id, name: guild.name, code: guild.code,
+      description: guild.description ?? null,
+      total_points: guild.total_points ?? 0,
+      member_count: guild.member_count ?? 0,
+      max_members: (guild as any).max_members ?? 50,
+      logo_url: (guild as any).logo_url ?? null,
+      is_recruiting: (guild as any).is_recruiting ?? false,
+    },
+    attendanceDates, alreadyAttended, streak, totalAttendances,
+    recentMembers, rankingMembers, onlineMembers, noticePosts, raidList,
+    welcomeMessage: themeRow?.welcome_message ?? null,
+    guardianIndex, guardianImageUrl, weaknesses,
+    primaryColor,
+    backgroundColor,
+    bannerUrl,
+  };
+
+  const layoutStyle = theme.layoutStyle;
+
+  return (
+    <div className="min-h-screen">
+      {layoutStyle === "naver" && (
+        <NaverCafeLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
+      )}
+      {layoutStyle === "discord" && (
+        <DiscordLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
+      )}
+      {layoutStyle === "notion" && (
+        <NotionLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
+      )}
+      {layoutStyle === "steam" && (
+        <SteamLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
+      )}
+
+      {isStaff && (
+        <ThemeSelector
+          guildId={guild.id}
+          guildCode={guild.code}
+          currentThemeId={themeId}
+          currentWidgets={allWidgets}
+          isCustom={isCustom}
+        />
+      )}
+    </div>
+  );
+}
