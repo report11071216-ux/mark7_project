@@ -22,7 +22,6 @@ export async function saveGuildAppearance(
     .eq("guild_id", guildId)
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!member || !["master", "submaster"].includes(member.role)) {
     throw new Error("권한이 없어요");
   }
@@ -40,8 +39,9 @@ export async function saveGuildAppearance(
       },
       { onConflict: "guild_id" }
     );
-
   if (error) throw new Error(error.message);
-  revalidatePath(`/guild/${guildCode}`);
+
+  // 'layout' 옵션 — 길드 레이아웃(사이드바)까지 갱신해 색이 바로 반영되게 함
+  revalidatePath(`/guild/${guildCode}`, "layout");
   revalidatePath(`/guild/${guildCode}/admin`);
 }
