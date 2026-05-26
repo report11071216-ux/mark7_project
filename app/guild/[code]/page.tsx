@@ -38,7 +38,7 @@ export default async function GuildHomePage({ params }: Props) {
     weaknessesResult,
   ] = await Promise.all([
     supabase.from("attendances").select("attendance_date").eq("guild_id", guild.id).eq("user_id", user.id).order("attendance_date", { ascending: false }).limit(60),
-    supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
+    supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
     supabase.from("posts").select("id, title, created_at, is_notice, author:profiles(username)").eq("guild_id", guild.id).order("is_notice", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     supabase.from("raids").select("id, title, raid_date, raid_time, difficulty, max_members").eq("guild_id", guild.id).gte("raid_date", new Date().toISOString().split("T")[0]).order("raid_date", { ascending: true }).limit(5),
     supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url").eq("guild_id", guild.id).maybeSingle(),
@@ -56,6 +56,55 @@ export default async function GuildHomePage({ params }: Props) {
 
   const members = (allMembers ?? []) as any[];
   const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
+
+  // ── 멤버들의 장착 마크/프로필카드 이미지 조회 ──
+  const equippedPurchaseIds: string[] = [];
+  for (const m of members) {
+    const p = m.profiles;
+    if (p?.equipped_mark_id) equippedPurchaseIds.push(p.equipped_mark_id);
+    if (p?.equipped_card_id) equippedPurchaseIds.push(p.equipped_card_id);
+  }
+
+  let markUrlByPurchase: { [key: string]: string | null } = {};
+  let frameUrlByPurchase: { [key: string]: string | null } = {};
+  if (equippedPurchaseIds.length > 0) {
+    const uniqueIds = Array.from(new Set(equippedPurchaseIds));
+    const { data: purchaseRows } = await supabase
+      .from("purchases")
+      .select("id, item_id")
+      .in("id", uniqueIds);
+
+    const itemIds = Array.from(
+      new Set((purchaseRows ?? []).map((p) => p.item_id).filter(Boolean))
+    ) as string[];
+
+    let itemMap: { [key: string]: { image_url: string | null; frame_url: string | null } } = {};
+    if (itemIds.length > 0) {
+      const { data: itemRows } = await supabase
+        .from("shop_items")
+        .select("id, image_url, frame_url")
+        .in("id", itemIds);
+      for (const it of itemRows ?? []) {
+        itemMap[it.id] = { image_url: it.image_url, frame_url: it.frame_url };
+      }
+    }
+
+    for (const pr of purchaseRows ?? []) {
+      if (!pr.item_id) continue;
+      const it = itemMap[pr.item_id];
+      markUrlByPurchase[pr.id] = it?.image_url ?? null;
+      frameUrlByPurchase[pr.id] = it?.frame_url ?? null;
+    }
+  }
+
+  const markUrlOf = (p: any): string | null => {
+    if (!p?.equipped_mark_id) return null;
+    return markUrlByPurchase[p.equipped_mark_id] ?? null;
+  };
+  const cardUrlOf = (p: any): string | null => {
+    if (!p?.equipped_card_id) return null;
+    return frameUrlByPurchase[p.equipped_card_id] ?? null;
+  };
 
   const layoutConfig = (themeRow?.layout_config ?? {}) as { theme?: string; custom?: boolean; widgets?: ThemeWidget[] };
   const themeId = layoutConfig.theme ?? "naver";
@@ -88,7 +137,14 @@ export default async function GuildHomePage({ params }: Props) {
   const onlineMembers = members.map((m) => ({
     user_id: m.user_id,
     last_seen_at: m.profiles?.last_seen_at ?? null,
-    profiles: m.profiles ? { username: m.profiles.username ?? null, avatar_url: m.profiles.avatar_url ?? null } : null,
+    profiles: m.profiles
+      ? {
+          username: m.profiles.username ?? null,
+          avatar_url: m.profiles.avatar_url ?? null,
+          mark_url: markUrlOf(m.profiles),
+          card_url: cardUrlOf(m.profiles),
+        }
+      : null,
   }));
 
   const noticePosts = (posts ?? []).map((p: any) => ({
