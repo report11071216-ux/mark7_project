@@ -17,7 +17,7 @@ type Props = {
 const ALL_WIDGET_IDS: WidgetId[] = [
   "attendance", "calendar", "stats", "recentMembers",
   "notice", "guildIntro", "pointRanking", "guardian",
-  "raidStatus", "onlineMembers",
+  "raidStatus", "raidSchedule", "raidCalendar", "onlineMembers",
 ];
 
 export default function ThemeSelector({
