@@ -48,13 +48,16 @@ export default function MyProfileCard({
       <div className="relative">
         {hasBg && (
           <>
+            {/* 여백 채울 어두운 바탕 */}
+            <div className="absolute inset-0 bg-zinc-900" />
+            {/* 이미지 전체가 보이게 (안 잘림) */}
             <img
               src={cardFrameUrl!}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
             />
-            {/* 어두운 막 */}
-            <div className="absolute inset-0 bg-black/55" />
+            {/* 연한 어두운 막 */}
+            <div className="absolute inset-0 bg-black/30" />
           </>
         )}
 
@@ -76,12 +79,12 @@ export default function MyProfileCard({
           )}
           <div className="min-w-0">
             <p className={`text-[10px] font-mono uppercase tracking-wider mb-0.5 ${
-              hasBg ? "text-white/70" : "text-blue-600"
+              hasBg ? "text-white/80" : "text-blue-600"
             }`}>
               My Profile
             </p>
             <p className={`text-sm font-bold truncate ${
-              hasBg ? "text-white drop-shadow-[0_1px_4px_rgba(0,0,0,1)]" : "text-slate-900"
+              hasBg ? "text-white drop-shadow-[0_1px_5px_rgba(0,0,0,1)]" : "text-slate-900"
             }`}>
               {profile?.username ?? "이름없음"}
             </p>
