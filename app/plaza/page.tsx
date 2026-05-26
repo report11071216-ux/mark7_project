@@ -87,16 +87,59 @@ export default async function PlazaPage() {
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
   const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
-    user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin, equipped_mark_id, equipped_card_id").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from("guild_members").select("role, points, guild_id").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
     postGuildIds.length > 0 ? supabase.from("guilds").select("id, name, code").in("id", postGuildIds) : Promise.resolve({ data: [] }),
     postAuthorIds.length > 0 ? supabase.from("profiles").select("id, username").in("id", postAuthorIds) : Promise.resolve({ data: [] }),
   ]);
 
-  const myProfile = profileResult.data as { username: string | null; avatar_url: string | null; is_platform_admin: boolean } | null;
+  const myProfile = profileResult.data as {
+    username: string | null;
+    avatar_url: string | null;
+    is_platform_admin: boolean;
+    equipped_mark_id: string | null;
+    equipped_card_id: string | null;
+  } | null;
   const memberships = (membershipsResult.data ?? []) as any[];
   const postGuilds = postGuildsResult.data ?? [];
   const postAuthors = postAuthorsResult.data ?? [];
+
+  // 장착한 마크 / 프로필카드 이미지 가져오기
+  let equippedMarkUrl: string | null = null;
+  let equippedCardFrameUrl: string | null = null;
+  if (myProfile && (myProfile.equipped_mark_id || myProfile.equipped_card_id)) {
+    const equippedPurchaseIds = [myProfile.equipped_mark_id, myProfile.equipped_card_id].filter(Boolean) as string[];
+    const { data: equippedPurchases } = await supabase
+      .from("purchases")
+      .select("id, item_id")
+      .in("id", equippedPurchaseIds);
+
+    const purchaseItemIds = Array.from(
+      new Set((equippedPurchases ?? []).map((p) => p.item_id).filter(Boolean))
+    ) as string[];
+
+    let itemImageMap: { [key: string]: { image_url: string | null; frame_url: string | null } } = {};
+    if (purchaseItemIds.length > 0) {
+      const { data: shopItemsData } = await supabase
+        .from("shop_items")
+        .select("id, image_url, frame_url")
+        .in("id", purchaseItemIds);
+      for (const it of shopItemsData ?? []) {
+        itemImageMap[it.id] = { image_url: it.image_url, frame_url: it.frame_url };
+      }
+    }
+
+    const purchaseMap = new Map((equippedPurchases ?? []).map((p) => [p.id, p.item_id]));
+
+    if (myProfile.equipped_mark_id) {
+      const markItemId = purchaseMap.get(myProfile.equipped_mark_id);
+      if (markItemId) equippedMarkUrl = itemImageMap[markItemId]?.image_url ?? null;
+    }
+    if (myProfile.equipped_card_id) {
+      const cardItemId = purchaseMap.get(myProfile.equipped_card_id);
+      if (cardItemId) equippedCardFrameUrl = itemImageMap[cardItemId]?.frame_url ?? null;
+    }
+  }
 
   // 내 길드들의 표시용 정보 가져오기
   const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
@@ -190,6 +233,8 @@ export default async function PlazaPage() {
               isLoggedIn={!!user}
               profile={myProfile}
               isAdmin={myProfile?.is_platform_admin === true}
+              markUrl={equippedMarkUrl}
+              cardFrameUrl={equippedCardFrameUrl}
             />
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
             <RecruitingGuilds guilds={recruitingGuilds} />
