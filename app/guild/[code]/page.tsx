@@ -127,12 +127,30 @@ export default async function GuildHomePage({ params }: Props) {
 
   const recentMembers = members.slice(0, 7).map((m) => ({
     user_id: m.user_id, points: m.points ?? 0,
-    joined_at: m.joined_at, profiles: m.profiles ?? null,
+    joined_at: m.joined_at,
+    profiles: m.profiles
+      ? {
+          username: m.profiles.username ?? null,
+          avatar_url: m.profiles.avatar_url ?? null,
+          mark_url: markUrlOf(m.profiles),
+          card_url: cardUrlOf(m.profiles),
+        }
+      : null,
   }));
 
   const rankingMembers = [...members]
     .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-    .map((m) => ({ user_id: m.user_id, points: m.points ?? 0, role: m.role, profiles: m.profiles ?? null }));
+    .map((m) => ({
+      user_id: m.user_id, points: m.points ?? 0, role: m.role,
+      profiles: m.profiles
+        ? {
+            username: m.profiles.username ?? null,
+            avatar_url: m.profiles.avatar_url ?? null,
+            mark_url: markUrlOf(m.profiles),
+            card_url: cardUrlOf(m.profiles),
+          }
+        : null,
+    }));
 
   const onlineMembers = members.map((m) => ({
     user_id: m.user_id,
