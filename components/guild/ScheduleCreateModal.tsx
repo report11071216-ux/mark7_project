@@ -33,7 +33,14 @@ function formatDateLabel(dateStr: string): string {
   const m = Number(parts[1])
   const d = Number(parts[2])
   const wd = ['일', '월', '화', '수', '목', '금', '토'][new Date(y, m - 1, d).getDay()]
-  return `${y}년 ${m}월 ${d}일 (${wd})`
+  return y + '년 ' + m + '월 ' + d + '일 (' + wd + ')'
+}
+
+function goldFor(raid: RaidOption | undefined, diff: string): number | null {
+  if (!raid) return null
+  if (diff === '하드') return raid.gold_hard
+  if (diff === '나메') return raid.gold_nightmare
+  return raid.gold_normal
 }
 
 export default function ScheduleCreateModal({ open, date, guildCode, raids, onClose }: Props) {
@@ -70,14 +77,6 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
   if (!open) return null
 
   const selectedRaid = raids.find((r) => r.id === raidId)
-
-  function goldFor(raid: RaidOption | undefined, diff: string): number | null {
-    if (!raid) return null
-    if (diff === '하드') return raid.gold_hard
-    if (diff === '나메') return raid.gold_nightmare
-    return raid.gold_normal
-  }
-
   const goldHint = goldFor(selectedRaid, difficulty)
 
   async function handleSubmit() {
@@ -121,7 +120,6 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 헤더 */}
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
@@ -143,7 +141,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
           <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-center">
             <p className="text-sm text-zinc-400">아직 등록된 레이드가 없어요.</p>
             
-              href={`/guild/${guildCode}/raids/new`}
+              href={'/guild/' + guildCode + '/raids/new'}
               className="mt-2 inline-block text-sm font-medium text-violet-300 hover:underline"
             >
               레이드 도감에 먼저 등록하기 →
@@ -151,7 +149,6 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 레이드 선택 */}
             <div>
               <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                 레이드
@@ -163,11 +160,12 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                     <button
                       key={r.id}
                       onClick={() => setRaidId(r.id)}
-                      className={`flex items-center gap-2 rounded-lg border p-2 text-left transition ${
-                        selected
+                      className={
+                        'flex items-center gap-2 rounded-lg border p-2 text-left transition ' +
+                        (selected
                           ? 'border-violet-500 bg-violet-500/10'
-                          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700'
-                      }`}
+                          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700')
+                      }
                     >
                       {r.image_url ? (
                         <img
@@ -189,7 +187,6 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
               </div>
             </div>
 
-            {/* 난이도 */}
             <div>
               <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                 난이도
@@ -199,24 +196,24 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
-                    className={`flex-1 rounded-lg border py-2 text-sm transition ${
-                      difficulty === d
+                    className={
+                      'flex-1 rounded-lg border py-2 text-sm transition ' +
+                      (difficulty === d
                         ? 'border-violet-500 bg-violet-500/10 text-violet-200'
-                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
-                    }`}
+                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700')
+                    }
                   >
                     {d}
                   </button>
                 ))}
               </div>
-              {goldHint != null && (
+              {goldHint != null ? (
                 <p className="mt-1.5 font-mono text-[11px] text-amber-300/80">
                   예상 보상 {goldHint.toLocaleString()} G
                 </p>
-              )}
+              ) : null}
             </div>
 
-            {/* 숙련도 */}
             <div>
               <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                 숙련도
@@ -226,11 +223,12 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                   <button
                     key={s}
                     onClick={() => setSkillLevel(s)}
-                    className={`flex-1 rounded-lg border py-2 text-sm transition ${
-                      skillLevel === s
+                    className={
+                      'flex-1 rounded-lg border py-2 text-sm transition ' +
+                      (skillLevel === s
                         ? 'border-cyan-500 bg-cyan-500/10 text-cyan-200'
-                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
-                    }`}
+                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700')
+                    }
                   >
                     {s}
                   </button>
@@ -238,7 +236,6 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
               </div>
             </div>
 
-            {/* 인원 + 시간 */}
             <div className="flex gap-3">
               <div className="flex-1">
                 <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
@@ -249,11 +246,12 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                     <button
                       key={n}
                       onClick={() => setMaxMembers(n)}
-                      className={`flex-1 rounded-lg border py-2 text-sm transition ${
-                        maxMembers === n
+                      className={
+                        'flex-1 rounded-lg border py-2 text-sm transition ' +
+                        (maxMembers === n
                           ? 'border-violet-500 bg-violet-500/10 text-violet-200'
-                          : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
-                      }`}
+                          : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700')
+                      }
                     >
                       {n}인
                     </button>
@@ -273,11 +271,11 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
               </div>
             </div>
 
-            {error && (
+            {error ? (
               <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                 {error}
               </p>
-            )}
+            ) : null}
 
             <div className="flex gap-2 pt-1">
               <button
