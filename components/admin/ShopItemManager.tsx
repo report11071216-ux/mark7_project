@@ -55,8 +55,8 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       toast.error("이미지 파일만 업로드할 수 있어요");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("2MB 이하 이미지만 업로드할 수 있어요");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("5MB 이하 이미지만 업로드할 수 있어요");
       return;
     }
 
@@ -261,7 +261,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
               {uploading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
               ) : (
-                <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (2MB 이하)"}</>
+                <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (5MB 이하)"}</>
               )}
               <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="hidden" />
             </label>
@@ -271,7 +271,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           {isProfileCard && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">
-                프레임 이미지 <span className="text-blue-500">(프로필카드 적용용 · 3:2 가로형 PNG)</span>
+                프레임 이미지 <span className="text-blue-500">(프로필카드 적용용 · 비워두면 썸네일 사용)</span>
               </label>
               <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-blue-200 text-sm cursor-pointer transition ${
                 uploadingFrame ? "bg-slate-100 text-slate-400" : "bg-blue-50/50 hover:bg-blue-50 text-blue-600"
@@ -279,7 +279,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
                 {uploadingFrame ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
                 ) : (
-                  <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택"}</>
+                  <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택 (5MB 이하)"}</>
                 )}
                 <input type="file" accept="image/*" onChange={handleFrameChange} disabled={uploadingFrame} className="hidden" />
               </label>
