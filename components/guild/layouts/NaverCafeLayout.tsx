@@ -4,8 +4,10 @@ import { type ThemeWidget } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
 import OnlineMembersCard from "@/components/guild/OnlineMembersCard";
+import RankingCard from "@/components/guild/RankingCard";
+import RecentMembersCard from "@/components/guild/RecentMembersCard";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
-import { Bell, Users, Trophy, Swords } from "lucide-react";
+import { Bell, Swords } from "lucide-react";
 
 type Props = {
   data: GuildLayoutData;
@@ -111,29 +113,13 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
       <div className="max-w-[1080px] mx-auto px-4 py-4 flex gap-4">
         <div className="w-[168px] shrink-0 space-y-3">
           {enabled("pointRanking") && (
-            <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
-              <div className="flex items-center gap-1.5 px-3 py-2" style={{ backgroundColor: primaryColor }}>
-                <Trophy className="w-3.5 h-3.5 text-white" />
-                <p className="text-[11px] font-bold text-white">포인트 랭킹</p>
-              </div>
-              <div className="py-1">
-                {rankingMembers.slice(0, 7).map((m, i) => (
-                  <div key={m.user_id} className="flex items-center gap-2 px-3 py-1.5 row-hover">
-                    <span className="text-[10px] font-bold w-4 text-center" style={{
-                      color: i === 0 ? "#eab308" : i === 1 ? "#9ca3af" : i === 2 ? "#f97316" : textSecondary
-                    }}>{i + 1}</span>
-                    <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor + "33" }}>
-                      {m.profiles?.avatar_url
-                        ? <img src={m.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-[8px] font-bold" style={{ color: primaryColor }}>{m.profiles?.username?.[0]?.toUpperCase()}</span>
-                      }
-                    </div>
-                    <span className="text-[11px] truncate flex-1" style={{ color: textPrimary }}>{m.profiles?.username ?? "?"}</span>
-                    <span className="text-[10px] font-bold shrink-0" style={{ color: primaryColor }}>{m.points}P</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <RankingCard
+              rankingMembers={rankingMembers}
+              textPrimary={textPrimary}
+              primaryColor={primaryColor}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+            />
           )}
 
           {enabled("onlineMembers") && (
@@ -215,26 +201,15 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
             )}
 
             {enabled("recentMembers") && (
-              <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: cardBorder }}>
-                  <Users className="w-4 h-4" style={{ color: primaryColor }} />
-                  <h2 className="text-sm font-bold" style={{ color: textPrimary }}>최근 가입</h2>
-                </div>
-                <div>
-                  {recentMembers.slice(0, 4).map((m) => (
-                    <div key={m.user_id} className="flex items-center gap-3 px-4 py-2 border-b last:border-0" style={{ borderColor: dividerColor }}>
-                      <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor + "22" }}>
-                        {m.profiles?.avatar_url
-                          ? <img src={m.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-[10px] font-bold" style={{ color: primaryColor }}>{m.profiles?.username?.[0]?.toUpperCase()}</span>
-                        }
-                      </div>
-                      <span className="text-sm flex-1 truncate" style={{ color: textPrimary }}>{m.profiles?.username ?? "?"}</span>
-                      <span className="text-[11px]" style={{ color: textSecondary }}>{getRelativeTime(m.joined_at)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <RecentMembersCard
+                recentMembers={recentMembers}
+                textPrimary={textPrimary}
+                textSecondary={textSecondary}
+                primaryColor={primaryColor}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                dividerColor={dividerColor}
+              />
             )}
           </div>
 
