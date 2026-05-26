@@ -41,11 +41,11 @@ export default function MyProfileCard({
 
   const displayAvatar = markUrl ?? profile?.avatar_url ?? null;
 
-  // ───── 프로필카드 프레임 장착 버전 (5:2) ─────
+  // ───── 프로필카드 프레임 장착 (규격: 1000x400, 아바타 중심 160,200 / 지름 260) ─────
   if (cardFrameUrl) {
     return (
       <div className="plaza-card overflow-hidden">
-        <div className="relative w-full" style={{ aspectRatio: "5 / 2" }}>
+        <div className="relative w-full" style={{ aspectRatio: "1000 / 400" }}>
           {/* 프레임 배경 */}
           <img
             src={cardFrameUrl}
@@ -53,33 +53,43 @@ export default function MyProfileCard({
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          <div className="absolute inset-0 flex items-center">
-            {/* 좌측 0~32% — 아바타 자리 */}
-            <div className="relative w-[32%] h-full shrink-0 flex items-center justify-center">
-              {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt={profile?.username ?? "User"}
-                  className="w-[62%] aspect-square rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-[62%] aspect-square rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
-                  <span className="text-base font-bold text-white">
-                    {(profile?.username ?? "?").charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
+          {/* 아바타 — 중심 (160,200)=(16%,50%), 지름 260=(26%) */}
+          <div
+            className="absolute rounded-full overflow-hidden"
+            style={{
+              left: "16%",
+              top: "50%",
+              width: "26%",
+              transform: "translate(-50%, -50%)",
+              aspectRatio: "1 / 1",
+            }}
+          >
+            {displayAvatar ? (
+              <img
+                src={displayAvatar}
+                alt={profile?.username ?? "User"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
+                <span className="text-base font-bold text-white">
+                  {(profile?.username ?? "?").charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
 
-            {/* 우측 32~88% — 텍스트 자리 */}
-            <div className="flex flex-col justify-center pl-[2%] pr-[12%] min-w-0">
-              <p className="text-[9px] font-mono text-white/60 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
-                My Profile
-              </p>
-              <p className="text-base font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
-                {profile?.username ?? "이름없음"}
-              </p>
-            </div>
+          {/* 텍스트 — 텍스트 존 x300~820 = (30%~82%) */}
+          <div
+            className="absolute flex flex-col justify-center"
+            style={{ left: "30%", right: "18%", top: 0, bottom: 0 }}
+          >
+            <p className="text-[9px] font-mono text-amber-300/80 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+              My Profile
+            </p>
+            <p className="text-base font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+              {profile?.username ?? "이름없음"}
+            </p>
           </div>
         </div>
 
