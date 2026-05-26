@@ -40,108 +40,57 @@ export default function MyProfileCard({
   }
 
   const displayAvatar = markUrl ?? profile?.avatar_url ?? null;
+  const hasBg = !!cardFrameUrl;
 
-  // ───── 프로필카드 프레임 장착 (규격: 1000x400, 아바타 중심 160,200 / 지름 260) ─────
-  if (cardFrameUrl) {
-    return (
-      <div className="plaza-card overflow-hidden">
-        <div className="relative w-full" style={{ aspectRatio: "1000 / 400" }}>
-          {/* 프레임 배경 */}
-          <img
-            src={cardFrameUrl}
-            alt=""
-            className="absolute inset-0 w-full h-full object-contain"
-          />
+  return (
+    <div className="plaza-card overflow-hidden">
+      {/* 상단 — 배경 이미지 있으면 그 위에, 없으면 기본 */}
+      <div className="relative">
+        {hasBg && (
+          <>
+            <img
+              src={cardFrameUrl!}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* 어두운 막 */}
+            <div className="absolute inset-0 bg-black/55" />
+          </>
+        )}
 
-          {/* 아바타 — 중심 (160,200)=(16%,50%), 지름 260=(26%) */}
-          <div
-            className="absolute rounded-full overflow-hidden"
-            style={{
-              left: "16%",
-              top: "50%",
-              width: "26%",
-              transform: "translate(-50%, -50%)",
-              aspectRatio: "1 / 1",
-            }}
-          >
-            {displayAvatar ? (
-              <img
-                src={displayAvatar}
-                alt={profile?.username ?? "User"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
-                <span className="text-base font-bold text-white">
-                  {(profile?.username ?? "?").charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* 텍스트 — 텍스트 존 x300~820 = (30%~82%) */}
-          <div
-            className="absolute flex flex-col justify-center"
-            style={{ left: "30%", right: "18%", top: 0, bottom: 0 }}
-          >
-            <p className="text-[9px] font-mono text-amber-300/80 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+        <div className="relative flex items-center gap-3 p-4">
+          {displayAvatar ? (
+            <img
+              src={displayAvatar}
+              alt={profile?.username ?? "User"}
+              className={`w-12 h-12 rounded-full object-cover ring-2 ${
+                hasBg ? "ring-white/30" : "ring-blue-100"
+              }`}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
+              <span className="text-sm font-bold text-white">
+                {(profile?.username ?? "?").charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className={`text-[10px] font-mono uppercase tracking-wider mb-0.5 ${
+              hasBg ? "text-white/70" : "text-blue-600"
+            }`}>
               My Profile
             </p>
-            <p className="text-base font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+            <p className={`text-sm font-bold truncate ${
+              hasBg ? "text-white drop-shadow-[0_1px_4px_rgba(0,0,0,1)]" : "text-slate-900"
+            }`}>
               {profile?.username ?? "이름없음"}
             </p>
           </div>
         </div>
-
-        {/* 버튼 */}
-        <div className="p-4 flex flex-col gap-1.5">
-          <Link
-            href="/mypage"
-            className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
-          >
-            마이페이지
-          </Link>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-bold text-center transition-colors ring-1 ring-amber-200"
-            >
-              <ShieldCheck className="w-3 h-3" />
-              관리자 콘솔
-            </Link>
-          )}
-        </div>
       </div>
-    );
-  }
 
-  // ───── 기본 버전 (프레임 미장착) ─────
-  return (
-    <div className="plaza-card p-4">
-      <div className="flex items-center gap-3 mb-3">
-        {displayAvatar ? (
-          <img
-            src={displayAvatar}
-            alt={profile?.username ?? "User"}
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
-            <span className="text-sm font-bold text-white">
-              {(profile?.username ?? "?").charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-[10px] font-mono text-blue-600 uppercase tracking-wider mb-0.5">
-            My Profile
-          </p>
-          <p className="text-sm font-bold text-slate-900 truncate">
-            {profile?.username ?? "이름없음"}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1.5">
+      {/* 버튼 */}
+      <div className="p-4 pt-0 flex flex-col gap-1.5">
         <Link
           href="/mypage"
           className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
