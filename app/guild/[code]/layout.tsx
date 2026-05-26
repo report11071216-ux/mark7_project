@@ -21,23 +21,19 @@ export default async function GuildLayout({
     .eq("code", upperCode)
     .maybeSingle();
   if (guildError || !guild) notFound();
-
   const [{ data: membership }, { data: profile }, { data: themeRow }] = await Promise.all([
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("username, avatar_url, equipped_mark_id").eq("id", user.id).maybeSingle(),
-    supabase.from("guild_themes").select("equipped_mark_id").eq("guild_id", guild.id).maybeSingle(),
+    supabase.from("guild_themes").select("equipped_mark_id, primary_color, background_color").eq("guild_id", guild.id).maybeSingle(),
   ]);
-
   if (!membership) {
     redirect("/onboarding/join");
   }
-
   // 접속 시각 갱신 (온라인 멤버 판정용)
   await supabase
     .from("profiles")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", user.id);
-
   // 장착한 길드 마크 이미지 찾기 (없으면 원래 logo_url)
   let guildLogoUrl = guild.logo_url;
   if (themeRow?.equipped_mark_id) {
@@ -57,7 +53,6 @@ export default async function GuildLayout({
       }
     }
   }
-
   // 장착한 개인 마크 이미지 찾기 (없으면 디스코드 아바타)
   let userAvatarUrl = profile?.avatar_url ?? null;
   if (profile?.equipped_mark_id) {
@@ -78,6 +73,9 @@ export default async function GuildLayout({
     }
   }
 
+  const primaryColor = themeRow?.primary_color ?? "#7c3aed";
+  const backgroundColor = themeRow?.background_color ?? "#09090b";
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -88,6 +86,8 @@ export default async function GuildLayout({
         userRole={membership.role}
         userName={profile?.username ?? "익명"}
         userAvatarUrl={userAvatarUrl}
+        primaryColor={primaryColor}
+        backgroundColor={backgroundColor}
       />
       {/* 모바일: 상단 헤더(56px) + 하단 탭(60px) 여백, 데스크탑: 여백 없음 */}
       <main className="flex-1 overflow-x-hidden pt-14 pb-16 md:pt-0 md:pb-0">
