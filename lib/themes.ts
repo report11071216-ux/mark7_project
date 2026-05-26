@@ -1,7 +1,7 @@
 export type WidgetId =
   | "attendance" | "calendar" | "stats" | "recentMembers"
   | "notice" | "guildIntro" | "pointRanking" | "guardian"
-  | "raidStatus" | "onlineMembers";
+  | "raidStatus" | "onlineMembers" | "raidSchedule";
 
 export type ThemeWidget = { id: WidgetId; wide: boolean; enabled: boolean };
 
@@ -27,6 +27,7 @@ export const WIDGET_META: { [key: string]: { label: string; icon: string; descri
   guardian:      { label: "가디언 토벌", icon: "⚔️", description: "이번 주 가디언 정보" },
   raidStatus:    { label: "레이드", icon: "🗡️", description: "등록된 레이드 목록" },
   onlineMembers: { label: "온라인 멤버", icon: "🟢", description: "현재 접속 중인 멤버" },
+  raidSchedule:  { label: "레이드 일정", icon: "📆", description: "다가오는 레이드 일정 + 주간 캘린더" },
 };
 
 export const THEMES: Theme[] = [
@@ -45,6 +46,7 @@ export const THEMES: Theme[] = [
       { id: "stats",         wide: false, enabled: true },
       { id: "onlineMembers", wide: false, enabled: true },
       { id: "raidStatus",    wide: false, enabled: true },
+      { id: "raidSchedule",  wide: false, enabled: true },
     ],
   },
   {
@@ -57,6 +59,7 @@ export const THEMES: Theme[] = [
       { id: "attendance",    wide: false, enabled: true },
       { id: "stats",         wide: false, enabled: true },
       { id: "notice",        wide: false, enabled: true },
+      { id: "raidSchedule",  wide: false, enabled: true },
       { id: "pointRanking",  wide: false, enabled: true },
       { id: "guardian",      wide: false, enabled: true },
       { id: "recentMembers", wide: false, enabled: true },
@@ -74,6 +77,7 @@ export const THEMES: Theme[] = [
       { id: "attendance",    wide: false, enabled: true },
       { id: "calendar",      wide: false, enabled: true },
       { id: "notice",        wide: true,  enabled: true },
+      { id: "raidSchedule",  wide: true,  enabled: true },
       { id: "pointRanking",  wide: false, enabled: true },
       { id: "recentMembers", wide: false, enabled: true },
     ],
@@ -90,6 +94,7 @@ export const THEMES: Theme[] = [
       { id: "guardian",      wide: true,  enabled: true },
       { id: "stats",         wide: true,  enabled: true },
       { id: "notice",        wide: false, enabled: true },
+      { id: "raidSchedule",  wide: false, enabled: true },
       { id: "recentMembers", wide: false, enabled: true },
     ],
   },
