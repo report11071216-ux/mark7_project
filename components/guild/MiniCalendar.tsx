@@ -20,20 +20,20 @@ export default function MiniCalendar({ attendanceDates }: Props) {
   const today = getAttendanceDate();
 
   return (
-    <Card className="p-6 bg-zinc-900/50 border-zinc-800 backdrop-blur">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="p-4 bg-zinc-900/50 border-zinc-800 backdrop-blur">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mb-1">
+          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-0.5">
             CALENDAR
           </p>
-          <h3 className="text-lg font-bold text-white">출석 캘린더</h3>
+          <h3 className="text-base font-bold text-white">출석 캘린더</h3>
         </div>
         <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1">
           {(["month", "week", "day"] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1 text-xs font-mono uppercase rounded transition ${
+              className={`px-2.5 py-0.5 text-[11px] font-mono uppercase rounded transition ${
                 view === v
                   ? "bg-violet-500/20 text-violet-300"
                   : "text-zinc-500 hover:text-zinc-300"
@@ -74,44 +74,44 @@ function MonthView({ cursor, setCursor, attendanceDates, attendedSet, today }: a
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setCursor(new Date(year, month - 1, 1))}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <p className="text-sm font-bold text-white">
-          {year}년 {month + 1}월 <span className="text-violet-400 ml-2">{monthCount}일 출석</span>
+          {year}년 {month + 1}월 <span className="text-violet-400 ml-1.5">{monthCount}일 출석</span>
         </p>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setCursor(new Date(year, month + 1, 1))}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-1 mb-1">
         {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
-          <div key={d} className="text-center text-xs font-mono text-zinc-600 py-1">
+          <div key={d} className="text-center text-[10px] font-mono text-zinc-600">
             {d}
           </div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
         {cells.map((day, i) => {
-          if (day === null) return <div key={i} className="aspect-square" />;
+          if (day === null) return <div key={i} className="h-8" />;
           const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const isAttended = attendedSet.has(dateStr);
           const isToday = dateStr === today;
           return (
             <div
               key={i}
-              className={`aspect-square flex items-center justify-center text-xs rounded transition ${
+              className={`h-8 flex items-center justify-center text-xs rounded transition ${
                 isAttended
                   ? "bg-violet-500/30 text-violet-200 font-bold border border-violet-500/50"
                   : "text-zinc-500 hover:bg-zinc-800/50"
@@ -141,7 +141,7 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <Button
           variant="ghost"
           size="sm"
@@ -150,13 +150,13 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
             prev.setDate(prev.getDate() - 7);
             setCursor(prev);
           }}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <p className="text-sm font-bold text-white">
           {sunday.getMonth() + 1}/{sunday.getDate()} 주
-          <span className="text-violet-400 ml-2">{weekCount}/7일</span>
+          <span className="text-violet-400 ml-1.5">{weekCount}/7일</span>
         </p>
         <Button
           variant="ghost"
@@ -166,12 +166,12 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
             next.setDate(next.getDate() + 7);
             setCursor(next);
           }}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1.5">
         {days.map((d, i) => {
           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           const isAttended = attendedSet.has(dateStr);
@@ -180,17 +180,17 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
           return (
             <div
               key={i}
-              className={`flex flex-col items-center p-3 rounded-lg border ${
+              className={`flex flex-col items-center py-2 rounded-lg border ${
                 isAttended
                   ? "bg-violet-500/20 border-violet-500/40"
                   : "bg-zinc-800/30 border-zinc-700/50"
               } ${isToday ? "ring-2 ring-cyan-400/50" : ""}`}
             >
-              <p className="text-xs font-mono text-zinc-500 mb-1">{dayLabels[i]}</p>
-              <p className={`text-lg font-bold ${isAttended ? "text-violet-200" : "text-zinc-400"}`}>
+              <p className="text-[10px] font-mono text-zinc-500">{dayLabels[i]}</p>
+              <p className={`text-base font-bold ${isAttended ? "text-violet-200" : "text-zinc-400"}`}>
                 {d.getDate()}
               </p>
-              <p className={`text-xs mt-1 ${isAttended ? "text-violet-300" : "text-zinc-600"}`}>
+              <p className={`text-[10px] ${isAttended ? "text-violet-300" : "text-zinc-600"}`}>
                 {isAttended ? "✓" : "—"}
               </p>
             </div>
@@ -209,7 +209,7 @@ function DayView({ cursor, setCursor, attendedSet, today }: any) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <Button
           variant="ghost"
           size="sm"
@@ -218,7 +218,7 @@ function DayView({ cursor, setCursor, attendedSet, today }: any) {
             prev.setDate(prev.getDate() - 1);
             setCursor(prev);
           }}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
@@ -233,28 +233,28 @@ function DayView({ cursor, setCursor, attendedSet, today }: any) {
             next.setDate(next.getDate() + 1);
             setCursor(next);
           }}
-          className="text-zinc-400 hover:text-white"
+          className="h-7 px-2 text-zinc-400 hover:text-white"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
       <div
-        className={`p-8 rounded-xl border text-center ${
+        className={`p-5 rounded-xl border text-center ${
           isAttended
             ? "bg-gradient-to-br from-violet-500/20 to-violet-500/5 border-violet-500/40"
             : "bg-zinc-800/30 border-zinc-700/50"
         } ${isToday ? "ring-2 ring-cyan-400/50" : ""}`}
       >
-        <p className="text-xs font-mono text-zinc-500 uppercase mb-2">
+        <p className="text-[10px] font-mono text-zinc-500 uppercase mb-1.5">
           {dayLabels[cursor.getDay()]}
         </p>
-        <p className="text-5xl font-bold text-white mb-3">{cursor.getDate()}</p>
+        <p className="text-4xl font-bold text-white mb-2">{cursor.getDate()}</p>
         {isAttended ? (
-          <p className="text-violet-300 font-bold">✓ 출석 완료 (+1P)</p>
+          <p className="text-sm text-violet-300 font-bold">✓ 출석 완료 (+1P)</p>
         ) : (
-          <p className="text-zinc-500">미출석</p>
+          <p className="text-sm text-zinc-500">미출석</p>
         )}
-        {isToday && <p className="text-xs text-cyan-400 font-mono mt-2">TODAY</p>}
+        {isToday && <p className="text-[10px] text-cyan-400 font-mono mt-1.5">TODAY</p>}
       </div>
     </>
   );
