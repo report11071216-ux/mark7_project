@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, Bell, CalendarDays, Users, MessageCircle,
@@ -20,16 +19,45 @@ interface SidebarProps {
   userName: string;
   userAvatarUrl: string | null;
   memberCount: number;
+  primaryColor?: string;
+  backgroundColor?: string;
+}
+
+function isLightColor(hex: string) {
+  const h = (hex ?? "").replace("#", "");
+  if (h.length < 6) return false;
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+}
+
+function hexToRgba(hex: string, a: number) {
+  const h = (hex ?? "").replace("#", "");
+  if (h.length < 6) return `rgba(124,58,237,${a})`;
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 export function Sidebar({
   guildCode, guildName, guildLogoUrl,
   userRole, userName, userAvatarUrl, memberCount,
+  primaryColor, backgroundColor,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isStaff = userRole === "master" || userRole === "submaster";
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const accent = primaryColor ?? "#7c3aed";
+  const bg = backgroundColor ?? "#09090b";
+  const isLight = isLightColor(bg);
+  const textMain = isLight ? "#111827" : "#ffffff";
+  const textMuted = isLight ? "#6b7280" : "#a1a1aa";
+  const borderCol = isLight ? "#e5e7eb" : "#27272a";
+  const accentActive = hexToRgba(accent, 0.18);
 
   const handleLogout = async () => {
     const supabase = createBrowserClient(
@@ -59,13 +87,88 @@ export function Sidebar({
     userRole === "master" ? "마스터" :
     userRole === "submaster" ? "부마스터" : "멤버";
 
+  const linkBase =
+    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group relative hover:bg-white/[0.06]";
+
+  function menuLinkStyle(active: boolean) {
+    if (active) {
+      return { backgroundColor: accentActive, color: textMain, boxShadow: `inset 2px 0 0 ${accent}` };
+    }
+    return { color: textMuted };
+  }
+
+  function renderMenuItems(onClick?: () => void) {
+    return menu.map((item) => {
+      const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onClick}
+          className={linkBase}
+          style={menuLinkStyle(isActive)}
+        >
+          <item.icon className="w-4 h-4 shrink-0" style={{ color: isActive ? accent : textMuted }} />
+          <span className="flex-1">{item.label}</span>
+          {item.badge !== undefined && item.badge > 0 && (
+            <span className="text-[10px] font-mono" style={{ color: textMuted }}>{item.badge}</span>
+          )}
+        </Link>
+      );
+    });
+  }
+
+  function userBlock(onClick?: () => void) {
+    return (
+      <>
+        <Link
+          href="/mypage"
+          onClick={onClick}
+          className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-white/[0.06]"
+        >
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+            style={{ backgroundColor: accent }}
+          >
+            {userAvatarUrl ? (
+              <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-white">{userName[0]?.toUpperCase() ?? "?"}</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold truncate" style={{ color: textMain }}>{userName}</div>
+            <Badge variant={userRole === "master" ? "master" : "default"} size="sm" className="mt-0.5">
+              {roleLabel}
+            </Badge>
+          </div>
+        </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors hover:text-rose-300 hover:bg-rose-500/10"
+          style={{ color: textMuted }}
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          <span>로그아웃</span>
+        </button>
+      </>
+    );
+  }
+
   return (
     <>
       {/* ── 데스크탑 사이드바 ── */}
-      <aside className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r border-border bg-card/30 backdrop-blur-sm">
-        <div className="p-5 border-b border-border">
+      <aside
+        className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r"
+        style={{ backgroundColor: bg, borderColor: borderCol }}
+      >
+        <div className="p-5 border-b" style={{ borderColor: borderCol }}>
           <Link href={baseUrl} className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-glow-violet group-hover:shadow-[0_0_24px_hsl(263_80%_65%_/_0.6)] transition-shadow">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: accent }}
+            >
               {guildLogoUrl ? (
                 <img src={guildLogoUrl} alt={guildName} className="w-full h-full rounded-xl object-cover" />
               ) : (
@@ -73,87 +176,53 @@ export function Sidebar({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-white text-base truncate">{guildName}</div>
-              <div className="font-mono text-[10px] text-violet-300 tracking-wider">{guildCode}</div>
+              <div className="font-bold text-base truncate" style={{ color: textMain }}>{guildName}</div>
+              <div className="font-mono text-[10px] tracking-wider" style={{ color: accent }}>{guildCode}</div>
             </div>
           </Link>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          <p className="mono-label px-3 pt-3 pb-2">MENU</p>
-          {menu.map((item) => {
-            const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
-            return (
-              <Link key={item.href} href={item.href} className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative",
-                isActive
-                  ? "bg-violet-500/15 text-white shadow-[inset_2px_0_0_hsl(263_80%_65%)]"
-                  : "text-muted-foreground hover:text-white hover:bg-violet-500/5"
-              )}>
-                <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", isActive ? "text-violet-300" : "text-muted-foreground group-hover:text-violet-300")} />
-                <span className="flex-1">{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span className="text-[10px] font-mono text-muted-foreground">{item.badge}</span>
-                )}
-              </Link>
-            );
-          })}
+          <p className="px-3 pt-3 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>MENU</p>
+          {renderMenuItems()}
 
-          <p className="mono-label px-3 pt-6 pb-2">DISCOVER</p>
-          <Link href="/plaza" className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative",
-            isPlazaActive
-              ? "bg-cyan-500/15 text-white shadow-[inset_2px_0_0_hsl(189_94%_55%)]"
-              : "text-muted-foreground hover:text-white hover:bg-cyan-500/5"
-          )}>
-            <Trophy className={cn("w-4 h-4 shrink-0 transition-colors", isPlazaActive ? "text-cyan-300" : "text-muted-foreground group-hover:text-cyan-300")} />
+          <p className="px-3 pt-6 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>DISCOVER</p>
+          <Link href="/plaza" className={linkBase} style={menuLinkStyle(isPlazaActive)}>
+            <Trophy className="w-4 h-4 shrink-0" style={{ color: isPlazaActive ? accent : textMuted }} />
             <span className="flex-1">광장</span>
-            <span className="text-[10px] font-mono text-cyan-400/60 uppercase">랭킹</span>
+            <span className="text-[10px] font-mono uppercase" style={{ color: textMuted }}>랭킹</span>
           </Link>
 
           {isStaff && (
             <>
-              <p className="mono-label px-3 pt-6 pb-2">ADMIN</p>
-              <Link href={`${baseUrl}/admin`} className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
-                pathname.startsWith(`${baseUrl}/admin`)
-                  ? "bg-amber-500/15 text-white shadow-[inset_2px_0_0_hsl(45_90%_55%)]"
-                  : "text-muted-foreground hover:text-white hover:bg-amber-500/5"
-              )}>
-                <Settings className="w-4 h-4 text-amber-400/80 shrink-0" />
+              <p className="px-3 pt-6 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>ADMIN</p>
+              <Link
+                href={`${baseUrl}/admin`}
+                className={linkBase}
+                style={menuLinkStyle(pathname.startsWith(`${baseUrl}/admin`))}
+              >
+                <Settings className="w-4 h-4 shrink-0" style={{ color: pathname.startsWith(`${baseUrl}/admin`) ? accent : textMuted }} />
                 <span>관리자 패널</span>
               </Link>
             </>
           )}
         </nav>
 
-        <div className="p-3 border-t border-border space-y-2">
-          <Link href="/mypage" className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors group">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
-              {userAvatarUrl ? (
-                <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm font-bold text-white">{userName[0]?.toUpperCase() ?? "?"}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-white truncate">{userName}</div>
-              <Badge variant={userRole === "master" ? "master" : "default"} size="sm" className="mt-0.5">
-                {roleLabel}
-              </Badge>
-            </div>
-          </Link>
-          <button type="button" onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-rose-300 hover:bg-rose-500/5 transition-colors">
-            <LogOut className="w-4 h-4 shrink-0" />
-            <span>로그아웃</span>
-          </button>
+        <div className="p-3 border-t space-y-2" style={{ borderColor: borderCol }}>
+          {userBlock()}
         </div>
       </aside>
 
       {/* ── 모바일 상단 헤더 ── */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-card/80 backdrop-blur-sm border-b border-border">
+      <header
+        className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 border-b"
+        style={{ backgroundColor: bg, borderColor: borderCol }}
+      >
         <Link href={baseUrl} className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: accent }}
+          >
             {guildLogoUrl ? (
               <img src={guildLogoUrl} alt={guildName} className="w-full h-full rounded-lg object-cover" />
             ) : (
@@ -161,31 +230,40 @@ export function Sidebar({
             )}
           </div>
           <div>
-            <p className="text-sm font-bold text-white leading-none">{guildName}</p>
-            <p className="text-[10px] font-mono text-violet-300">{guildCode}</p>
+            <p className="text-sm font-bold leading-none" style={{ color: textMain }}>{guildName}</p>
+            <p className="text-[10px] font-mono" style={{ color: accent }}>{guildCode}</p>
           </div>
         </Link>
         <button
           onClick={() => setDrawerOpen(true)}
-          className="p-2 rounded-lg hover:bg-violet-500/10 text-muted-foreground hover:text-white transition-colors"
+          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+          style={{ color: textMuted }}
         >
           <Menu className="w-5 h-5" />
         </button>
       </header>
 
       {/* ── 모바일 하단 탭 ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center bg-card/90 backdrop-blur-sm border-t border-border">
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center border-t"
+        style={{ backgroundColor: bg, borderColor: borderCol }}
+      >
         {menu.map((item) => {
           const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
           return (
-            <Link key={item.href} href={item.href} className={cn(
-              "flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors relative",
-              isActive ? "text-violet-300" : "text-muted-foreground"
-            )}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors relative"
+              style={{ color: isActive ? accent : textMuted }}
+            >
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>
               {item.badge !== undefined && item.badge > 0 && (
-                <span className="absolute top-1.5 right-1/4 w-4 h-4 rounded-full bg-violet-500 text-white text-[9px] font-bold flex items-center justify-center">
+                <span
+                  className="absolute top-1.5 right-1/4 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: accent }}
+                >
                   {item.badge}
                 </span>
               )}
@@ -198,59 +276,55 @@ export function Sidebar({
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} />
-          <div className="relative ml-auto w-72 h-full bg-card flex flex-col border-l border-border">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <p className="text-sm font-bold text-white">메뉴</p>
-              <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-lg hover:bg-violet-500/10 text-muted-foreground hover:text-white transition-colors">
+          <div
+            className="relative ml-auto w-72 h-full flex flex-col border-l"
+            style={{ backgroundColor: bg, borderColor: borderCol }}
+          >
+            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: borderCol }}>
+              <p className="text-sm font-bold" style={{ color: textMain }}>메뉴</p>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
+                style={{ color: textMuted }}
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              <p className="mono-label px-3 pt-2 pb-2">DISCOVER</p>
-              <Link href="/plaza" onClick={() => setDrawerOpen(false)} className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                isPlazaActive ? "bg-cyan-500/15 text-white" : "text-muted-foreground hover:text-white hover:bg-cyan-500/5"
-              )}>
-                <Trophy className={cn("w-4 h-4", isPlazaActive ? "text-cyan-300" : "text-muted-foreground")} />
+              <p className="px-3 pt-2 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>MENU</p>
+              {renderMenuItems(() => setDrawerOpen(false))}
+
+              <p className="px-3 pt-4 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>DISCOVER</p>
+              <Link
+                href="/plaza"
+                onClick={() => setDrawerOpen(false)}
+                className={linkBase}
+                style={menuLinkStyle(isPlazaActive)}
+              >
+                <Trophy className="w-4 h-4" style={{ color: isPlazaActive ? accent : textMuted }} />
                 <span className="flex-1">광장</span>
-                <span className="text-[10px] font-mono text-cyan-400/60">랭킹</span>
+                <span className="text-[10px] font-mono" style={{ color: textMuted }}>랭킹</span>
               </Link>
 
               {isStaff && (
                 <>
-                  <p className="mono-label px-3 pt-4 pb-2">ADMIN</p>
-                  <Link href={`${baseUrl}/admin`} onClick={() => setDrawerOpen(false)} className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                    pathname.startsWith(`${baseUrl}/admin`) ? "bg-amber-500/15 text-white" : "text-muted-foreground hover:text-white hover:bg-amber-500/5"
-                  )}>
-                    <Settings className="w-4 h-4 text-amber-400/80" />
+                  <p className="px-3 pt-4 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>ADMIN</p>
+                  <Link
+                    href={`${baseUrl}/admin`}
+                    onClick={() => setDrawerOpen(false)}
+                    className={linkBase}
+                    style={menuLinkStyle(pathname.startsWith(`${baseUrl}/admin`))}
+                  >
+                    <Settings className="w-4 h-4" style={{ color: pathname.startsWith(`${baseUrl}/admin`) ? accent : textMuted }} />
                     <span>관리자 패널</span>
                   </Link>
                 </>
               )}
             </div>
 
-            <div className="p-3 border-t border-border space-y-2">
-              <Link href="/mypage" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
-                  {userAvatarUrl ? (
-                    <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-sm font-bold text-white">{userName[0]?.toUpperCase() ?? "?"}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{userName}</div>
-                  <Badge variant={userRole === "master" ? "master" : "default"} size="sm" className="mt-0.5">
-                    {roleLabel}
-                  </Badge>
-                </div>
-              </Link>
-              <button type="button" onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-rose-300 hover:bg-rose-500/5 transition-colors">
-                <LogOut className="w-4 h-4 shrink-0" />
-                <span>로그아웃</span>
-              </button>
+            <div className="p-3 border-t space-y-2" style={{ borderColor: borderCol }}>
+              {userBlock(() => setDrawerOpen(false))}
             </div>
           </div>
         </div>
