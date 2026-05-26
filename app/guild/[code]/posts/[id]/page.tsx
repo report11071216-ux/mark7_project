@@ -40,17 +40,21 @@ export default async function GuildPostDetailPage({ params }: Props) {
     .update({ view_count: (post.view_count ?? 0) + 1 })
     .eq("id", post.id);
 
-  // 작성자 이름
-  let authorName = "Unknown";
-  if (post.author_id) {
-    const { data: author } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", post.author_id)
-      .maybeSingle();
-    authorName = author?.username ?? "Unknown";
-  }
+  // 작성자 이름 + 내가 좋아요 눌렀는지
+  const [authorResult, likeResult] = await Promise.all([
+    post.author_id
+      ? supabase.from("profiles").select("username").eq("id", post.author_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("post_likes")
+      .select("id")
+      .eq("post_id", post.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
+  const authorName = authorResult.data?.username ?? "Unknown";
+  const alreadyLiked = !!likeResult.data;
   const isAuthor = post.author_id === user.id;
 
   return (
@@ -67,6 +71,7 @@ export default async function GuildPostDetailPage({ params }: Props) {
         author_name: authorName,
       }}
       isAuthor={isAuthor}
+      alreadyLiked={alreadyLiked}
     />
   );
 }
