@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import RaidForm from "@/components/guild/RaidForm";
+import RaidEntryForm from "@/components/guild/RaidEntryForm";
 
 export const dynamic = "force-dynamic";
 
@@ -29,5 +29,5 @@ export default async function NewRaidPage({ params }: Props) {
   const isStaff = membership.role === "master" || membership.role === "submaster";
   if (!isStaff) notFound();
 
-  return <RaidForm guildCode={guild.code} guildName={guild.name} />;
+  return <RaidEntryForm guildCode={guild.code} guildName={guild.name} />;
 }
