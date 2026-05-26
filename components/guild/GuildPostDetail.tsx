@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Pin, Eye, Heart, Trash2, Loader2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
-import { likeGuildPost, deleteGuildPost } from "@/app/guild/[code]/posts/actions";
+import { toggleGuildPostLike, deleteGuildPost } from "@/app/guild/[code]/posts/actions";
 import toast from "react-hot-toast";
 
 type Post = {
@@ -23,24 +23,33 @@ type Props = {
   guildCode: string;
   post: Post;
   isAuthor: boolean;
+  alreadyLiked: boolean;
 };
 
-export default function GuildPostDetail({ guildCode, post, isAuthor }: Props) {
+export default function GuildPostDetail({ guildCode, post, isAuthor, alreadyLiked }: Props) {
   const router = useRouter();
   const [likeCount, setLikeCount] = useState(post.like_count);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(alreadyLiked);
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleLike = () => {
-    if (liked) return;
-    setLiked(true);
-    setLikeCount((c) => c + 1);
+    if (isPending) return;
+    // 낙관적 업데이트
+    const prevLiked = liked;
+    const prevCount = likeCount;
+    setLiked(!prevLiked);
+    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
+
     startTransition(async () => {
-      const result = await likeGuildPost(guildCode, post.id);
-      if (!result.success) {
-        setLiked(false);
-        setLikeCount((c) => c - 1);
+      const result = await toggleGuildPostLike(guildCode, post.id);
+      if (result.success) {
+        setLiked(result.liked!);
+        setLikeCount(result.likeCount!);
+      } else {
+        // 실패 시 되돌리기
+        setLiked(prevLiked);
+        setLikeCount(prevCount);
         toast.error(result.error ?? "실패했어요");
       }
     });
@@ -112,8 +121,8 @@ export default function GuildPostDetail({ guildCode, post, isAuthor }: Props) {
           <button
             type="button"
             onClick={handleLike}
-            disabled={liked || isPending}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition ${
+            disabled={isPending}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition disabled:opacity-70 ${
               liked
                 ? "bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40"
                 : "bg-card ring-1 ring-border text-muted-foreground hover:text-rose-300 hover:ring-rose-500/30"
