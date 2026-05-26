@@ -173,3 +173,81 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
                           <div
                             key={s.id}
                             className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/90 p-1"
+                            title={`${s.raidTitle} · ${s.difficulty} · ${s.skillLevel}`}
+                          >
+                            {s.raidImage ? (
+                              <img
+                                src={s.raidImage}
+                                alt=""
+                                className="h-7 w-7 shrink-0 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-gradient-to-br from-violet-600 to-fuchsia-600 text-[10px] font-bold text-white">
+                                {s.raidTitle.charAt(0)}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-[11px] font-medium text-zinc-200">
+                                {s.raidTitle}
+                              </div>
+                              <div className="mt-0.5 flex items-center gap-1">
+                                <span className="font-mono text-[10px] text-violet-300">
+                                  {s.scheduledTime || '--:--'}
+                                </span>
+                                <span
+                                  className={`rounded border px-1 text-[9px] ${difficultyStyle(
+                                    s.difficulty
+                                  )}`}
+                                >
+                                  {s.difficulty}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="shrink-0 font-mono text-[10px] text-zinc-400">
+                              {s.participantCount}/{s.maxMembers}
+                            </span>
+                          </div>
+                        ))}
+
+                        <button
+                          onClick={() => openCreate(cell.dateStr as string)}
+                          className="w-full rounded-md border border-dashed border-zinc-800 py-1 text-[11px] text-zinc-600 transition hover:border-violet-500/40 hover:text-violet-300"
+                        >
+                          + 일정
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 범례 */}
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-sm border border-zinc-600/40 bg-zinc-700/40" />
+          노말
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-sm border border-amber-500/30 bg-amber-500/15" />
+          하드
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-sm border border-fuchsia-500/30 bg-fuchsia-500/15" />
+          나메
+        </span>
+      </div>
+
+      <ScheduleCreateModal
+        open={modalOpen}
+        date={selectedDate}
+        guildCode={guildCode}
+        raids={raids}
+        onClose={() => setModalOpen(false)}
+      />
+    </div>
+  )
+}
