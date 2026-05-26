@@ -3,6 +3,7 @@ import { type GuildLayoutData } from "@/lib/guild-layout-types";
 import { type ThemeWidget } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
+import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
 import { Users, ChevronRight } from "lucide-react";
 
@@ -179,6 +180,25 @@ export default function NotionLayout({ data, guildCode, widgets }: Props) {
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {enabled("raidSchedule") && (
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: textSecondary }}>
+              <span className="w-1 h-4 rounded-full inline-block" style={{ backgroundColor: primaryColor }} />
+              레이드 일정
+            </h2>
+            <UpcomingRaidsWidget
+              guildId={guild.id}
+              guildCode={guildCode}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              accent={primaryColor}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              surface={isLight ? "#f9fafb" : "#27272a"}
+            />
           </div>
         )}
 
