@@ -3,6 +3,7 @@ import { type GuildLayoutData } from "@/lib/guild-layout-types";
 import { type ThemeWidget } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
+import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
 import { Hash, Bell, Trophy, Swords, Users, Wifi, Shield, CalendarDays } from "lucide-react";
 
@@ -198,6 +199,19 @@ export default function DiscordLayout({ data, guildCode, widgets }: Props) {
                 ))
               }
             </div>
+          )}
+
+          {enabled("raidSchedule") && (
+            <UpcomingRaidsWidget
+              guildId={guild.id}
+              guildCode={guildCode}
+              textPrimary="#dbdee1"
+              textSecondary="#949ba4"
+              accent="#a78bfa"
+              cardBg="#2b2d31"
+              cardBorder="rgba(255,255,255,0.05)"
+              surface="#1e1f22"
+            />
           )}
 
           {/* 가디언 */}
