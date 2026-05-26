@@ -65,19 +65,59 @@ export default async function GuildPostDetailPage({ params }: Props) {
 
   const rawComments = commentsResult.data ?? [];
 
-  // 댓글 작성자 정보
+  // 댓글 작성자 정보 (마크 포함)
   const commentAuthorIds = Array.from(
     new Set(rawComments.map((c) => c.author_id).filter(Boolean))
   ) as string[];
 
-  let commentAuthorMap: { [key: string]: { username: string | null; avatar_url: string | null } } = {};
+  let commentAuthorMap: {
+    [key: string]: { username: string | null; avatar_url: string | null; mark_url: string | null };
+  } = {};
+
   if (commentAuthorIds.length > 0) {
     const { data: authors } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url")
+      .select("id, username, avatar_url, equipped_mark_id")
       .in("id", commentAuthorIds);
+
+    // 마크 이미지 조회
+    const markPurchaseIds = Array.from(
+      new Set((authors ?? []).map((a) => a.equipped_mark_id).filter(Boolean))
+    ) as string[];
+
+    let markUrlByPurchase: { [key: string]: string | null } = {};
+    if (markPurchaseIds.length > 0) {
+      const { data: purchases } = await supabase
+        .from("purchases")
+        .select("id, item_id")
+        .in("id", markPurchaseIds);
+
+      const itemIds = Array.from(
+        new Set((purchases ?? []).map((p) => p.item_id).filter(Boolean))
+      ) as string[];
+
+      let itemImageMap: { [key: string]: string | null } = {};
+      if (itemIds.length > 0) {
+        const { data: items } = await supabase
+          .from("shop_items")
+          .select("id, image_url")
+          .in("id", itemIds);
+        for (const it of items ?? []) {
+          itemImageMap[it.id] = it.image_url;
+        }
+      }
+
+      for (const pr of purchases ?? []) {
+        if (pr.item_id) markUrlByPurchase[pr.id] = itemImageMap[pr.item_id] ?? null;
+      }
+    }
+
     for (const a of authors ?? []) {
-      commentAuthorMap[a.id] = { username: a.username, avatar_url: a.avatar_url };
+      commentAuthorMap[a.id] = {
+        username: a.username,
+        avatar_url: a.avatar_url,
+        mark_url: a.equipped_mark_id ? markUrlByPurchase[a.equipped_mark_id] ?? null : null,
+      };
     }
   }
 
@@ -88,6 +128,7 @@ export default async function GuildPostDetailPage({ params }: Props) {
     author_id: c.author_id,
     author_name: commentAuthorMap[c.author_id]?.username ?? "Unknown",
     author_avatar: commentAuthorMap[c.author_id]?.avatar_url ?? null,
+    author_mark: commentAuthorMap[c.author_id]?.mark_url ?? null,
   }));
 
   return (
