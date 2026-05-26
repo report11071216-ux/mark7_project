@@ -37,7 +37,6 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
 
   if (!membership) redirect('/onboarding')
 
-  // 표시할 연/월 (KST 기준)
   const kstNow = getKSTNow()
   let year = searchParams.y ? parseInt(searchParams.y, 10) : kstNow.getUTCFullYear()
   let month = searchParams.m ? parseInt(searchParams.m, 10) : kstNow.getUTCMonth() + 1
@@ -48,7 +47,6 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   const lastDayNum = new Date(year, month, 0).getDate()
   const lastDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDayNum).padStart(2, '0')}`
 
-  // 도감 + 해당 월 일정 병렬 조회
   const [raidsResult, schedulesResult] = await Promise.all([
     supabase
       .from('raids')
@@ -66,22 +64,57 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   const rawRaids = (raidsResult.data || []) as any[]
   const rawSchedules = (schedulesResult.data || []) as any[]
 
-  // 일정별 참여 인원 카운트
   const scheduleIds = rawSchedules.map((s) => s.id)
-  const participantCounts: { [key: string]: number } = {}
 
+  let participantRows: any[] = []
   if (scheduleIds.length > 0) {
-    const { data: participants } = await supabase
+    const { data } = await supabase
       .from('raid_participants')
-      .select('schedule_id')
+      .select('schedule_id, user_id')
       .in('schedule_id', scheduleIds)
+    participantRows = data || []
+  }
 
-    if (participants) {
-      for (const p of participants as any[]) {
-        const key = String(p.schedule_id)
-        participantCounts[key] = (participantCounts[key] || 0) + 1
-      }
-    }
+  const idSet = new Set<string>()
+  for (const p of participantRows) idSet.add(p.user_id)
+  for (const s of rawSchedules) {
+    if (s.created_by) idSet.add(s.created_by)
+  }
+  const allUserIds = Array.from(idSet)
+
+  let profileRows: any[] = []
+  if (allUserIds.length > 0) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url, main_character_name')
+      .in('id', allUserIds)
+    profileRows = data || []
+  }
+
+  const profileMap: { [key: string]: any } = {}
+  for (const pr of profileRows) profileMap[pr.id] = pr
+
+  function nameOf(uid: string): string {
+    const pr = profileMap[uid]
+    if (!pr) return '길드원'
+    return pr.main_character_name || pr.username || '길드원'
+  }
+  function avatarOf(uid: string): string {
+    const pr = profileMap[uid]
+    return pr ? pr.avatar_url || '' : ''
+  }
+
+  const participantsBySchedule: {
+    [key: string]: { userId: string; name: string; avatar: string }[]
+  } = {}
+  for (const p of participantRows) {
+    const key = String(p.schedule_id)
+    if (!participantsBySchedule[key]) participantsBySchedule[key] = []
+    participantsBySchedule[key].push({
+      userId: p.user_id,
+      name: nameOf(p.user_id),
+      avatar: avatarOf(p.user_id),
+    })
   }
 
   const raids = rawRaids.map((r) => ({
@@ -95,6 +128,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
 
   const schedules = rawSchedules.map((s) => {
     const raidInfo = Array.isArray(s.raids) ? s.raids[0] : s.raids
+    const list = participantsBySchedule[String(s.id)] || []
     return {
       id: s.id as string,
       raidId: s.raid_id as string,
@@ -105,8 +139,10 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       maxMembers: Number(s.max_members) || 8,
       scheduledDate: s.scheduled_date as string,
       scheduledTime: ((s.scheduled_time as string) || '').slice(0, 5),
-      createdBy: s.created_by as string,
-      participantCount: participantCounts[String(s.id)] || 0,
+      createdBy: (s.created_by as string) || '',
+      createdByName: s.created_by ? nameOf(s.created_by) : '길드원',
+      participants: list,
+      participantCount: list.length,
     }
   })
 
@@ -137,6 +173,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
         year={year}
         month={month}
         guildCode={guild.code}
+        currentUserId={user.id}
         schedules={schedules}
         raids={raids}
       />
