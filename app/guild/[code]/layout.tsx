@@ -32,6 +32,12 @@ export default async function GuildLayout({
     redirect("/onboarding/join");
   }
 
+  // 접속 시각 갱신 (온라인 멤버 판정용)
+  await supabase
+    .from("profiles")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("id", user.id);
+
   // 장착한 길드 마크 이미지 찾기 (없으면 원래 logo_url)
   let guildLogoUrl = guild.logo_url;
   if (themeRow?.equipped_mark_id) {
