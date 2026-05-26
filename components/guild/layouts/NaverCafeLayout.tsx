@@ -6,6 +6,7 @@ import MiniCalendar from "@/components/guild/MiniCalendar";
 import OnlineMembersCard from "@/components/guild/OnlineMembersCard";
 import RankingCard from "@/components/guild/RankingCard";
 import RecentMembersCard from "@/components/guild/RecentMembersCard";
+import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
 import { Bell, Swords } from "lucide-react";
 
@@ -207,6 +208,19 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
                 </div>
               )}
             </div>
+          )}
+
+          {enabled("raidSchedule") && (
+            <UpcomingRaidsWidget
+              guildId={guild.id}
+              guildCode={guildCode}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              accent={primaryColor}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              surface={dividerColor}
+            />
           )}
 
           <div className="grid grid-cols-2 gap-3">
