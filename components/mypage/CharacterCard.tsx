@@ -52,15 +52,16 @@ export default function CharacterCard({
         onClick={() => setModalOpen(true)}
         className="relative w-full rounded-xl overflow-hidden bg-zinc-950 border border-amber-500/20 shadow-[0_6px_28px_rgba(245,158,11,0.1)] cursor-pointer hover:border-amber-400/40 transition-all group"
       >
-        {/* 배경 이미지 (장착 시) */}
+        {/* 배경 이미지 (장착 시) — 안 잘리게 contain */}
         {hasBg && (
           <>
+            <div className="absolute inset-0 bg-zinc-900" />
             <img
               src={frameUrl!}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
             />
-            <div className="absolute inset-0 bg-black/60" />
+            <div className="absolute inset-0 bg-black/35" />
           </>
         )}
 
@@ -109,42 +110,42 @@ export default function CharacterCard({
                   <p className="text-[9px] font-mono text-zinc-400">{serverName}</p>
                 </div>
               </div>
-              <h2 className="text-base font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+              <h2 className="text-base font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
                 {name}
               </h2>
             </div>
 
             <div className="flex items-end gap-3.5 mt-2">
               <div>
-                <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                <p className="text-[8px] font-mono text-zinc-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
                   <Zap className="w-2.5 h-2.5 text-amber-400" />
                   전투력
                 </p>
-                <p className="text-[17px] font-bold text-amber-400 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                <p className="text-[17px] font-bold text-amber-400 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                   {cpText}
                 </p>
               </div>
 
-              <div className="h-8 w-px bg-white/15" />
+              <div className="h-8 w-px bg-white/20" />
 
               <div>
-                <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                <p className="text-[8px] font-mono text-zinc-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
                   <Sword className="w-2.5 h-2.5 text-zinc-300" />
                   아이템
                 </p>
-                <p className="text-[14px] font-bold text-zinc-100 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                <p className="text-[14px] font-bold text-zinc-100 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                   {ilvlText}
                 </p>
               </div>
 
-              <div className="h-8 w-px bg-white/15" />
+              <div className="h-8 w-px bg-white/20" />
 
               <div>
-                <p className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                <p className="text-[8px] font-mono text-zinc-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
                   <Star className="w-2.5 h-2.5 text-zinc-300" />
                   원정대
                 </p>
-                <p className="text-[14px] font-bold text-zinc-100 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                <p className="text-[14px] font-bold text-zinc-100 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                   Lv.{expeditionLevel}
                 </p>
               </div>
