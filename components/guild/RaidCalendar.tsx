@@ -19,6 +19,7 @@ type Props = {
   month: number
   guildCode: string
   currentUserId: string
+  currentUserRole: string
   schedules: RaidSchedule[]
   raids: RaidOption[]
 }
@@ -40,6 +41,7 @@ export default function RaidCalendar({
   month,
   guildCode,
   currentUserId,
+  currentUserRole,
   schedules,
   raids,
 }: Props) {
@@ -181,7 +183,7 @@ export default function RaidCalendar({
                                 {s.raidTitle}
                               </div>
                               <div className="mt-0.5 flex items-center gap-1">
-                                <span className="font-mono text-[10px] text-violet-300">
+                                <span className="text-[10px] text-violet-300">
                                   {s.scheduledTime || '--:--'}
                                 </span>
                                 <span
@@ -193,7 +195,7 @@ export default function RaidCalendar({
                                 </span>
                               </div>
                             </div>
-                            <span className="shrink-0 font-mono text-[10px] text-zinc-400">
+                            <span className="shrink-0 text-[10px] text-zinc-400">
                               {s.participantCount}/{s.maxMembers}
                             </span>
                           </button>
@@ -244,6 +246,7 @@ export default function RaidCalendar({
         schedule={detail}
         guildCode={guildCode}
         currentUserId={currentUserId}
+        currentUserRole={currentUserRole}
         onClose={() => setDetail(null)}
       />
     </div>
