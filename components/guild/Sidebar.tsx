@@ -128,7 +128,7 @@ export function Sidebar({
         </nav>
 
         <div className="p-3 border-t border-border space-y-2">
-          <Link href={`${baseUrl}/me`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors group">
+          <Link href="/mypage" className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors group">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
               {userAvatarUrl ? (
                 <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
@@ -232,7 +232,7 @@ export function Sidebar({
             </div>
 
             <div className="p-3 border-t border-border space-y-2">
-              <Link href={`${baseUrl}/me`} onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors">
+              <Link href="/mypage" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-violet-500/5 transition-colors">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0 overflow-hidden">
                   {userAvatarUrl ? (
                     <img src={userAvatarUrl} alt={userName} className="w-full h-full object-cover" />
