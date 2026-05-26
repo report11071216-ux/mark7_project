@@ -51,6 +51,7 @@ export default async function GuildHomePage({ params }: Props) {
   const totalAttendances = attendanceDates.length;
 
   const members = (allMembers ?? []) as any[];
+  const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
 
   // ── 멤버들의 장착 마크/프로필카드 이미지 조회 ──
   const equippedPurchaseIds: string[] = [];
@@ -191,7 +192,12 @@ export default async function GuildHomePage({ params }: Props) {
 
   return (
     <div className="min-h-screen">
-      <GuildHomeLayout data={layoutData} guildCode={guild.code} columns={columns} />
+      <GuildHomeLayout
+        data={layoutData}
+        guildCode={guild.code}
+        columns={columns}
+        isStaff={isStaff}
+      />
     </div>
   );
 }
