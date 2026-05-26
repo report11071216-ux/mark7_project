@@ -113,7 +113,7 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
         </div>
         <div className="p-3">
           <div className="grid grid-cols-2 gap-1.5 mb-3">
-            <div className="text-center p-2 rounded-lg" style={{ backgroundColor: primaryColor + "11" }}>
+            <div className="text-center p-2 rounded-lg" style={{ backgroundColor: dividerColor }}>
               <p className="text-[9px]" style={{ color: textSecondary }}>총 출석</p>
               <p className="text-base font-bold" style={{ color: textPrimary }}>{data.totalAttendances}</p>
             </div>
@@ -127,6 +127,10 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
             alreadyAttended={data.alreadyAttended}
             streak={data.streak}
             totalAttendances={data.totalAttendances}
+            accent={primaryColor}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            surface={dividerColor}
           />
         </div>
       </div>
