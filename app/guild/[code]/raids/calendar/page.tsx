@@ -174,6 +174,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
         month={month}
         guildCode={guild.code}
         currentUserId={user.id}
+        currentUserRole={membership.role || 'member'}
         schedules={schedules}
         raids={raids}
       />
