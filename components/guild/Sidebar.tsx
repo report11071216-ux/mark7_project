@@ -23,13 +23,14 @@ interface SidebarProps {
   backgroundColor?: string;
 }
 
-function isLightColor(hex: string) {
+// 테마색을 깊게 어둡게 — 색조는 살리되 거의 검정에 가까운 톤
+function darkTint(hex: string, keep: number) {
   const h = (hex ?? "").replace("#", "");
-  if (h.length < 6) return false;
+  if (h.length < 6) return "rgb(13,13,18)";
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+  return `rgb(${Math.round(r * keep)},${Math.round(g * keep)},${Math.round(b * keep)})`;
 }
 
 function hexToRgba(hex: string, a: number) {
@@ -44,7 +45,7 @@ function hexToRgba(hex: string, a: number) {
 export function Sidebar({
   guildCode, guildName, guildLogoUrl,
   userRole, userName, userAvatarUrl, memberCount,
-  primaryColor, backgroundColor,
+  primaryColor,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -52,12 +53,11 @@ export function Sidebar({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const accent = primaryColor ?? "#7c3aed";
-  const bg = backgroundColor ?? "#09090b";
-  const isLight = isLightColor(bg);
-  const textMain = isLight ? "#111827" : "#ffffff";
-  const textMuted = isLight ? "#6b7280" : "#a1a1aa";
-  const borderCol = isLight ? "#e5e7eb" : "#27272a";
-  const accentActive = hexToRgba(accent, 0.18);
+  const sidebarBg = darkTint(accent, 0.13);
+  const borderCol = darkTint(accent, 0.32);
+  const textMain = "#ffffff";
+  const textMuted = "#9ca3af";
+  const accentActive = hexToRgba(accent, 0.22);
 
   const handleLogout = async () => {
     const supabase = createBrowserClient(
@@ -161,7 +161,7 @@ export function Sidebar({
       {/* ── 데스크탑 사이드바 ── */}
       <aside
         className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r"
-        style={{ backgroundColor: bg, borderColor: borderCol }}
+        style={{ backgroundColor: sidebarBg, borderColor: borderCol }}
       >
         <div className="p-5 border-b" style={{ borderColor: borderCol }}>
           <Link href={baseUrl} className="flex items-center gap-3 group">
@@ -216,7 +216,7 @@ export function Sidebar({
       {/* ── 모바일 상단 헤더 ── */}
       <header
         className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 border-b"
-        style={{ backgroundColor: bg, borderColor: borderCol }}
+        style={{ backgroundColor: sidebarBg, borderColor: borderCol }}
       >
         <Link href={baseUrl} className="flex items-center gap-2.5">
           <div
@@ -246,7 +246,7 @@ export function Sidebar({
       {/* ── 모바일 하단 탭 ── */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center border-t"
-        style={{ backgroundColor: bg, borderColor: borderCol }}
+        style={{ backgroundColor: sidebarBg, borderColor: borderCol }}
       >
         {menu.map((item) => {
           const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
@@ -278,7 +278,7 @@ export function Sidebar({
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} />
           <div
             className="relative ml-auto w-72 h-full flex flex-col border-l"
-            style={{ backgroundColor: bg, borderColor: borderCol }}
+            style={{ backgroundColor: sidebarBg, borderColor: borderCol }}
           >
             <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: borderCol }}>
               <p className="text-sm font-bold" style={{ color: textMain }}>메뉴</p>
