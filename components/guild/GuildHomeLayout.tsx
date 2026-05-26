@@ -8,6 +8,7 @@ type Props = {
   data: GuildLayoutData;
   guildCode: string;
   columns: LayoutColumns;
+  isStaff?: boolean;
 };
 
 function isLightColor(hex: string) {
@@ -19,7 +20,7 @@ function isLightColor(hex: string) {
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
-export default function GuildHomeLayout({ data, guildCode, columns }: Props) {
+export default function GuildHomeLayout({ data, guildCode, columns, isStaff }: Props) {
   const { guild, totalAttendances, streak, primaryColor, backgroundColor } = data;
 
   const isLight = isLightColor(backgroundColor);
@@ -127,6 +128,15 @@ export default function GuildHomeLayout({ data, guildCode, columns }: Props) {
           {renderColumn(columns.right)}
         </div>
       </div>
+
+      {isStaff && (
+        <Link
+          href={`/guild/${guildCode}/customize`}
+          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-30 flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition-transform hover:scale-105 active:scale-95"
+        >
+          홈 편집
+        </Link>
+      )}
     </div>
   );
 }
