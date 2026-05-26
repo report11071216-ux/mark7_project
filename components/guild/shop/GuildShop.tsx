@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2 } from "lucide-react";
+import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X } from "lucide-react";
 import { purchaseItem } from "@/app/guild/[code]/shop/actions";
 import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
@@ -38,6 +38,7 @@ export default function GuildShop({
   const [tab, setTab] = useState<"activity" | "guild">("activity");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
 
   const activityItems = items.filter((i) => i.shop_type === "activity");
   const guildItems = items.filter((i) => i.shop_type === "guild");
@@ -52,10 +53,10 @@ export default function GuildShop({
 
   const currentBalance = tab === "activity" ? myPoints : guildPoints;
 
-  const handlePurchase = (item: ShopItem) => {
-    if (!confirm(`'${item.name}'을(를) ${item.price.toLocaleString()}P에 구매할까요?`)) {
-      return;
-    }
+  const confirmPurchase = () => {
+    if (!confirmItem) return;
+    const item = confirmItem;
+    setConfirmItem(null);
     setPendingId(item.id);
     startTransition(async () => {
       const result = await purchaseItem(guildCode, item.id, guildId);
@@ -68,6 +69,10 @@ export default function GuildShop({
       }
     });
   };
+
+  const accent = tab;
+  const accentText = accent === "activity" ? "text-violet-300" : "text-cyan-300";
+  const balanceAfter = confirmItem ? currentBalance - confirmItem.price : 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
@@ -165,13 +170,89 @@ export default function GuildShop({
                       accent={tab}
                       loading={pendingId === item.id && isPending}
                       disabled={isPending}
-                      onBuy={() => handlePurchase(item)}
+                      onBuy={() => setConfirmItem(item)}
                     />
                   );
                 })}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 구매 확인 모달 */}
+      {confirmItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-sm rounded-2xl bg-card ring-1 ring-border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+              <h3 className="text-sm font-bold text-white">구매 확인</h3>
+              <button
+                type="button"
+                onClick={() => setConfirmItem(null)}
+                className="p-1 rounded-lg hover:bg-white/10 text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {/* 상품 */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-16 h-16 rounded-xl bg-black/30 overflow-hidden shrink-0 flex items-center justify-center">
+                  {confirmItem.image_url ? (
+                    <img src={confirmItem.image_url} alt={confirmItem.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <ShoppingBag className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground">{confirmItem.category}</p>
+                  <p className="text-sm font-bold text-white truncate">{confirmItem.name}</p>
+                  <p className={`text-base font-bold ${accentText}`}>
+                    {confirmItem.price.toLocaleString()}
+                    <span className="text-[10px] text-muted-foreground ml-0.5">P</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* 잔액 계산 */}
+              <div className="rounded-lg bg-black/20 ring-1 ring-border p-3 space-y-1.5 mb-4">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {tab === "activity" ? "내 활동 포인트" : "길드 포인트"}
+                  </span>
+                  <span className="text-white font-mono">{currentBalance.toLocaleString()}P</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">구매 후</span>
+                  <span className={`font-mono font-bold ${accentText}`}>
+                    {balanceAfter.toLocaleString()}P
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmItem(null)}
+                  className="flex-1 h-10 rounded-lg bg-white/5 text-sm font-bold text-muted-foreground hover:bg-white/10 transition"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmPurchase}
+                  className={`flex-1 h-10 rounded-lg text-white text-sm font-bold transition ${
+                    accent === "activity"
+                      ? "bg-violet-600 hover:bg-violet-500"
+                      : "bg-cyan-600 hover:bg-cyan-500"
+                  }`}
+                >
+                  구매하기
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
