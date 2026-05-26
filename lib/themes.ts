@@ -25,7 +25,7 @@ export const WIDGET_META: { [key: string]: { label: string; icon: string; descri
   guildIntro:    { label: "길드 소개",    icon: "🏰", description: "길드 정보·환영 메시지" },
   pointRanking:  { label: "포인트 랭킹", icon: "🏆", description: "길드 내 포인트 TOP 10" },
   guardian:      { label: "가디언 토벌", icon: "⚔️", description: "이번 주 가디언 정보" },
-  raidStatus:    { label: "레이드 현황", icon: "🗡️", description: "예정된 레이드 일정" },
+  raidStatus:    { label: "레이드", icon: "🗡️", description: "등록된 레이드 목록" },
   onlineMembers: { label: "온라인 멤버", icon: "🟢", description: "현재 접속 중인 멤버" },
 };
 
@@ -44,6 +44,7 @@ export const THEMES: Theme[] = [
       { id: "recentMembers", wide: false, enabled: true },
       { id: "stats",         wide: false, enabled: true },
       { id: "onlineMembers", wide: false, enabled: true },
+      { id: "raidStatus",    wide: false, enabled: true },
     ],
   },
   {
