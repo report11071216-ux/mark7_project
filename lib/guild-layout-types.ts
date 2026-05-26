@@ -51,6 +51,14 @@ export type RaidItem = {
     confirmed: boolean;
   }>;
 };
+export type RaidEntry = {
+  id: string;
+  title: string;
+  image_url: string | null;
+  gold_normal: number;
+  gold_hard: number;
+  gold_nightmare: number;
+};
 export type GuildLayoutData = {
   guild: {
     id: string;
@@ -72,6 +80,7 @@ export type GuildLayoutData = {
   onlineMembers: OnlineMember[];
   noticePosts: NoticePost[];
   raidList: RaidItem[];
+  raids: RaidEntry[];
   welcomeMessage: string | null;
   guardianIndex: number;
   guardianImageUrl: string | null;
