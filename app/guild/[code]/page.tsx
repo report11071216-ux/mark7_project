@@ -1,13 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
-import { getLayoutWidgets, getTheme, type ThemeWidget } from "@/lib/themes";
 import { type GuildLayoutData } from "@/lib/guild-layout-types";
-import NaverCafeLayout from "@/components/guild/layouts/NaverCafeLayout";
-import DiscordLayout from "@/components/guild/layouts/DiscordLayout";
-import NotionLayout from "@/components/guild/layouts/NotionLayout";
-import SteamLayout from "@/components/guild/layouts/SteamLayout";
-import ThemeSelector from "@/components/guild/ThemeSelector";
+import { normalizeLayout } from "@/lib/guild-layout-config";
+import GuildHomeLayout from "@/components/guild/GuildHomeLayout";
 
 type Props = { params: { code: string } };
 
@@ -55,7 +51,6 @@ export default async function GuildHomePage({ params }: Props) {
   const totalAttendances = attendanceDates.length;
 
   const members = (allMembers ?? []) as any[];
-  const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
 
   // ── 멤버들의 장착 마크/프로필카드 이미지 조회 ──
   const equippedPurchaseIds: string[] = [];
@@ -106,12 +101,7 @@ export default async function GuildHomePage({ params }: Props) {
     return frameUrlByPurchase[p.equipped_card_id] ?? null;
   };
 
-  const layoutConfig = (themeRow?.layout_config ?? {}) as { theme?: string; custom?: boolean; widgets?: ThemeWidget[] };
-  const themeId = layoutConfig.theme ?? "naver";
-  const isCustom = layoutConfig.custom === true;
-  const activeWidgets = getLayoutWidgets(layoutConfig);
-  const allWidgets: ThemeWidget[] = layoutConfig.widgets ?? activeWidgets;
-  const theme = getTheme(themeId);
+  const columns = normalizeLayout(themeRow?.layout_config);
 
   const primaryColor = themeRow?.primary_color ?? "#7c3aed";
   const backgroundColor = themeRow?.background_color ?? "#09090b";
@@ -199,32 +189,9 @@ export default async function GuildHomePage({ params }: Props) {
     bannerUrl,
   };
 
-  const layoutStyle = theme.layoutStyle;
-
   return (
     <div className="min-h-screen">
-      {layoutStyle === "naver" && (
-        <NaverCafeLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
-      )}
-      {layoutStyle === "discord" && (
-        <DiscordLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
-      )}
-      {layoutStyle === "notion" && (
-        <NotionLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
-      )}
-      {layoutStyle === "steam" && (
-        <SteamLayout data={layoutData} guildCode={guild.code} widgets={activeWidgets} />
-      )}
-
-      {isStaff && (
-        <ThemeSelector
-          guildId={guild.id}
-          guildCode={guild.code}
-          currentThemeId={themeId}
-          currentWidgets={allWidgets}
-          isCustom={isCustom}
-        />
-      )}
+      <GuildHomeLayout data={layoutData} guildCode={guild.code} columns={columns} />
     </div>
   );
 }
