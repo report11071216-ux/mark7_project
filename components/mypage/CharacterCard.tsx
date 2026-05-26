@@ -50,7 +50,7 @@ export default function CharacterCard({
         <div
           onClick={() => setModalOpen(true)}
           className="relative w-full overflow-hidden cursor-pointer group"
-          style={{ aspectRatio: "3 / 2" }}
+          style={{ aspectRatio: "5 / 2" }}
         >
           <img
             src={frameUrl}
@@ -64,7 +64,6 @@ export default function CharacterCard({
             </span>
           </div>
 
-          {/* 정보 — 검은 띠 영역에 맞춰 배치 */}
           <div className="absolute inset-0 flex items-center">
             <div className="flex flex-col justify-center pl-[34%] pr-[12%] w-full">
               <div className="flex items-center gap-1.5 mb-1">
@@ -77,7 +76,7 @@ export default function CharacterCard({
                   <p className="text-[9px] font-mono text-white/60">{serverName}</p>
                 </div>
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] mb-3">
+              <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] mb-2">
                 {name}
               </h2>
 
@@ -87,7 +86,7 @@ export default function CharacterCard({
                     <Zap className="w-2.5 h-2.5 text-amber-300" />
                     전투력
                   </p>
-                  <p className="text-[19px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  <p className="text-[18px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     {cpText}
                   </p>
                 </div>
@@ -97,7 +96,7 @@ export default function CharacterCard({
                     <Sword className="w-2.5 h-2.5 text-white/60" />
                     아이템
                   </p>
-                  <p className="text-[15px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     {ilvlText}
                   </p>
                 </div>
@@ -107,7 +106,7 @@ export default function CharacterCard({
                     <Star className="w-2.5 h-2.5 text-white/60" />
                     원정대
                   </p>
-                  <p className="text-[15px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
                     Lv.{expeditionLevel}
                   </p>
                 </div>
