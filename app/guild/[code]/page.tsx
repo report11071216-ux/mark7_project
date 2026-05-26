@@ -30,7 +30,7 @@ export default async function GuildHomePage({ params }: Props) {
     { data: myAttendances },
     { data: allMembers },
     { data: posts },
-    { data: raids },
+    { data: rawRaids },
     { data: themeRow },
     { data: myMembership },
     indexResult,
@@ -40,7 +40,7 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.from("attendances").select("attendance_date").eq("guild_id", guild.id).eq("user_id", user.id).order("attendance_date", { ascending: false }).limit(60),
     supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
     supabase.from("posts").select("id, title, created_at, is_notice, author:profiles(username)").eq("guild_id", guild.id).order("is_notice", { ascending: false }).order("created_at", { ascending: false }).limit(5),
-    supabase.from("raids").select("id, title, raid_date, raid_time, difficulty, max_members").eq("guild_id", guild.id).gte("raid_date", new Date().toISOString().split("T")[0]).order("raid_date", { ascending: true }).limit(5),
+    supabase.from("raids").select("id, title, image_url, gold_normal, gold_hard, gold_nightmare").eq("guild_id", guild.id).order("created_at", { ascending: false }).limit(12),
     supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url").eq("guild_id", guild.id).maybeSingle(),
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "current_guardian_index").maybeSingle(),
@@ -171,10 +171,11 @@ export default async function GuildHomePage({ params }: Props) {
     author: p.author ? { username: p.author.username ?? null } : null,
   }));
 
-  const raidList = (raids ?? []).map((r) => ({
-    id: r.id, title: r.title, raid_date: r.raid_date,
-    raid_time: r.raid_time ?? null, difficulty: r.difficulty ?? null,
-    max_members: r.max_members ?? 8, members: [],
+  const raids = (rawRaids ?? []).map((r) => ({
+    id: r.id, title: r.title, image_url: r.image_url,
+    gold_normal: r.gold_normal ?? 0,
+    gold_hard: r.gold_hard ?? 0,
+    gold_nightmare: r.gold_nightmare ?? 0,
   }));
 
   const layoutData: GuildLayoutData = {
@@ -188,7 +189,9 @@ export default async function GuildHomePage({ params }: Props) {
       is_recruiting: (guild as any).is_recruiting ?? false,
     },
     attendanceDates, alreadyAttended, streak, totalAttendances,
-    recentMembers, rankingMembers, onlineMembers, noticePosts, raidList,
+    recentMembers, rankingMembers, onlineMembers, noticePosts,
+    raidList: [],
+    raids,
     welcomeMessage: themeRow?.welcome_message ?? null,
     guardianIndex, guardianImageUrl, weaknesses,
     primaryColor,
