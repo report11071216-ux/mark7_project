@@ -2,22 +2,34 @@ export type RecentMember = {
   user_id: string;
   points: number;
   joined_at: string;
-  profiles: { username: string | null; avatar_url: string | null } | null;
+  profiles: {
+    username: string | null;
+    avatar_url: string | null;
+    mark_url?: string | null;
+    card_url?: string | null;
+  } | null;
 };
-
 export type RankingMember = {
   user_id: string;
   points: number;
   role: string;
-  profiles: { username: string | null; avatar_url: string | null } | null;
+  profiles: {
+    username: string | null;
+    avatar_url: string | null;
+    mark_url?: string | null;
+    card_url?: string | null;
+  } | null;
 };
-
 export type OnlineMember = {
   user_id: string;
   last_seen_at: string | null;
-  profiles: { username: string | null; avatar_url: string | null } | null;
+  profiles: {
+    username: string | null;
+    avatar_url: string | null;
+    mark_url?: string | null;
+    card_url?: string | null;
+  } | null;
 };
-
 export type NoticePost = {
   id: string;
   title: string;
@@ -25,7 +37,6 @@ export type NoticePost = {
   is_notice: boolean;
   author: { username: string | null } | null;
 };
-
 export type RaidItem = {
   id: string;
   title: string;
@@ -40,7 +51,6 @@ export type RaidItem = {
     confirmed: boolean;
   }>;
 };
-
 export type GuildLayoutData = {
   guild: {
     id: string;
