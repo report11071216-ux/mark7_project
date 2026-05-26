@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import ScheduleCreateModal from './ScheduleCreateModal'
+import ScheduleDetailModal, { type RaidSchedule } from './ScheduleDetailModal'
 
 type RaidOption = {
   id: string
@@ -13,25 +14,12 @@ type RaidOption = {
   gold_nightmare: number | null
 }
 
-type ScheduleItem = {
-  id: string
-  raidId: string
-  raidTitle: string
-  raidImage: string
-  difficulty: string
-  skillLevel: string
-  maxMembers: number
-  scheduledDate: string
-  scheduledTime: string
-  createdBy: string
-  participantCount: number
-}
-
 type Props = {
   year: number
   month: number
   guildCode: string
-  schedules: ScheduleItem[]
+  currentUserId: string
+  schedules: RaidSchedule[]
   raids: RaidOption[]
 }
 
@@ -47,18 +35,24 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-export default function RaidCalendar({ year, month, guildCode, schedules, raids }: Props) {
-  const [modalOpen, setModalOpen] = useState(false)
+export default function RaidCalendar({
+  year,
+  month,
+  guildCode,
+  currentUserId,
+  schedules,
+  raids,
+}: Props) {
+  const [createOpen, setCreateOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
+  const [detail, setDetail] = useState<RaidSchedule | null>(null)
 
-  // 날짜별 일정 그룹핑
-  const schedulesByDate: { [key: string]: ScheduleItem[] } = {}
+  const schedulesByDate: { [key: string]: RaidSchedule[] } = {}
   for (const s of schedules) {
     if (!schedulesByDate[s.scheduledDate]) schedulesByDate[s.scheduledDate] = []
     schedulesByDate[s.scheduledDate].push(s)
   }
 
-  // 달력 셀 구성
   const firstWeekday = new Date(year, month - 1, 1).getDay()
   const daysInMonth = new Date(year, month, 0).getDate()
   const totalCells = Math.ceil((firstWeekday + daysInMonth) / 7) * 7
@@ -73,22 +67,19 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
     }
   }
 
-  // 이전/다음 달
   const prev = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 }
   const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
 
-  // KST 오늘
   const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
   const todayStr = `${kstNow.getUTCFullYear()}-${pad2(kstNow.getUTCMonth() + 1)}-${pad2(kstNow.getUTCDate())}`
 
   function openCreate(dateStr: string) {
     setSelectedDate(dateStr)
-    setModalOpen(true)
+    setCreateOpen(true)
   }
 
   return (
     <div>
-      {/* 헤더 */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-zinc-100">
@@ -119,10 +110,8 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
         </div>
       </div>
 
-      {/* 달력 */}
       <div className="overflow-x-auto">
         <div className="min-w-[680px] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
-          {/* 요일 헤더 */}
           <div className="grid grid-cols-7 border-b border-zinc-800">
             {WEEKDAYS.map((w, i) => (
               <div
@@ -136,7 +125,6 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
             ))}
           </div>
 
-          {/* 날짜 셀 */}
           <div className="grid grid-cols-7">
             {cells.map((cell, idx) => {
               const col = idx % 7
@@ -170,9 +158,11 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
 
                       <div className="space-y-1">
                         {daySchedules.map((s) => (
-                          <div
+                          <button
                             key={s.id}
-                            className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/90 p-1"
+                            type="button"
+                            onClick={() => setDetail(s)}
+                            className="flex w-full items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/90 p-1 text-left transition hover:border-violet-500/40"
                             title={`${s.raidTitle} · ${s.difficulty} · ${s.skillLevel}`}
                           >
                             {s.raidImage ? (
@@ -206,10 +196,11 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
                             <span className="shrink-0 font-mono text-[10px] text-zinc-400">
                               {s.participantCount}/{s.maxMembers}
                             </span>
-                          </div>
+                          </button>
                         ))}
 
                         <button
+                          type="button"
                           onClick={() => openCreate(cell.dateStr as string)}
                           className="w-full rounded-md border border-dashed border-zinc-800 py-1 text-[11px] text-zinc-600 transition hover:border-violet-500/40 hover:text-violet-300"
                         >
@@ -225,7 +216,6 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
         </div>
       </div>
 
-      {/* 범례 */}
       <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-sm border border-zinc-600/40 bg-zinc-700/40" />
@@ -242,11 +232,19 @@ export default function RaidCalendar({ year, month, guildCode, schedules, raids 
       </div>
 
       <ScheduleCreateModal
-        open={modalOpen}
+        open={createOpen}
         date={selectedDate}
         guildCode={guildCode}
         raids={raids}
-        onClose={() => setModalOpen(false)}
+        onClose={() => setCreateOpen(false)}
+      />
+
+      <ScheduleDetailModal
+        open={detail !== null}
+        schedule={detail}
+        guildCode={guildCode}
+        currentUserId={currentUserId}
+        onClose={() => setDetail(null)}
       />
     </div>
   )
