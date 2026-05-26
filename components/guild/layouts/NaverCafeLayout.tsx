@@ -147,16 +147,52 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
                 <span className="w-2 h-2 rounded-full bg-green-500" />
                 <p className="text-[11px] font-bold" style={{ color: textPrimary }}>접속중 {online.length}명</p>
               </div>
-              <div className="py-1">
-                {online.length === 0
-                  ? <p className="text-[11px] text-center py-3" style={{ color: textSecondary }}>없음</p>
-                  : online.slice(0, 6).map((m) => (
-                    <div key={m.user_id} className="flex items-center gap-2 px-3 py-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                      <span className="text-[11px] truncate" style={{ color: textPrimary }}>{m.profiles?.username ?? "?"}</span>
-                    </div>
-                  ))
-                }
+              <div className="py-1.5 px-1.5 space-y-1">
+                {online.length === 0 ? (
+                  <p className="text-[11px] text-center py-3" style={{ color: textSecondary }}>없음</p>
+                ) : (
+                  online.slice(0, 6).map((m) => {
+                    const cardUrl = m.profiles?.card_url ?? null;
+                    const markUrl = m.profiles?.mark_url ?? null;
+                    const avatar = markUrl ?? m.profiles?.avatar_url ?? null;
+                    const name = m.profiles?.username ?? "?";
+
+                    // 프로필카드 장착 — 줄에 배경 깔기
+                    if (cardUrl) {
+                      return (
+                        <div key={m.user_id} className="relative rounded-md overflow-hidden">
+                          <div className="absolute inset-0 bg-zinc-900" />
+                          <img src={cardUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/45" />
+                          <div className="relative flex items-center gap-2 px-2 py-1.5">
+                            <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 ring-1 ring-white/30">
+                              {avatar
+                                ? <img src={avatar} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full bg-white/15 flex items-center justify-center text-[8px] font-bold text-white">{name[0]?.toUpperCase()}</div>
+                              }
+                            </div>
+                            <span className="text-[11px] font-bold text-white truncate drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">{name}</span>
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // 프로필카드 없음 — 기본
+                    return (
+                      <div key={m.user_id} className="flex items-center gap-2 px-2 py-1.5">
+                        <div className="w-5 h-5 rounded-full overflow-hidden shrink-0" style={{ backgroundColor: primaryColor + "22" }}>
+                          {avatar
+                            ? <img src={avatar} alt="" className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-[8px] font-bold" style={{ color: primaryColor }}>{name[0]?.toUpperCase()}</div>
+                          }
+                        </div>
+                        <span className="text-[11px] truncate" style={{ color: textPrimary }}>{name}</span>
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
