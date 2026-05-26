@@ -43,6 +43,14 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
   const cardBorder = isLight ? "#e5e7eb" : "#27272a";
   const dividerColor = isLight ? "#f3f4f6" : "#27272a";
 
+  const tabs = [
+    { label: "홈", href: `/guild/${guildCode}` },
+    { label: "공지", href: `/guild/${guildCode}/posts` },
+    { label: "멤버", href: null },
+    { label: "랭킹", href: null },
+    { label: "레이드", href: null },
+  ];
+
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
       <div className="border-b shadow-sm" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
@@ -74,15 +82,33 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
           </div>
 
           <div className="flex" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
-            {["홈", "공지", "멤버", "랭킹", "레이드"].map((menu, i) => (
-              <div key={menu} className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
-                style={{
-                  borderBottomColor: i === 0 ? primaryColor : "transparent",
-                  color: i === 0 ? primaryColor : textSecondary,
-                }}>
-                {menu}
-              </div>
-            ))}
+            {tabs.map((tab, i) =>
+              tab.href ? (
+                <Link
+                  key={tab.label}
+                  href={tab.href}
+                  className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
+                  style={{
+                    borderBottomColor: i === 0 ? primaryColor : "transparent",
+                    color: i === 0 ? primaryColor : textSecondary,
+                  }}
+                >
+                  {tab.label}
+                </Link>
+              ) : (
+                <div
+                  key={tab.label}
+                  className="px-5 py-2.5 text-sm font-medium border-b-2 cursor-default"
+                  style={{
+                    borderBottomColor: "transparent",
+                    color: textSecondary,
+                    opacity: 0.4,
+                  }}
+                >
+                  {tab.label}
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
