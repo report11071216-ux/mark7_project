@@ -45,7 +45,7 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
     { label: "공지", href: `/guild/${guildCode}/posts` },
     { label: "멤버", href: null },
     { label: "랭킹", href: null },
-    { label: "레이드", href: null },
+    { label: "레이드", href: `/guild/${guildCode}/raids` },
   ];
 
   return (
