@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { joinRaidSchedule, leaveRaidSchedule } from '@/app/guild/[code]/raids/calendar/actions'
+import {
+  joinRaidSchedule,
+  leaveRaidSchedule,
+  deleteRaidSchedule,
+} from '@/app/guild/[code]/raids/calendar/actions'
 
 export type Participant = {
   userId: string
@@ -31,6 +35,7 @@ type Props = {
   schedule: RaidSchedule | null
   guildCode: string
   currentUserId: string
+  currentUserRole: string
   onClose: () => void
 }
 
@@ -63,11 +68,13 @@ export default function ScheduleDetailModal({
   schedule,
   guildCode,
   currentUserId,
+  currentUserRole,
   onClose,
 }: Props) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -82,6 +89,7 @@ export default function ScheduleDetailModal({
     if (open) {
       setError('')
       setSubmitting(false)
+      setConfirming(false)
     }
   }, [open, schedule])
 
@@ -89,6 +97,9 @@ export default function ScheduleDetailModal({
 
   const joined = schedule.participants.some((p) => p.userId === currentUserId)
   const full = schedule.participants.length >= schedule.maxMembers
+  const isOwner = schedule.createdBy === currentUserId
+  const isStaff = currentUserRole === 'master' || currentUserRole === 'submaster'
+  const canDelete = isOwner || isStaff
 
   async function handleJoin() {
     if (!schedule) return
@@ -112,6 +123,21 @@ export default function ScheduleDetailModal({
     setSubmitting(false)
     if (!result.ok) {
       setError(result.error || '참여 취소에 실패했습니다.')
+      return
+    }
+    onClose()
+    router.refresh()
+  }
+
+  async function handleDelete() {
+    if (!schedule) return
+    setError('')
+    setSubmitting(true)
+    const result = await deleteRaidSchedule(schedule.id, guildCode)
+    setSubmitting(false)
+    if (!result.ok) {
+      setError(result.error || '일정 삭제에 실패했습니다.')
+      setConfirming(false)
       return
     }
     onClose()
@@ -148,7 +174,7 @@ export default function ScheduleDetailModal({
           </button>
 
           <div className="absolute bottom-3 left-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-violet-300">
+            <p className="text-xs text-violet-300">
               {dateLabel(schedule.scheduledDate)} · {schedule.scheduledTime || '--:--'}
             </p>
             <h3 className="mt-0.5 text-xl font-bold text-white">{schedule.raidTitle}</h3>
@@ -174,10 +200,8 @@ export default function ScheduleDetailModal({
           </div>
 
           <div className="mb-2 flex items-center justify-between">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
-              참여 인원
-            </p>
-            <span className="font-mono text-sm text-zinc-300">
+            <p className="text-xs text-zinc-500">참여 인원</p>
+            <span className="text-sm text-zinc-300">
               {schedule.participants.length}/{schedule.maxMembers}
             </span>
           </div>
@@ -249,6 +273,40 @@ export default function ScheduleDetailModal({
               </button>
             )}
           </div>
+
+          {canDelete ? (
+            confirming ? (
+              <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                <p className="mb-2.5 text-center text-xs text-zinc-300">
+                  이 일정을 삭제할까요? 참여자 정보도 함께 사라져요.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    disabled={submitting}
+                    className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={submitting}
+                    className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {submitting ? '삭제 중...' : '삭제'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirming(true)}
+                disabled={submitting}
+                className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
+              >
+                일정 삭제
+              </button>
+            )
+          ) : null}
         </div>
       </div>
     </div>
