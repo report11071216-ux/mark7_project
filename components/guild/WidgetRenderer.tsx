@@ -112,16 +112,6 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
           <p className="text-xs font-bold text-white">오늘의 출석</p>
         </div>
         <div className="p-3">
-          <div className="grid grid-cols-2 gap-1.5 mb-3">
-            <div className="text-center p-2 rounded-lg" style={{ backgroundColor: dividerColor }}>
-              <p className="text-[9px]" style={{ color: textSecondary }}>총 출석</p>
-              <p className="text-base font-bold" style={{ color: textPrimary }}>{data.totalAttendances}</p>
-            </div>
-            <div className="text-center p-2 rounded-lg" style={{ backgroundColor: primaryColor + "22" }}>
-              <p className="text-[9px]" style={{ color: primaryColor }}>연속</p>
-              <p className="text-base font-bold" style={{ color: primaryColor }}>{data.streak}일</p>
-            </div>
-          </div>
           <AttendanceWidget
             guildCode={guildCode}
             alreadyAttended={data.alreadyAttended}
@@ -130,7 +120,7 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
             accent={primaryColor}
             textPrimary={textPrimary}
             textSecondary={textSecondary}
-            surface={dividerColor}
+            surface={primaryColor + "1A"}
           />
         </div>
       </div>
