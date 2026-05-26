@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, Trash2, Loader2, Send } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
 import { createComment, deleteComment } from "@/app/guild/[code]/posts/comment-actions";
+import ProfileCardModal from "@/components/ProfileCardModal";
 import toast from "react-hot-toast";
 
 export type GuildComment = {
@@ -14,6 +15,7 @@ export type GuildComment = {
   author_id: string;
   author_name: string;
   author_avatar: string | null;
+  author_mark: string | null;
 };
 
 type Props = {
@@ -28,6 +30,7 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const handleSubmit = () => {
     if (!text.trim()) {
@@ -74,44 +77,57 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
             아직 댓글이 없어요. 첫 댓글을 남겨보세요
           </p>
         ) : (
-          comments.map((c) => (
-            <div key={c.id} className="flex gap-3 px-5 py-3.5">
-              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-violet-500/20 flex items-center justify-center">
-                {c.author_avatar ? (
-                  <img src={c.author_avatar} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-bold text-violet-300">
-                    {(c.author_name ?? "?").charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">{c.author_name}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    {getRelativeTime(c.created_at)}
-                  </span>
-                  {c.author_id === currentUserId && (
+          comments.map((c) => {
+            const avatar = c.author_mark ?? c.author_avatar ?? null;
+            return (
+              <div key={c.id} className="flex gap-3 px-5 py-3.5">
+                <button
+                  type="button"
+                  onClick={() => setProfileUserId(c.author_id)}
+                  className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-violet-500/20 flex items-center justify-center hover:ring-2 hover:ring-violet-400 transition"
+                >
+                  {avatar ? (
+                    <img src={avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-violet-300">
+                      {(c.author_name ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleDelete(c.id)}
-                      disabled={isPending}
-                      className="ml-auto p-1 rounded hover:bg-rose-500/10 text-muted-foreground hover:text-rose-300 transition"
+                      onClick={() => setProfileUserId(c.author_id)}
+                      className="text-sm font-bold text-white hover:text-violet-300 transition"
                     >
-                      {deletingId === c.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
+                      {c.author_name}
                     </button>
-                  )}
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {getRelativeTime(c.created_at)}
+                    </span>
+                    {c.author_id === currentUserId && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(c.id)}
+                        disabled={isPending}
+                        className="ml-auto p-1 rounded hover:bg-rose-500/10 text-muted-foreground hover:text-rose-300 transition"
+                      >
+                        {deletingId === c.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed mt-0.5">
+                    {c.content}
+                  </p>
                 </div>
-                <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed mt-0.5">
-                  {c.content}
-                </p>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -136,6 +152,9 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
           </button>
         </div>
       </div>
+
+      {/* 프로필 모달 */}
+      <ProfileCardModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
     </div>
   );
 }
