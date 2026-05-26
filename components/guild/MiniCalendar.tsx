@@ -19,29 +19,34 @@ export default function MiniCalendar({ attendanceDates }: Props) {
   const attendedSet = useMemo(() => new Set(attendanceDates), [attendanceDates]);
   const today = getAttendanceDate();
 
+  function handleViewChange(v: View) {
+    setView(v);
+    setCursor(new Date());
+  }
+
   return (
     <Card className="p-4 bg-zinc-900/50 border-zinc-800 backdrop-blur">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-0.5">
-            CALENDAR
-          </p>
-          <h3 className="text-base font-bold text-white">출석 캘린더</h3>
-        </div>
-        <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1">
-          {(["month", "week", "day"] as View[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-2.5 py-0.5 text-[11px] font-mono uppercase rounded transition ${
-                view === v
-                  ? "bg-violet-500/20 text-violet-300"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {v === "month" ? "월" : v === "week" ? "주" : "일"}
-            </button>
-          ))}
+      <div className="mb-3">
+        <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-0.5">
+          CALENDAR
+        </p>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-bold text-white whitespace-nowrap">출석 캘린더</h3>
+          <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1 shrink-0">
+            {(["month", "week", "day"] as View[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => handleViewChange(v)}
+                className={`px-2 py-0.5 text-[11px] font-mono uppercase rounded transition ${
+                  view === v
+                    ? "bg-violet-500/20 text-violet-300"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {v === "month" ? "월" : v === "week" ? "주" : "일"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {view === "month" && (
@@ -83,8 +88,9 @@ function MonthView({ cursor, setCursor, attendanceDates, attendedSet, today }: a
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <p className="text-sm font-bold text-white">
-          {year}년 {month + 1}월 <span className="text-violet-400 ml-1.5">{monthCount}일 출석</span>
+        <p className="text-xs font-bold text-white text-center">
+          {year}년 {month + 1}월
+          <span className="text-violet-400 ml-1.5">{monthCount}일 출석</span>
         </p>
         <Button
           variant="ghost"
@@ -154,7 +160,7 @@ function WeekView({ cursor, setCursor, attendedSet, today }: any) {
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <p className="text-sm font-bold text-white">
+        <p className="text-xs font-bold text-white text-center">
           {sunday.getMonth() + 1}/{sunday.getDate()} 주
           <span className="text-violet-400 ml-1.5">{weekCount}/7일</span>
         </p>
@@ -222,7 +228,7 @@ function DayView({ cursor, setCursor, attendedSet, today }: any) {
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <p className="text-sm font-bold text-white">
+        <p className="text-xs font-bold text-white text-center">
           {cursor.getFullYear()}.{cursor.getMonth() + 1}.{cursor.getDate()}
         </p>
         <Button
