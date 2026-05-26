@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { checkAttendance } from "@/app/guild/[code]/attendance/actions";
 import { getMsUntilNextReset, formatTimeUntilReset } from "@/lib/attendance";
 import { Check, Clock } from "lucide-react";
@@ -11,6 +10,10 @@ type Props = {
   alreadyAttended: boolean;
   streak: number;
   totalAttendances: number;
+  accent?: string;
+  textPrimary?: string;
+  textSecondary?: string;
+  surface?: string;
 };
 
 export default function AttendanceWidget({
@@ -18,6 +21,10 @@ export default function AttendanceWidget({
   alreadyAttended: initialAttended,
   streak,
   totalAttendances,
+  accent = "#7c3aed",
+  textPrimary = "#ffffff",
+  textSecondary = "#a1a1aa",
+  surface = "#27272a",
 }: Props) {
   const [attended, setAttended] = useState(initialAttended);
   const [isPending, startTransition] = useTransition();
@@ -45,27 +52,28 @@ export default function AttendanceWidget({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className="flex-1 rounded-lg bg-zinc-800/40 px-2.5 py-2 text-center">
-          <p className="text-[10px] text-zinc-500 mb-0.5">총 출석</p>
-          <p className="text-sm font-bold text-white">{totalAttendances}일</p>
+        <div className="flex-1 rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: surface }}>
+          <p className="text-[10px] mb-0.5" style={{ color: textSecondary }}>총 출석</p>
+          <p className="text-sm font-bold" style={{ color: textPrimary }}>{totalAttendances}일</p>
         </div>
-        <div className="flex-1 rounded-lg bg-zinc-800/40 px-2.5 py-2 text-center">
-          <p className="text-[10px] text-zinc-500 mb-0.5 flex items-center justify-center gap-0.5">
+        <div className="flex-1 rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: surface }}>
+          <p className="text-[10px] mb-0.5 flex items-center justify-center gap-0.5" style={{ color: textSecondary }}>
             <Clock className="w-2.5 h-2.5" />
             리셋
           </p>
-          <p className="text-sm font-bold text-cyan-300 whitespace-nowrap">{timeLeft}</p>
+          <p className="text-sm font-bold whitespace-nowrap" style={{ color: textPrimary }}>{timeLeft}</p>
         </div>
       </div>
-
-      <Button
+      <button
+        type="button"
         onClick={handleCheck}
         disabled={attended || isPending}
-        className={`w-full h-10 text-sm font-bold transition-all ${
+        className="w-full h-10 rounded-lg text-sm font-bold transition-opacity flex items-center justify-center disabled:cursor-not-allowed"
+        style={
           attended
-            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-            : "bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white"
-        }`}
+            ? { backgroundColor: surface, color: textSecondary }
+            : { backgroundColor: accent, color: "#ffffff", opacity: isPending ? 0.7 : 1 }
+        }
       >
         {attended ? (
           <>
@@ -77,7 +85,7 @@ export default function AttendanceWidget({
         ) : (
           "출석 체크 (+1P)"
         )}
-      </Button>
+      </button>
     </div>
   );
 }
