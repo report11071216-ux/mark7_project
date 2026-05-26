@@ -51,19 +51,28 @@ export default function AttendanceWidget({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: surface }}>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: surface }}>
           <p className="text-[10px] mb-0.5" style={{ color: textSecondary }}>총 출석</p>
-          <p className="text-sm font-bold" style={{ color: textPrimary }}>{totalAttendances}일</p>
+          <p className="text-base font-bold" style={{ color: textPrimary }}>{totalAttendances}일</p>
         </div>
-        <div className="flex-1 rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: surface }}>
-          <p className="text-[10px] mb-0.5 flex items-center justify-center gap-0.5" style={{ color: textSecondary }}>
-            <Clock className="w-2.5 h-2.5" />
-            리셋
-          </p>
-          <p className="text-sm font-bold whitespace-nowrap" style={{ color: textPrimary }}>{timeLeft}</p>
+        <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: accent + "26" }}>
+          <p className="text-[10px] mb-0.5" style={{ color: accent }}>연속</p>
+          <p className="text-base font-bold" style={{ color: accent }}>{streak}일</p>
         </div>
       </div>
+
+      <div
+        className="flex items-center justify-between rounded-lg px-2.5 py-1.5"
+        style={{ backgroundColor: surface }}
+      >
+        <span className="flex items-center gap-1 text-[10px]" style={{ color: textSecondary }}>
+          <Clock className="w-2.5 h-2.5" />
+          다음 리셋
+        </span>
+        <span className="text-xs font-bold whitespace-nowrap" style={{ color: textPrimary }}>{timeLeft}</span>
+      </div>
+
       <button
         type="button"
         onClick={handleCheck}
