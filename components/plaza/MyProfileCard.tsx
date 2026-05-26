@@ -41,45 +41,50 @@ export default function MyProfileCard({
 
   const displayAvatar = markUrl ?? profile?.avatar_url ?? null;
 
-  return (
-    <div className="plaza-card overflow-hidden">
-      {/* 장착한 프로필카드 프레임 */}
-      {cardFrameUrl && (
-        <div className="bg-slate-900">
+  // ───── 프로필카드 프레임 장착 버전 ─────
+  if (cardFrameUrl) {
+    return (
+      <div className="plaza-card overflow-hidden">
+        <div className="relative w-full" style={{ aspectRatio: "3 / 2" }}>
+          {/* 프레임 배경 */}
           <img
             src={cardFrameUrl}
-            alt="프로필 카드"
-            className="w-full object-contain"
-            style={{ aspectRatio: "3 / 2" }}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain"
           />
-        </div>
-      )}
 
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          {displayAvatar ? (
-            <img
-              src={displayAvatar}
-              alt={profile?.username ?? "User"}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
-              <span className="text-sm font-bold text-white">
-                {(profile?.username ?? "?").charAt(0).toUpperCase()}
-              </span>
+          <div className="absolute inset-0 flex items-center">
+            {/* 좌측 — 아바타 (육각형 영역) */}
+            <div className="relative w-[30%] h-full shrink-0 flex items-center justify-center">
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt={profile?.username ?? "User"}
+                  className="w-[58%] aspect-square rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-[58%] aspect-square rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
+                  <span className="text-base font-bold text-white">
+                    {(profile?.username ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono text-blue-600 uppercase tracking-wider mb-0.5">
-              My Profile
-            </p>
-            <p className="text-sm font-bold text-slate-900 truncate">
-              {profile?.username ?? "이름없음"}
-            </p>
+
+            {/* 우측 — 텍스트 (검은 띠 영역) */}
+            <div className="flex flex-col justify-center pl-[4%] pr-[14%]">
+              <p className="text-[10px] font-mono text-white/60 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                My Profile
+              </p>
+              <p className="text-lg font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+                {profile?.username ?? "이름없음"}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5">
+
+        {/* 버튼 */}
+        <div className="p-4 flex flex-col gap-1.5">
           <Link
             href="/mypage"
             className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
@@ -96,6 +101,52 @@ export default function MyProfileCard({
             </Link>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // ───── 기본 버전 (프레임 미장착) ─────
+  return (
+    <div className="plaza-card p-4">
+      <div className="flex items-center gap-3 mb-3">
+        {displayAvatar ? (
+          <img
+            src={displayAvatar}
+            alt={profile?.username ?? "User"}
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
+            <span className="text-sm font-bold text-white">
+              {(profile?.username ?? "?").charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono text-blue-600 uppercase tracking-wider mb-0.5">
+            My Profile
+          </p>
+          <p className="text-sm font-bold text-slate-900 truncate">
+            {profile?.username ?? "이름없음"}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Link
+          href="/mypage"
+          className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
+        >
+          마이페이지
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-bold text-center transition-colors ring-1 ring-amber-200"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            관리자 콘솔
+          </Link>
+        )}
       </div>
     </div>
   );
