@@ -44,13 +44,14 @@ export default function CharacterCard({
         })
       : "—";
 
+  // ───── 프레임 장착 (규격: 1000x400, 아바타 중심 160,200 / 지름 260) ─────
   if (frameUrl) {
     return (
       <>
         <div
           onClick={() => setModalOpen(true)}
           className="relative w-full overflow-hidden cursor-pointer group"
-          style={{ aspectRatio: "5 / 2" }}
+          style={{ aspectRatio: "1000 / 400" }}
         >
           <img
             src={frameUrl}
@@ -64,52 +65,78 @@ export default function CharacterCard({
             </span>
           </div>
 
-          <div className="absolute inset-0 flex items-center">
-            <div className="flex flex-col justify-center pl-[34%] pr-[12%] w-full">
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-[9px] font-mono text-amber-300/90 uppercase tracking-[0.15em] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
-                  {characterClass}
-                </p>
-                <span className="text-white/30 text-[9px]">·</span>
-                <div className="flex items-center gap-0.5">
-                  <Server className="w-2.5 h-2.5 text-white/50" />
-                  <p className="text-[9px] font-mono text-white/60">{serverName}</p>
-                </div>
+          {/* 아바타 — 중심 (16%,50%), 지름 26% */}
+          <div
+            className="absolute rounded-full overflow-hidden"
+            style={{
+              left: "16%",
+              top: "50%",
+              width: "26%",
+              transform: "translate(-50%, -50%)",
+              aspectRatio: "1 / 1",
+            }}
+          >
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                <Sword className="w-8 h-8 text-amber-500/40" />
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] mb-2">
-                {name}
-              </h2>
+            )}
+          </div>
 
-              <div className="flex items-end gap-4">
-                <div>
-                  <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
-                    <Zap className="w-2.5 h-2.5 text-amber-300" />
-                    전투력
-                  </p>
-                  <p className="text-[18px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
-                    {cpText}
-                  </p>
-                </div>
-                <div className="h-7 w-px bg-white/20" />
-                <div>
-                  <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
-                    <Sword className="w-2.5 h-2.5 text-white/60" />
-                    아이템
-                  </p>
-                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
-                    {ilvlText}
-                  </p>
-                </div>
-                <div className="h-7 w-px bg-white/20" />
-                <div>
-                  <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
-                    <Star className="w-2.5 h-2.5 text-white/60" />
-                    원정대
-                  </p>
-                  <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
-                    Lv.{expeditionLevel}
-                  </p>
-                </div>
+          {/* 텍스트 — 텍스트 존 x300~870 = (30%~87%) */}
+          <div
+            className="absolute flex flex-col justify-center"
+            style={{ left: "30%", right: "13%", top: 0, bottom: 0 }}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="text-[9px] font-mono text-amber-300/90 uppercase tracking-[0.15em] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                {characterClass}
+              </p>
+              <span className="text-white/30 text-[9px]">·</span>
+              <div className="flex items-center gap-0.5">
+                <Server className="w-2.5 h-2.5 text-white/50" />
+                <p className="text-[9px] font-mono text-white/60">{serverName}</p>
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] mb-2">
+              {name}
+            </h2>
+
+            <div className="flex items-end gap-4">
+              <div>
+                <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                  <Zap className="w-2.5 h-2.5 text-amber-300" />
+                  전투력
+                </p>
+                <p className="text-[18px] font-bold text-amber-300 leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  {cpText}
+                </p>
+              </div>
+              <div className="h-7 w-px bg-white/20" />
+              <div>
+                <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                  <Sword className="w-2.5 h-2.5 text-white/60" />
+                  아이템
+                </p>
+                <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  {ilvlText}
+                </p>
+              </div>
+              <div className="h-7 w-px bg-white/20" />
+              <div>
+                <p className="text-[8px] font-mono text-white/50 uppercase tracking-wider mb-0.5 flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 text-white/60" />
+                  원정대
+                </p>
+                <p className="text-[14px] font-bold text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+                  Lv.{expeditionLevel}
+                </p>
               </div>
             </div>
           </div>
@@ -126,6 +153,7 @@ export default function CharacterCard({
     );
   }
 
+  // ───── 기본 골드 카드 (프레임 미장착) ─────
   return (
     <>
       <div
