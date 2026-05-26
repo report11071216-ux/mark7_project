@@ -113,7 +113,7 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
       </div>
 
       <div className="max-w-[1080px] mx-auto px-4 py-4 flex gap-4">
-        <div className="w-[168px] shrink-0 space-y-3">
+        <div className="w-[200px] shrink-0 space-y-3">
           {enabled("pointRanking") && (
             <RankingCard
               rankingMembers={rankingMembers}
@@ -134,6 +134,8 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
               primaryColor={primaryColor}
             />
           )}
+
+          {enabled("calendar") && <MiniCalendar attendanceDates={attendanceDates} />}
         </div>
 
         <div className="flex-1 min-w-0 space-y-3">
@@ -239,8 +241,6 @@ export default function NaverCafeLayout({ data, guildCode, widgets }: Props) {
               />
             )}
           </div>
-
-          {enabled("calendar") && <MiniCalendar attendanceDates={attendanceDates} />}
         </div>
 
         <div className="w-[176px] shrink-0 space-y-3">
