@@ -3,6 +3,7 @@ import { type GuildLayoutData } from "@/lib/guild-layout-types";
 import { type ThemeWidget } from "@/lib/themes";
 import AttendanceWidget from "@/components/guild/AttendanceWidget";
 import MiniCalendar from "@/components/guild/MiniCalendar";
+import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import { formatNumber, getRelativeTime } from "@/lib/utils";
 import { Bell, Trophy, Swords, Users, Star } from "lucide-react";
 
@@ -181,6 +182,19 @@ export default function SteamLayout({ data, guildCode, widgets }: Props) {
                 </Link>
               ))}
             </div>
+          )}
+
+          {enabled("raidSchedule") && (
+            <UpcomingRaidsWidget
+              guildId={guild.id}
+              guildCode={guildCode}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              accent={primaryColor}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              surface={headerBg}
+            />
           )}
 
           {enabled("calendar") && <MiniCalendar attendanceDates={attendanceDates} />}
