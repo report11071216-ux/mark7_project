@@ -41,11 +41,11 @@ export default function MyProfileCard({
 
   const displayAvatar = markUrl ?? profile?.avatar_url ?? null;
 
-  // ───── 프로필카드 프레임 장착 버전 ─────
+  // ───── 프로필카드 프레임 장착 버전 (5:2) ─────
   if (cardFrameUrl) {
     return (
       <div className="plaza-card overflow-hidden">
-        <div className="relative w-full" style={{ aspectRatio: "3 / 2" }}>
+        <div className="relative w-full" style={{ aspectRatio: "5 / 2" }}>
           {/* 프레임 배경 */}
           <img
             src={cardFrameUrl}
@@ -54,16 +54,16 @@ export default function MyProfileCard({
           />
 
           <div className="absolute inset-0 flex items-center">
-            {/* 좌측 — 아바타 (육각형 영역) */}
-            <div className="relative w-[30%] h-full shrink-0 flex items-center justify-center">
+            {/* 좌측 0~32% — 아바타 자리 */}
+            <div className="relative w-[32%] h-full shrink-0 flex items-center justify-center">
               {displayAvatar ? (
                 <img
                   src={displayAvatar}
                   alt={profile?.username ?? "User"}
-                  className="w-[58%] aspect-square rounded-full object-cover"
+                  className="w-[62%] aspect-square rounded-full object-cover"
                 />
               ) : (
-                <div className="w-[58%] aspect-square rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
+                <div className="w-[62%] aspect-square rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
                   <span className="text-base font-bold text-white">
                     {(profile?.username ?? "?").charAt(0).toUpperCase()}
                   </span>
@@ -71,12 +71,12 @@ export default function MyProfileCard({
               )}
             </div>
 
-            {/* 우측 — 텍스트 (검은 띠 영역) */}
-            <div className="flex flex-col justify-center pl-[4%] pr-[14%]">
-              <p className="text-[10px] font-mono text-white/60 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+            {/* 우측 32~88% — 텍스트 자리 */}
+            <div className="flex flex-col justify-center pl-[2%] pr-[12%] min-w-0">
+              <p className="text-[9px] font-mono text-white/60 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
                 My Profile
               </p>
-              <p className="text-lg font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+              <p className="text-base font-bold text-white truncate drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
                 {profile?.username ?? "이름없음"}
               </p>
             </div>
