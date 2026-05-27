@@ -7,7 +7,7 @@ import {
   type RewardItem,
 } from "@/lib/lostark";
 import { createClient } from "@/lib/supabase/server";
-import { Swords, Map, Skull } from "lucide-react";
+import { Swords, Map, Skull, Aperture } from "lucide-react";
 import AdventureIslandList from "./AdventureIslandList";
 
 const GRADE_BORDER: { [key: string]: string } = {
@@ -72,6 +72,60 @@ function CardHeader({
         <h3 className="text-base font-bold text-white">{title}</h3>
       </div>
       {right && <div className="text-xs font-medium text-slate-300">{right}</div>}
+    </div>
+  );
+}
+
+// ─── 오늘 시간표 콘텐츠 공용 (필드보스 / 카오스게이트) ───
+function TimedContentBody({
+  items,
+  emptyText,
+}: {
+  items: CalendarContent[];
+  emptyText: string;
+}) {
+  const todayItems = items.filter(
+    (item) => item.StartTimes?.some((t) => isTodayKST(t))
+  );
+
+  if (todayItems.length === 0) {
+    return <p className="text-xs text-slate-400 text-center py-4">{emptyText}</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {todayItems.map((item, i) => {
+        const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
+        return (
+          <div key={i}>
+            <div className="flex items-center gap-2">
+              {item.ContentsIcon && (
+                <img
+                  src={item.ContentsIcon}
+                  alt={item.ContentsName}
+                  className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {item.ContentsName}
+                </p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-[10px] font-mono text-slate-600">
+                    {todayTimes.map(formatKST).join(" · ")}
+                  </p>
+                  {item.Location && (
+                    <p className="text-[10px] text-slate-400 truncate">
+                      · {item.Location}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <RewardItems items={item.RewardItems} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -181,54 +235,23 @@ function GuardianRaidWidget({
 
 // ─── 필드보스 ───
 function FieldBossWidget({ items }: { items: CalendarContent[] }) {
-  const todayItems = items.filter(
-    (item) => item.StartTimes?.some((t) => isTodayKST(t))
-  );
-
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
       <CardHeader icon={Skull} title="오늘의 필드보스" />
       <div className="p-4">
-        {todayItems.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4">
-            오늘 필드보스 정보가 없어요
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {todayItems.map((item, i) => {
-              const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
-              return (
-                <div key={i}>
-                  <div className="flex items-center gap-2">
-                    {item.ContentsIcon && (
-                      <img
-                        src={item.ContentsIcon}
-                        alt={item.ContentsName}
-                        className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 truncate">
-                        {item.ContentsName}
-                      </p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <p className="text-[10px] font-mono text-slate-600">
-                          {todayTimes.map(formatKST).join(" · ")}
-                        </p>
-                        {item.Location && (
-                          <p className="text-[10px] text-slate-400 truncate">
-                            · {item.Location}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <RewardItems items={item.RewardItems} />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <TimedContentBody items={items} emptyText="오늘 필드보스 정보가 없어요" />
+      </div>
+    </div>
+  );
+}
+
+// ─── 카오스게이트 ───
+function ChaosGateWidget({ items }: { items: CalendarContent[] }) {
+  return (
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+      <CardHeader icon={Aperture} title="오늘의 카오스게이트" />
+      <div className="p-4">
+        <TimedContentBody items={items} emptyText="오늘 카오스게이트 정보가 없어요" />
       </div>
     </div>
   );
@@ -255,12 +278,14 @@ export default async function GameContentWidgets() {
 
   const adventures = calendar.filter((c) => c.CategoryName?.includes("모험"));
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드"));
+  const chaosGates = calendar.filter((c) => c.CategoryName?.includes("카오스"));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <AdventureIslandWidget items={adventures} />
       <GuardianRaidWidget guardianIndex={guardianIndex} imageUrl={guardianImageUrl} weaknesses={currentWeaknesses} />
       <FieldBossWidget items={fieldBosses} />
+      <ChaosGateWidget items={chaosGates} />
     </div>
   );
 }
