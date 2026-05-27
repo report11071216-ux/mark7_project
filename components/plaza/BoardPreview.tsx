@@ -51,15 +51,15 @@ export default function BoardPreview({ posts }: Props) {
 
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden h-full flex flex-col">
-      {/* 하늘색 제목띠 */}
-      <div className="flex items-center justify-between px-5 py-3 bg-sky-500">
+      {/* 남색 제목띠 */}
+      <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-white" />
           <h3 className="text-base font-bold text-white">광장 게시판</h3>
         </div>
         <Link
           href="/plaza/board"
-          className="text-xs font-medium text-sky-100 hover:text-white transition flex items-center gap-0.5"
+          className="text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-0.5"
         >
           전체 글
           <ChevronRight className="w-3.5 h-3.5" />
@@ -74,7 +74,7 @@ export default function BoardPreview({ posts }: Props) {
             onClick={() => setActiveCategory(cat.value)}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition ${
               activeCategory === cat.value
-                ? "bg-sky-500 text-white"
+                ? "bg-slate-800 text-white"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -100,7 +100,7 @@ export default function BoardPreview({ posts }: Props) {
             <Link
               key={post.id}
               href={`/plaza/board/${post.id}`}
-              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-5 py-3 transition hover:bg-sky-50 group"
+              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-5 py-3 transition hover:bg-slate-50 group"
             >
               <span className="shrink-0">
                 {post.is_notice ? (
@@ -123,11 +123,11 @@ export default function BoardPreview({ posts }: Props) {
                 )}
               </span>
               <div className="min-w-0">
-                <p className="text-[15px] text-slate-900 truncate group-hover:text-sky-600 transition font-medium">
+                <p className="text-[15px] text-slate-900 truncate group-hover:text-slate-600 transition font-medium">
                   {post.title}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                  <span className="text-sky-500 truncate">{post.guild_name}</span>
+                  <span className="text-slate-500 truncate">{post.guild_name}</span>
                   <span>·</span>
                   <span className="truncate">{post.author_name}</span>
                   <span>·</span>
