@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
 import { type GuildLayoutData } from "@/lib/guild-layout-types";
 import { normalizeLayout } from "@/lib/guild-layout-config";
+import { getShowcaseResetBoundary } from "@/lib/showcase";
 import GuildHomeLayout from "@/components/guild/GuildHomeLayout";
 
 type Props = { params: { code: string } };
@@ -22,6 +23,8 @@ export default async function GuildHomePage({ params }: Props) {
 
   if (!user || !guild) notFound();
 
+  const showcaseBoundary = getShowcaseResetBoundary();
+
   const [
     { data: myAttendances },
     { data: allMembers },
@@ -32,6 +35,7 @@ export default async function GuildHomePage({ params }: Props) {
     indexResult,
     imagesResult,
     weaknessesResult,
+    { data: showcaseToday },
   ] = await Promise.all([
     supabase.from("attendances").select("attendance_date").eq("guild_id", guild.id).eq("user_id", user.id).order("attendance_date", { ascending: false }).limit(60),
     supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
@@ -42,6 +46,7 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.from("platform_settings").select("value").eq("key", "current_guardian_index").maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "guardian_images").maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "guardian_weaknesses").maybeSingle(),
+    supabase.from("guild_showcases").select("id").eq("guild_id", guild.id).gte("created_at", showcaseBoundary).limit(1),
   ]);
 
   const attendanceDates = (myAttendances ?? []).map((a) => a.attendance_date);
@@ -52,6 +57,7 @@ export default async function GuildHomePage({ params }: Props) {
 
   const members = (allMembers ?? []) as any[];
   const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
+  const showcaseUploadedToday = (showcaseToday ?? []).length > 0;
 
   // ── 멤버들의 장착 마크/프로필카드 이미지 조회 ──
   const equippedPurchaseIds: string[] = [];
@@ -197,6 +203,7 @@ export default async function GuildHomePage({ params }: Props) {
         guildCode={guild.code}
         columns={columns}
         isStaff={isStaff}
+        showcaseUploadedToday={showcaseUploadedToday}
       />
     </div>
   );
