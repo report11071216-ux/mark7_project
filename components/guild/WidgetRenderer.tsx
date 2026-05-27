@@ -10,6 +10,7 @@ import RankingCard from "@/components/guild/RankingCard";
 import RecentMembersCard from "@/components/guild/RecentMembersCard";
 import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import RaidMonthWidget from "@/components/guild/RaidMonthWidget";
+import RaidActivityWidget from "@/components/guild/RaidActivityWidget";
 
 const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
@@ -103,6 +104,10 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
         cardBorder={cardBorder}
       />
     );
+  }
+
+  if (widgetId === "raidActivity") {
+    return <RaidActivityWidget guildId={guild.id} colors={colors} />;
   }
 
   if (widgetId === "attendance") {
