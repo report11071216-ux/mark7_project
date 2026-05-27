@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight } from "lucide-react";
+import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles } from "lucide-react";
+import PlazaSidebar from "@/components/plaza/PlazaSidebar";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
@@ -25,7 +26,7 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-5 h-5 text-sky-500" />
+      <Icon className="w-5 h-5 text-slate-700" />
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <div className="flex-1 h-px bg-slate-200 ml-2" />
       {action}
@@ -193,7 +194,7 @@ export default async function PlazaPage() {
   const shopButton = (
     <Link
       href={shopHref}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold transition-colors shrink-0"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-colors shrink-0"
     >
       <ShoppingBag className="w-4 h-4" />
       <span>{shopLabel}</span>
@@ -202,88 +203,112 @@ export default async function PlazaPage() {
   );
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                <img
-                  src="https://prdcdrgxbtryrjjoasuc.supabase.co/storage/v1/object/public/platform-assets/plaza-icon.png.png"
-                  alt="광장"
-                  className="w-full h-full object-cover"
-                />
+    <div className="flex flex-col md:flex-row min-h-screen bg-white">
+      <PlazaSidebar shopHref={shopHref} />
+
+      <main className="flex-1 min-w-0">
+        {/* 상단 헤더 */}
+        <div className="border-b border-slate-200 bg-white/90 backdrop-blur sticky top-0 z-20">
+          <div className="max-w-7xl mx-auto px-6 py-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
+                  <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-mono text-sky-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
-                <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
+              <div className="text-right">
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
+                <p className="text-lg font-bold text-slate-800 leading-none">
+                  {totalGuildCount ?? 0}
+                  <span className="text-sm text-slate-400 ml-1">개</span>
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
-              <p className="text-lg font-bold text-sky-600 leading-none">
-                {totalGuildCount ?? 0}
-                <span className="text-sm text-slate-400 ml-1">개</span>
-              </p>
+          </div>
+        </div>
+
+        {/* 플랫폼 공지 */}
+        {annMessage.trim().length > 0 && (
+          <div className="bg-slate-800 w-full">
+            <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
+              <Megaphone className="w-4 h-4 text-white shrink-0" />
+              <p className="text-sm font-medium text-white truncate flex-1">{annMessage}</p>
+              {annLink.length > 0 && (
+                <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-white/70 underline underline-offset-2 shrink-0 hidden sm:block">
+                  자세히 보기 →
+                </a>
+              )}
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {annMessage.trim().length > 0 && (
-        <div className="bg-sky-500 w-full">
-          <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
-            <Megaphone className="w-4 h-4 text-white shrink-0" />
-            <p className="text-sm font-medium text-white truncate flex-1">{annMessage}</p>
-            {annLink.length > 0 && (
-              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-white/80 underline underline-offset-2 shrink-0 hidden sm:block">
-                자세히 보기 →
-              </a>
-            )}
+        <MegaphoneTicker />
+
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="space-y-6">
+
+            {/* 길드 랭킹 */}
+            <section>
+              <SectionHeader icon={Trophy} title="길드 랭킹" />
+              <TopRankCompact guilds={topRankings} />
+            </section>
+
+            {/* 본문 + 길드 자랑 열 */}
+            <div className="flex gap-5">
+              <div className="flex-1 min-w-0 space-y-6">
+                {/* 게시판 + 사이드 */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  <div className="lg:col-span-8">
+                    <BoardPreview posts={plazaPosts} />
+                  </div>
+                  <aside className="lg:col-span-4 space-y-5">
+                    <MyProfileCard
+                      isLoggedIn={!!user}
+                      profile={myProfile}
+                      isAdmin={myProfile?.is_platform_admin === true}
+                      markUrl={equippedMarkUrl}
+                      cardFrameUrl={equippedCardFrameUrl}
+                    />
+                    <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
+                    <RecruitingGuilds guilds={recruitingGuilds} />
+                  </aside>
+                </div>
+
+                {/* 인게임 정보 */}
+                <section>
+                  <SectionHeader icon={Gamepad2} title="인게임 정보" />
+                  <GameContentWidgets />
+                </section>
+
+                {/* 신규 포인트 상품 */}
+                <section>
+                  <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
+                  <ShopPreview items={shopItems} />
+                </section>
+              </div>
+
+              {/* 길드 자랑 열 (2단계에서 기능 구현 예정) */}
+              <aside className="hidden xl:block w-36 shrink-0">
+                <div className="rounded-xl ring-1 ring-slate-200 overflow-hidden bg-white sticky top-24">
+                  <div className="bg-slate-800 px-3 py-2">
+                    <h3 className="text-xs font-bold text-white">길드 자랑</h3>
+                  </div>
+                  <div className="p-4 text-center">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      아직 자랑한<br />길드가 없습니다
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            </div>
+
           </div>
         </div>
-      )}
-
-      <MegaphoneTicker />
-
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-8">
-
-        {/* 랭킹 — 상단 강조 */}
-        <section>
-          <SectionHeader icon={Trophy} title="길드 랭킹" />
-          <TopRankCompact guilds={topRankings} />
-        </section>
-
-        {/* 게시판 + 사이드 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8">
-            <BoardPreview posts={plazaPosts} />
-          </div>
-          <aside className="lg:col-span-4 space-y-6">
-            <MyProfileCard
-              isLoggedIn={!!user}
-              profile={myProfile}
-              isAdmin={myProfile?.is_platform_admin === true}
-              markUrl={equippedMarkUrl}
-              cardFrameUrl={equippedCardFrameUrl}
-            />
-            <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
-            <RecruitingGuilds guilds={recruitingGuilds} />
-          </aside>
-        </div>
-
-        {/* 신규 포인트 상품 — 상점 바로가기 버튼 */}
-        <section>
-          <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
-          <ShopPreview items={shopItems} />
-        </section>
-
-        {/* 인게임 정보 */}
-        <section>
-          <SectionHeader icon={Gamepad2} title="인게임 정보" />
-          <GameContentWidgets />
-        </section>
-      </div>
+      </main>
     </div>
   );
 }
