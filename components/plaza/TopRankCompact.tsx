@@ -16,15 +16,15 @@ export default function TopRankCompact({ guilds }: Props) {
   }
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
-      {/* 하늘색 제목띠 */}
-      <div className="flex items-center justify-between px-5 py-3 bg-sky-500">
+      {/* 남색 제목띠 */}
+      <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
         <div className="flex items-center gap-2">
           <Crown className="w-5 h-5 text-yellow-300" />
           <h3 className="text-base font-bold text-white">주간 길드 랭킹</h3>
         </div>
         <Link
           href="/plaza/ranking"
-          className="text-xs font-medium text-sky-100 hover:text-white transition flex items-center gap-0.5"
+          className="text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-0.5"
         >
           전체 랭킹
           <ChevronRight className="w-3.5 h-3.5" />
@@ -51,9 +51,9 @@ function RankCard(props: { guild: RankedGuild; rank: number }) {
   else if (rank === 2) rankColor = "text-slate-500";
   else if (rank === 3) rankColor = "text-amber-500";
   const cardClass = isFirst
-    ? "block p-4 transition hover:bg-sky-50 bg-gradient-to-b from-yellow-50 to-transparent"
-    : "block p-4 transition hover:bg-sky-50";
-  const pointColor = isFirst ? "text-yellow-600" : "text-sky-600";
+    ? "block p-4 transition hover:bg-slate-50 bg-gradient-to-b from-yellow-50 to-transparent"
+    : "block p-4 transition hover:bg-slate-50";
+  const pointColor = isFirst ? "text-yellow-600" : "text-slate-700";
   return (
     <Link href={"/guild/" + guild.code} className={cardClass}>
       <div className="flex items-center gap-1 mb-2">
@@ -72,7 +72,7 @@ function RankCard(props: { guild: RankedGuild; rank: number }) {
             className="w-8 h-8 rounded-lg object-cover shrink-0"
           />
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 text-sm font-bold shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-bold shrink-0">
             {guild.name.charAt(0)}
           </div>
         )}
