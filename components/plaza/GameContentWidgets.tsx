@@ -66,12 +66,12 @@ function CardHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-3 bg-blue-600">
+    <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
       <div className="flex items-center gap-2">
         <Icon className="w-5 h-5 text-white" />
         <h3 className="text-base font-bold text-white">{title}</h3>
       </div>
-      {right && <div className="text-xs font-medium text-blue-100">{right}</div>}
+      {right && <div className="text-xs font-medium text-slate-300">{right}</div>}
     </div>
   );
 }
@@ -162,7 +162,7 @@ function GuardianRaidWidget({
                   key={name}
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition ${
                     i === guardianIndex
-                      ? "bg-blue-600 text-white"
+                      ? "bg-slate-800 text-white"
                       : i < guardianIndex
                       ? "bg-slate-100 text-slate-400 line-through"
                       : "bg-slate-100 text-slate-500"
@@ -212,7 +212,7 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
                         {item.ContentsName}
                       </p>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <p className="text-[10px] font-mono text-blue-600">
+                        <p className="text-[10px] font-mono text-slate-600">
                           {todayTimes.map(formatKST).join(" · ")}
                         </p>
                         {item.Location && (
