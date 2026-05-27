@@ -12,6 +12,7 @@ import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import ShopPreview, { type ShopPreviewItem } from "@/components/plaza/ShopPreview";
+import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 
 export const revalidate = 60;
 
@@ -45,6 +46,7 @@ export default async function PlazaPage() {
     totalCountResult,
     announcementResult,
     shopItemsResult,
+    showcaseResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -53,6 +55,7 @@ export default async function PlazaPage() {
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
+    supabase.from("guild_showcases").select("id, image_url, guild_id, created_at, guilds(code, name)").order("created_at", { ascending: false }).limit(40),
   ]);
 
   const user = userResult.data.user;
@@ -61,6 +64,7 @@ export default async function PlazaPage() {
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
   const shopRaw = shopItemsResult.data;
+  const showcaseRaw = showcaseResult.data;
 
   const annRaw = announcementResult.data?.value as { message: string; link: string; active: boolean } | null;
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
@@ -70,6 +74,22 @@ export default async function PlazaPage() {
     id: g.id, code: g.code, name: g.name, logo_url: g.display_logo_url,
     member_count: g.member_count ?? 0, max_members: g.max_members ?? 50, description: g.description,
   }));
+
+  // 길드 자랑 — 길드별 최신 1장만 (created_at desc 정렬이라 처음 나오는 게 최신)
+  const seenShowcaseGuilds = new Set<string>();
+  const showcaseItems: ShowcaseItem[] = [];
+  for (const row of (showcaseRaw ?? []) as any[]) {
+    if (!row.guild_id || seenShowcaseGuilds.has(row.guild_id)) continue;
+    const g = Array.isArray(row.guilds) ? row.guilds[0] : row.guilds;
+    if (!g) continue;
+    seenShowcaseGuilds.add(row.guild_id);
+    showcaseItems.push({
+      id: row.id,
+      guildCode: g.code,
+      guildName: g.name,
+      imageUrl: row.image_url,
+    });
+  }
 
   // 주간 랭킹 길드들의 표시용 로고 가져오기
   const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
@@ -291,17 +311,10 @@ export default async function PlazaPage() {
                 </section>
               </div>
 
-              {/* 길드 자랑 열 (2단계에서 기능 구현 예정) */}
+              {/* 길드 자랑 열 */}
               <aside className="hidden xl:block w-36 shrink-0">
-                <div className="rounded-xl ring-1 ring-slate-200 overflow-hidden bg-white sticky top-24">
-                  <div className="bg-slate-800 px-3 py-2">
-                    <h3 className="text-xs font-bold text-white">길드 자랑</h3>
-                  </div>
-                  <div className="p-4 text-center">
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      아직 자랑한<br />길드가 없습니다
-                    </p>
-                  </div>
+                <div className="sticky top-24">
+                  <GuildShowcaseColumn items={showcaseItems} />
                 </div>
               </aside>
             </div>
