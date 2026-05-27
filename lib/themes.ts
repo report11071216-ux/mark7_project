@@ -1,7 +1,8 @@
 export type WidgetId =
   | "attendance" | "calendar" | "stats" | "recentMembers"
   | "notice" | "guildIntro" | "pointRanking" | "guardian"
-  | "raidStatus" | "onlineMembers" | "raidSchedule" | "raidCalendar";
+  | "raidStatus" | "onlineMembers" | "raidSchedule" | "raidCalendar"
+  | "raidActivity";
 
 export type ThemeWidget = { id: WidgetId; wide: boolean; enabled: boolean };
 
@@ -29,6 +30,7 @@ export const WIDGET_META: { [key: string]: { label: string; icon: string; descri
   onlineMembers: { label: "온라인 멤버", icon: "🟢", description: "현재 접속 중인 멤버" },
   raidSchedule:  { label: "레이드 일정", icon: "📆", description: "다가오는 레이드 일정 + 주간 캘린더" },
   raidCalendar:  { label: "레이드 달력", icon: "🗓️", description: "이번 달 레이드 일정 달력" },
+  raidActivity:  { label: "레이드 활동", icon: "📈", description: "주/월 레이드 참여율 + 내 현황" },
 };
 
 export const THEMES: Theme[] = [
