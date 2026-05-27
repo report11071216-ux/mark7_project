@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import RaidCalendar from '@/components/guild/RaidCalendar'
+import { getClassRole, getClassSynergy } from '@/lib/lostark-classes'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,13 +87,39 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   if (allUserIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, main_character_name')
+      .select('id, username, avatar_url, main_character_name, character_class, item_level, equipped_mark_id')
       .in('id', allUserIds)
     profileRows = data || []
   }
 
   const profileMap: { [key: string]: any } = {}
   for (const pr of profileRows) profileMap[pr.id] = pr
+
+  // 장착한 길드 마크(프로필 아이콘) 이미지 조회
+  const markPurchaseIds = Array.from(
+    new Set(profileRows.map((p) => p.equipped_mark_id).filter(Boolean))
+  ) as string[]
+  const markUrlByPurchase: { [key: string]: string | null } = {}
+  if (markPurchaseIds.length > 0) {
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('id, item_id')
+      .in('id', markPurchaseIds)
+    const itemIds = Array.from(
+      new Set((purchases || []).map((p) => p.item_id).filter(Boolean))
+    ) as string[]
+    const itemImg: { [key: string]: string | null } = {}
+    if (itemIds.length > 0) {
+      const { data: items } = await supabase
+        .from('shop_items')
+        .select('id, image_url')
+        .in('id', itemIds)
+      for (const it of items || []) itemImg[it.id] = it.image_url
+    }
+    for (const pu of purchases || []) {
+      if (pu.item_id) markUrlByPurchase[pu.id] = itemImg[pu.item_id] ?? null
+    }
+  }
 
   function nameOf(uid: string): string {
     const pr = profileMap[uid]
@@ -101,19 +128,46 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   }
   function avatarOf(uid: string): string {
     const pr = profileMap[uid]
-    return pr ? pr.avatar_url || '' : ''
+    if (!pr) return ''
+    if (pr.equipped_mark_id && markUrlByPurchase[pr.equipped_mark_id]) {
+      return markUrlByPurchase[pr.equipped_mark_id] as string
+    }
+    return pr.avatar_url || ''
+  }
+  function classOf(uid: string): string {
+    const pr = profileMap[uid]
+    return pr && pr.character_class ? String(pr.character_class) : ''
+  }
+  function ilvlOf(uid: string): number | null {
+    const pr = profileMap[uid]
+    if (!pr || pr.item_level == null) return null
+    const n = Number(pr.item_level)
+    return Number.isFinite(n) ? n : null
   }
 
   const participantsBySchedule: {
-    [key: string]: { userId: string; name: string; avatar: string }[]
+    [key: string]: {
+      userId: string
+      name: string
+      avatar: string
+      characterClass: string
+      itemLevel: number | null
+      role: 'dealer' | 'support' | null
+      synergy: string
+    }[]
   } = {}
   for (const p of participantRows) {
     const key = String(p.schedule_id)
     if (!participantsBySchedule[key]) participantsBySchedule[key] = []
+    const cls = classOf(p.user_id)
     participantsBySchedule[key].push({
       userId: p.user_id,
       name: nameOf(p.user_id),
       avatar: avatarOf(p.user_id),
+      characterClass: cls,
+      itemLevel: ilvlOf(p.user_id),
+      role: cls ? getClassRole(cls) : null,
+      synergy: cls ? getClassSynergy(cls) : '',
     })
   }
 
