@@ -12,6 +12,10 @@ export type Participant = {
   userId: string
   name: string
   avatar: string
+  characterClass: string
+  itemLevel: number | null
+  role: 'dealer' | 'support' | null
+  synergy: string
 }
 
 export type RaidSchedule = {
@@ -100,6 +104,14 @@ export default function ScheduleDetailModal({
   const isOwner = schedule.createdBy === currentUserId
   const isStaff = currentUserRole === 'master' || currentUserRole === 'submaster'
   const canDelete = isOwner || isStaff
+
+  // 역할 집계 — 딜러/서포터 수
+  let dealerCount = 0
+  let supportCount = 0
+  for (const p of schedule.participants) {
+    if (p.role === 'support') supportCount++
+    else if (p.role === 'dealer') dealerCount++
+  }
 
   async function handleJoin() {
     if (!schedule) return
@@ -201,9 +213,17 @@ export default function ScheduleDetailModal({
 
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs text-zinc-500">참여 인원</p>
-            <span className="text-sm text-zinc-300">
-              {schedule.participants.length}/{schedule.maxMembers}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-300">
+                딜러 {dealerCount}
+              </span>
+              <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                서포터 {supportCount}
+              </span>
+              <span className="text-sm text-zinc-300">
+                {schedule.participants.length}/{schedule.maxMembers}
+              </span>
+            </div>
           </div>
 
           {schedule.participants.length === 0 ? (
@@ -212,32 +232,73 @@ export default function ScheduleDetailModal({
             </div>
           ) : (
             <div className="space-y-1.5">
-              {schedule.participants.map((p) => (
-                <div
-                  key={p.userId}
-                  className="flex items-center gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2"
-                >
-                  {p.avatar ? (
-                    <img
-                      src={p.avatar}
-                      alt=""
-                      className="h-8 w-8 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-xs font-bold text-white">
-                      {p.name.charAt(0)}
+              {schedule.participants.map((p) => {
+                const roleLabel =
+                  p.role === 'support' ? '서포터' : p.role === 'dealer' ? '딜러' : null
+                const roleClass =
+                  p.role === 'support'
+                    ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+                    : 'border-rose-500/30 bg-rose-500/15 text-rose-300'
+                const ilvl =
+                  p.itemLevel != null ? Math.floor(p.itemLevel).toLocaleString() : null
+                return (
+                  <div
+                    key={p.userId}
+                    className="flex gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5"
+                  >
+                    {p.avatar ? (
+                      <img
+                        src={p.avatar}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-sm font-bold text-white">
+                        {p.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-medium text-zinc-100">
+                          {p.name}
+                        </span>
+                        {p.userId === currentUserId ? (
+                          <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-300">
+                            나
+                          </span>
+                        ) : null}
+                      </div>
+                      {p.characterClass ? (
+                        <>
+                          <p className="mt-0.5 text-xs text-zinc-400">
+                            {p.characterClass}
+                            {ilvl ? ' · Lv ' + ilvl : ''}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {roleLabel ? (
+                              <span
+                                className={cx(
+                                  'rounded border px-1.5 py-0.5 text-[10px] font-medium',
+                                  roleClass
+                                )}
+                              >
+                                {roleLabel}
+                              </span>
+                            ) : null}
+                            {p.synergy ? (
+                              <span className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
+                                {p.synergy}
+                              </span>
+                            ) : null}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-zinc-600">캐릭터 미연동</p>
+                      )}
                     </div>
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">
-                    {p.name}
-                  </span>
-                  {p.userId === currentUserId ? (
-                    <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-300">
-                      나
-                    </span>
-                  ) : null}
-                </div>
-              ))}
+                  </div>
+                )
+              })}
             </div>
           )}
 
