@@ -12,7 +12,7 @@ type ColKey = 'left' | 'center' | 'right'
 const ALL_WIDGET_IDS: WidgetId[] = [
   'notice', 'pointRanking', 'attendance', 'calendar', 'stats',
   'guardian', 'recentMembers', 'onlineMembers', 'raidStatus',
-  'raidSchedule', 'raidCalendar', 'guildIntro',
+  'raidSchedule', 'raidCalendar', 'raidActivity', 'guildIntro',
 ]
 
 const COLUMN_LABELS: { key: ColKey; label: string }[] = [
