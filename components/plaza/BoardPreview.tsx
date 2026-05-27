@@ -31,7 +31,7 @@ const CATEGORIES = [
 const CATEGORY_STYLE: { [key: string]: string } = {
   자유: "bg-slate-100 text-slate-600",
   길드모집: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-  질문: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+  질문: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
 };
 
 export default function BoardPreview({ posts }: Props) {
@@ -51,15 +51,15 @@ export default function BoardPreview({ posts }: Props) {
 
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden h-full flex flex-col">
-      {/* 파란 제목띠 */}
-      <div className="flex items-center justify-between px-5 py-3 bg-blue-600">
+      {/* 하늘색 제목띠 */}
+      <div className="flex items-center justify-between px-5 py-3 bg-sky-500">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-white" />
           <h3 className="text-base font-bold text-white">광장 게시판</h3>
         </div>
         <Link
           href="/plaza/board"
-          className="text-xs font-medium text-blue-100 hover:text-white transition flex items-center gap-0.5"
+          className="text-xs font-medium text-sky-100 hover:text-white transition flex items-center gap-0.5"
         >
           전체 글
           <ChevronRight className="w-3.5 h-3.5" />
@@ -74,7 +74,7 @@ export default function BoardPreview({ posts }: Props) {
             onClick={() => setActiveCategory(cat.value)}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition ${
               activeCategory === cat.value
-                ? "bg-blue-600 text-white"
+                ? "bg-sky-500 text-white"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -100,7 +100,7 @@ export default function BoardPreview({ posts }: Props) {
             <Link
               key={post.id}
               href={`/plaza/board/${post.id}`}
-              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-5 py-3 transition hover:bg-blue-50 group"
+              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-5 py-3 transition hover:bg-sky-50 group"
             >
               <span className="shrink-0">
                 {post.is_notice ? (
@@ -123,11 +123,11 @@ export default function BoardPreview({ posts }: Props) {
                 )}
               </span>
               <div className="min-w-0">
-                <p className="text-[15px] text-slate-900 truncate group-hover:text-blue-700 transition font-medium">
+                <p className="text-[15px] text-slate-900 truncate group-hover:text-sky-600 transition font-medium">
                   {post.title}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                  <span className="text-blue-500 truncate">{post.guild_name}</span>
+                  <span className="text-sky-500 truncate">{post.guild_name}</span>
                   <span>·</span>
                   <span className="truncate">{post.author_name}</span>
                   <span>·</span>
