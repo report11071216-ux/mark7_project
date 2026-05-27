@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/guild/Sidebar";
+import GuildChatDock from "@/components/guild/GuildChatDock";
 
 export default async function GuildLayout({
   children,
@@ -21,19 +22,31 @@ export default async function GuildLayout({
     .eq("code", upperCode)
     .maybeSingle();
   if (guildError || !guild) notFound();
-  const [{ data: membership }, { data: profile }, { data: themeRow }] = await Promise.all([
+
+  const [
+    { data: membership },
+    { data: profile },
+    { data: themeRow },
+    { data: rawMembers },
+    { data: rawMessages },
+  ] = await Promise.all([
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("username, avatar_url, equipped_mark_id").eq("id", user.id).maybeSingle(),
     supabase.from("guild_themes").select("equipped_mark_id, primary_color, background_color").eq("guild_id", guild.id).maybeSingle(),
+    supabase.from("guild_members").select("user_id, profiles(id, username, avatar_url)").eq("guild_id", guild.id),
+    supabase.from("guild_messages").select("id, user_id, content, created_at").eq("guild_id", guild.id).order("created_at", { ascending: false }).limit(50),
   ]);
+
   if (!membership) {
     redirect("/onboarding/join");
   }
+
   // 접속 시각 갱신 (온라인 멤버 판정용)
   await supabase
     .from("profiles")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", user.id);
+
   // 장착한 길드 마크 이미지 찾기 (없으면 원래 logo_url)
   let guildLogoUrl = guild.logo_url;
   if (themeRow?.equipped_mark_id) {
@@ -53,6 +66,7 @@ export default async function GuildLayout({
       }
     }
   }
+
   // 장착한 개인 마크 이미지 찾기 (없으면 디스코드 아바타)
   let userAvatarUrl = profile?.avatar_url ?? null;
   if (profile?.equipped_mark_id) {
@@ -76,6 +90,22 @@ export default async function GuildLayout({
   const primaryColor = themeRow?.primary_color ?? "#7c3aed";
   const backgroundColor = themeRow?.background_color ?? "#09090b";
 
+  const chatMembers = (rawMembers ?? []).map((m: any) => ({
+    user_id: m.user_id,
+    username: m.profiles?.username ?? "익명",
+    avatar_url: m.profiles?.avatar_url ?? null,
+  }));
+
+  const chatMessages = (rawMessages ?? [])
+    .slice()
+    .reverse()
+    .map((m) => ({
+      id: m.id,
+      user_id: m.user_id,
+      content: m.content,
+      created_at: m.created_at,
+    }));
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -93,6 +123,17 @@ export default async function GuildLayout({
       <main className="flex-1 overflow-x-hidden pt-14 pb-16 md:pt-0 md:pb-0">
         {children}
       </main>
+
+      <GuildChatDock
+        guildId={guild.id}
+        guildCode={guild.code}
+        guildName={guild.name}
+        currentUserId={user.id}
+        members={chatMembers}
+        initialMessages={chatMessages}
+        primaryColor={primaryColor}
+        backgroundColor={backgroundColor}
+      />
     </div>
   );
 }
