@@ -87,7 +87,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   if (allUserIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, main_character_name, character_class, item_level, equipped_mark_id')
+      .select('id, username, avatar_url, main_character_name, character_class, item_level, equipped_mark_id, equipped_card_id')
       .in('id', allUserIds)
     profileRows = data || []
   }
@@ -95,29 +95,42 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   const profileMap: { [key: string]: any } = {}
   for (const pr of profileRows) profileMap[pr.id] = pr
 
-  // 장착한 길드 마크(프로필 아이콘) 이미지 조회
-  const markPurchaseIds = Array.from(
-    new Set(profileRows.map((p) => p.equipped_mark_id).filter(Boolean))
+  // 장착한 길드 마크(프로필 아이콘) + 프로필 카드 배경 이미지 조회
+  const purchaseIds = Array.from(
+    new Set(
+      profileRows
+        .flatMap((p) => [p.equipped_mark_id, p.equipped_card_id])
+        .filter(Boolean)
+    )
   ) as string[]
-  const markUrlByPurchase: { [key: string]: string | null } = {}
-  if (markPurchaseIds.length > 0) {
+
+  const markImageByPurchase: { [key: string]: string | null } = {}
+  const cardFrameByPurchase: { [key: string]: string | null } = {}
+
+  if (purchaseIds.length > 0) {
     const { data: purchases } = await supabase
       .from('purchases')
       .select('id, item_id')
-      .in('id', markPurchaseIds)
+      .in('id', purchaseIds)
     const itemIds = Array.from(
       new Set((purchases || []).map((p) => p.item_id).filter(Boolean))
     ) as string[]
-    const itemImg: { [key: string]: string | null } = {}
+    const itemMap: { [key: string]: { image_url: string | null; frame_url: string | null } } = {}
     if (itemIds.length > 0) {
       const { data: items } = await supabase
         .from('shop_items')
-        .select('id, image_url')
+        .select('id, image_url, frame_url')
         .in('id', itemIds)
-      for (const it of items || []) itemImg[it.id] = it.image_url
+      for (const it of items || []) {
+        itemMap[it.id] = { image_url: it.image_url, frame_url: it.frame_url }
+      }
     }
     for (const pu of purchases || []) {
-      if (pu.item_id) markUrlByPurchase[pu.id] = itemImg[pu.item_id] ?? null
+      if (!pu.item_id) continue
+      const it = itemMap[pu.item_id]
+      if (!it) continue
+      markImageByPurchase[pu.id] = it.image_url
+      cardFrameByPurchase[pu.id] = it.frame_url
     }
   }
 
@@ -129,10 +142,18 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   function avatarOf(uid: string): string {
     const pr = profileMap[uid]
     if (!pr) return ''
-    if (pr.equipped_mark_id && markUrlByPurchase[pr.equipped_mark_id]) {
-      return markUrlByPurchase[pr.equipped_mark_id] as string
+    if (pr.equipped_mark_id && markImageByPurchase[pr.equipped_mark_id]) {
+      return markImageByPurchase[pr.equipped_mark_id] as string
     }
     return pr.avatar_url || ''
+  }
+  function cardBgOf(uid: string): string {
+    const pr = profileMap[uid]
+    if (!pr) return ''
+    if (pr.equipped_card_id && cardFrameByPurchase[pr.equipped_card_id]) {
+      return cardFrameByPurchase[pr.equipped_card_id] as string
+    }
+    return ''
   }
   function classOf(uid: string): string {
     const pr = profileMap[uid]
@@ -150,6 +171,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       userId: string
       name: string
       avatar: string
+      cardBgUrl: string
       characterClass: string
       itemLevel: number | null
       role: 'dealer' | 'support' | null
@@ -164,6 +186,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       userId: p.user_id,
       name: nameOf(p.user_id),
       avatar: avatarOf(p.user_id),
+      cardBgUrl: cardBgOf(p.user_id),
       characterClass: cls,
       itemLevel: ilvlOf(p.user_id),
       role: cls ? getClassRole(cls) : null,
