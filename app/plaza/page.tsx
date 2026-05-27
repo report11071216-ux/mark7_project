@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Gamepad2, Megaphone } from "lucide-react";
+import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight } from "lucide-react";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
@@ -13,12 +14,21 @@ import ShopPreview, { type ShopPreviewItem } from "@/components/plaza/ShopPrevie
 
 export const revalidate = 60;
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string }>; title: string }) {
+function SectionHeader({
+  icon: Icon,
+  title,
+  action,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-5 h-5 text-blue-600" />
+      <Icon className="w-5 h-5 text-sky-500" />
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <div className="flex-1 h-px bg-slate-200 ml-2" />
+      {action}
     </div>
   );
 }
@@ -175,8 +185,24 @@ export default async function PlazaPage() {
     };
   });
 
+  // 상점 바로가기 — 내 길드 있으면 그 길드 상점으로, 없으면 길드 가입으로
+  const hasGuild = myGuilds.length > 0;
+  const shopHref = hasGuild ? `/guild/${myGuilds[0].code}/shop` : "/onboarding/join";
+  const shopLabel = hasGuild ? "내 길드 상점 가기" : "길드 가입하고 상점 이용";
+
+  const shopButton = (
+    <Link
+      href={shopHref}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold transition-colors shrink-0"
+    >
+      <ShoppingBag className="w-4 h-4" />
+      <span>{shopLabel}</span>
+      <ArrowRight className="w-4 h-4" />
+    </Link>
+  );
+
   return (
-    <div>
+    <div className="bg-white min-h-screen">
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
@@ -189,13 +215,13 @@ export default async function PlazaPage() {
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-mono text-blue-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
+                <p className="text-[11px] font-mono text-sky-600 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
                 <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
               </div>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
-              <p className="text-lg font-bold text-blue-600 leading-none">
+              <p className="text-lg font-bold text-sky-600 leading-none">
                 {totalGuildCount ?? 0}
                 <span className="text-sm text-slate-400 ml-1">개</span>
               </p>
@@ -205,7 +231,7 @@ export default async function PlazaPage() {
       </div>
 
       {annMessage.trim().length > 0 && (
-        <div className="bg-blue-600 w-full">
+        <div className="bg-sky-500 w-full">
           <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
             <Megaphone className="w-4 h-4 text-white shrink-0" />
             <p className="text-sm font-medium text-white truncate flex-1">{annMessage}</p>
@@ -222,13 +248,18 @@ export default async function PlazaPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-8">
 
-        <TopRankCompact guilds={topRankings} />
+        {/* 랭킹 — 상단 강조 */}
+        <section>
+          <SectionHeader icon={Trophy} title="길드 랭킹" />
+          <TopRankCompact guilds={topRankings} />
+        </section>
 
+        {/* 게시판 + 사이드 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-9">
+          <div className="lg:col-span-8">
             <BoardPreview posts={plazaPosts} />
           </div>
-          <aside className="lg:col-span-3 space-y-6">
+          <aside className="lg:col-span-4 space-y-6">
             <MyProfileCard
               isLoggedIn={!!user}
               profile={myProfile}
@@ -241,14 +272,16 @@ export default async function PlazaPage() {
           </aside>
         </div>
 
+        {/* 신규 포인트 상품 — 상점 바로가기 버튼 */}
+        <section>
+          <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
+          <ShopPreview items={shopItems} />
+        </section>
+
+        {/* 인게임 정보 */}
         <section>
           <SectionHeader icon={Gamepad2} title="인게임 정보" />
           <GameContentWidgets />
-        </section>
-
-        <section>
-          <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" />
-          <ShopPreview items={shopItems} />
         </section>
       </div>
     </div>
