@@ -12,6 +12,7 @@ export type Participant = {
   userId: string
   name: string
   avatar: string
+  cardBgUrl: string
   characterClass: string
   itemLevel: number | null
   role: 'dealer' | 'support' | null
@@ -244,20 +245,33 @@ export default function ScheduleDetailModal({
                 return (
                   <div
                     key={p.userId}
-                    className="flex gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5"
+                    className={cx(
+                      'relative flex gap-2.5 overflow-hidden rounded-lg border border-zinc-800 p-2.5',
+                      p.cardBgUrl ? '' : 'bg-zinc-900/60'
+                    )}
                   >
+                    {p.cardBgUrl ? (
+                      <>
+                        <div
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{ backgroundImage: 'url(' + p.cardBgUrl + ')' }}
+                        />
+                        <div className="absolute inset-0 bg-black/60" />
+                      </>
+                    ) : null}
+
                     {p.avatar ? (
                       <img
                         src={p.avatar}
                         alt=""
-                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        className="relative h-10 w-10 shrink-0 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-sm font-bold text-white">
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-sm font-bold text-white">
                         {p.name.charAt(0)}
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
+                    <div className="relative min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-medium text-zinc-100">
                           {p.name}
@@ -270,7 +284,7 @@ export default function ScheduleDetailModal({
                       </div>
                       {p.characterClass ? (
                         <>
-                          <p className="mt-0.5 text-xs text-zinc-400">
+                          <p className="mt-0.5 text-xs text-zinc-300">
                             {p.characterClass}
                             {ilvl ? ' · Lv ' + ilvl : ''}
                           </p>
@@ -286,14 +300,14 @@ export default function ScheduleDetailModal({
                               </span>
                             ) : null}
                             {p.synergy ? (
-                              <span className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
+                              <span className="rounded border border-zinc-600 bg-zinc-800/90 px-1.5 py-0.5 text-[10px] text-zinc-200">
                                 {p.synergy}
                               </span>
                             ) : null}
                           </div>
                         </>
                       ) : (
-                        <p className="mt-0.5 text-xs text-zinc-600">캐릭터 미연동</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">캐릭터 미연동</p>
                       )}
                     </div>
                   </div>
