@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { isValidServer } from "@/lib/lostark-servers";
+import { sendGuildWebhook, buildWelcomeMessage } from "@/lib/discord";
 
 const GUILD_LIMIT = 2;
 const GUILD_LIMIT_MSG =
@@ -15,6 +16,7 @@ function generateGuildCode(): string {
   }
   return code;
 }
+
 export async function createGuild(
   prevState: { error: string | null },
   formData: FormData
@@ -27,7 +29,6 @@ export async function createGuild(
     return { error: "로그인이 필요합니다." };
   }
 
-  // 가입 길드 수 제한 검증 (총 2개까지)
   const { count: existingCount } = await supabase
     .from("guild_members")
     .select("id", { count: "exact", head: true })
@@ -89,6 +90,7 @@ export async function createGuild(
   }
   redirect(`/guild/${guild.code}`);
 }
+
 export async function joinGuild(
   prevState: { error: string | null },
   formData: FormData
@@ -129,7 +131,6 @@ export async function joinGuild(
     redirect(`/guild/${guild.code}`);
   }
 
-  // 이미 다른 길드에서 한도 다 찼는지 검증 (총 2개까지)
   const { count: existingCount } = await supabase
     .from("guild_members")
     .select("id", { count: "exact", head: true })
@@ -153,5 +154,33 @@ export async function joinGuild(
     .from("guilds")
     .update({ member_count: (guild.member_count ?? 0) + 1 })
     .eq("id", guild.id);
+
+  // ── 환영 알림 (redirect 전에 발송) ──
+  try {
+    const [profileRes, themeRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("username, main_character_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("guild_themes")
+        .select("welcome_message")
+        .eq("guild_id", guild.id)
+        .maybeSingle(),
+    ]);
+    const memberName =
+      profileRes.data?.main_character_name ||
+      profileRes.data?.username ||
+      "새 길드원";
+    const content = buildWelcomeMessage(
+      memberName,
+      themeRes.data?.welcome_message
+    );
+    await sendGuildWebhook(guild.id, "welcome", content);
+  } catch {
+    // 알림 실패는 가입을 막지 않음
+  }
+
   redirect(`/guild/${guild.code}`);
 }
