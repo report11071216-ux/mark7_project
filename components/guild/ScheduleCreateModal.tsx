@@ -89,6 +89,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
   const [skillLevel, setSkillLevel] = useState('트라이')
   const [maxMembers, setMaxMembers] = useState(8)
   const [time, setTime] = useState('21:00')
+  const [currentDate, setCurrentDate] = useState(date)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -109,6 +110,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
       setSkillLevel('트라이')
       setMaxMembers(8)
       setTime('21:00')
+      setCurrentDate(date)
       setError('')
       setSubmitting(false)
     }
@@ -132,6 +134,10 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
       setStep('pick')
       return
     }
+    if (!currentDate) {
+      setError('날짜를 선택해주세요.')
+      return
+    }
     if (!time) {
       setError('시작 시간을 입력해주세요.')
       return
@@ -144,7 +150,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
       difficulty: difficulty,
       skillLevel: skillLevel,
       maxMembers: maxMembers,
-      scheduledDate: date,
+      scheduledDate: currentDate,
       scheduledTime: time,
     })
     setSubmitting(false)
@@ -175,7 +181,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                   NEW SCHEDULE
                 </p>
                 <h3 className="mt-0.5 text-lg font-bold text-zinc-100">레이드 선택</h3>
-                <p className="mt-0.5 text-sm text-violet-300">{heroDateLabel(date)}</p>
+                <p className="mt-0.5 text-sm text-violet-300">{heroDateLabel(currentDate)}</p>
               </div>
               <button
                 onClick={onClose}
@@ -260,7 +266,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
 
               <div className="absolute bottom-3 left-4">
                 <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-violet-300">
-                  {heroDateLabel(date)}
+                  {heroDateLabel(currentDate)}
                 </p>
                 <h3 className="mt-0.5 text-xl font-bold text-white">
                   {selectedRaid ? selectedRaid.title : '레이드'}
@@ -309,6 +315,16 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                     ))}
                   </div>
 
+                  <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
+                    날짜
+                  </p>
+                  <input
+                    type="date"
+                    value={currentDate}
+                    onChange={(e) => setCurrentDate(e.target.value)}
+                    className="mb-4 w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-500"
+                  />
+
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
@@ -351,7 +367,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
                   </p>
 
                   <div className="mb-3 rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
-                    <p className="mb-1.5 text-[11px] text-zinc-600">{previewDateLabel(date)}</p>
+                    <p className="mb-1.5 text-[11px] text-zinc-600">{previewDateLabel(currentDate)}</p>
                     <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/90 p-1.5">
                       {selectedRaid && selectedRaid.image_url ? (
                         <img
