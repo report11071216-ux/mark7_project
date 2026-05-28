@@ -29,7 +29,7 @@ export default function GuildHomeLayout({
   isStaff,
   showcaseUploadedToday,
 }: Props) {
-  const { guild, totalAttendances, streak, primaryColor, backgroundColor } = data;
+  const { guild, totalAttendances, streak, primaryColor, backgroundColor, bannerUrl } = data;
 
   const isLight = isLightColor(backgroundColor);
   const textPrimary = isLight ? "#111827" : "#ffffff";
@@ -69,6 +69,21 @@ export default function GuildHomeLayout({
 
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
+      {/* 배너 (있을 때만) */}
+      {bannerUrl ? (
+        <div className="w-full" style={{ backgroundColor: cardBg }}>
+          <div className="max-w-[1200px] mx-auto px-4 pt-4">
+            <div className="rounded-2xl overflow-hidden border" style={{ borderColor: cardBorder }}>
+              <img
+                src={bannerUrl}
+                alt={`${guild.name} 배너`}
+                className="w-full h-32 sm:h-44 object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="border-b shadow-sm" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
         <div className="max-w-[1200px] mx-auto px-4">
           <div className="flex items-center gap-4 py-3">
