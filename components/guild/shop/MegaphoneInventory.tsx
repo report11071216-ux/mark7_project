@@ -57,8 +57,8 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
 
   return (
     <div className="mb-8">
-      <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-        <span className="w-1 h-4 rounded-full bg-cyan-400" />
+      <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+        <span className="w-1 h-4 rounded-full bg-cyan-500" />
         보유 확성기
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -67,15 +67,15 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
           return (
             <div
               key={item.id}
-              className="rounded-xl bg-card/60 ring-1 ring-border p-3.5"
+              className="rounded-xl bg-white border border-slate-200 shadow-sm p-3.5"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-9 h-9 rounded-lg bg-cyan-500/15 flex items-center justify-center shrink-0">
-                  <Megaphone className="w-4 h-4 text-cyan-300" />
+                <div className="w-9 h-9 rounded-lg bg-cyan-50 flex items-center justify-center shrink-0">
+                  <Megaphone className="w-4 h-4 text-cyan-600" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white truncate">{item.item_name}</p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <p className="text-sm font-bold text-slate-900 truncate">{item.item_name}</p>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-0.5">
                     <Clock className="w-3 h-3" />
                     {item.duration_hours ?? "?"}시간
                   </p>
@@ -93,14 +93,14 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
                 </button>
               )}
               {status === "active" && (
-                <div className="rounded-lg bg-cyan-500/10 px-2.5 py-2">
-                  <p className="text-[10px] text-cyan-300 font-bold mb-0.5">광장 노출중</p>
-                  <p className="text-[11px] text-white truncate">{item.megaphone_message}</p>
+                <div className="rounded-lg bg-cyan-50 border border-cyan-200 px-2.5 py-2">
+                  <p className="text-[10px] text-cyan-700 font-bold mb-0.5">광장 노출중</p>
+                  <p className="text-[11px] text-slate-700 truncate">{item.megaphone_message}</p>
                 </div>
               )}
               {status === "expired" && (
-                <div className="w-full h-9 rounded-lg bg-white/5 flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">사용 완료</span>
+                <div className="w-full h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <span className="text-xs text-slate-400">사용 완료</span>
                 </div>
               )}
             </div>
@@ -110,23 +110,23 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
 
       {/* 사용 모달 */}
       {modalId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-md rounded-2xl bg-card ring-1 ring-border p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-cyan-300" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-cyan-600" />
                 확성기 문구 작성
               </h3>
               <button
                 type="button"
                 onClick={() => setModalId(null)}
-                className="p-1 rounded-lg hover:bg-white/10 text-muted-foreground"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-2">
+            <p className="text-xs text-slate-500 mb-2">
               광장 상단에 흐를 문구예요. 사용하면 바로 노출이 시작됩니다.
             </p>
             <textarea
@@ -134,17 +134,17 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
               onChange={(e) => setMessage(e.target.value.slice(0, 100))}
               placeholder="예: 카제로스 서버 쁘밍 길드 신규 길드원 모집! 디스코드로 문의주세요"
               rows={3}
-              className="w-full rounded-lg bg-black/30 ring-1 ring-border px-3 py-2 text-sm text-white placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
+              className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-none"
             />
             <div className="flex items-center justify-between mt-1.5 mb-4">
-              <span className="text-[11px] text-muted-foreground">{message.length}/100</span>
+              <span className="text-[11px] text-slate-400">{message.length}/100</span>
             </div>
 
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setModalId(null)}
-                className="flex-1 h-10 rounded-lg bg-white/5 text-sm font-bold text-muted-foreground hover:bg-white/10 transition"
+                className="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
               >
                 취소
               </button>
