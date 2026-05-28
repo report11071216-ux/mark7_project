@@ -71,7 +71,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   if (scheduleIds.length > 0) {
     const { data } = await supabase
       .from('raid_participants')
-      .select('schedule_id, user_id')
+      .select('schedule_id, user_id, character_name')
       .in('schedule_id', scheduleIds)
     participantRows = data || []
   }
@@ -94,6 +94,24 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
 
   const profileMap: { [key: string]: any } = {}
   for (const pr of profileRows) profileMap[pr.id] = pr
+
+  // 참여한 캐릭터들의 최신 정보 조회 (character_name 기준)
+  const charNames = Array.from(
+    new Set(participantRows.map((p) => p.character_name).filter(Boolean))
+  ) as string[]
+  const charInfoMap: { [key: string]: { characterClass: string; itemLevel: number | null } } = {}
+  if (charNames.length > 0) {
+    const { data: charRows } = await supabase
+      .from('user_characters')
+      .select('character_name, character_class, item_level')
+      .in('character_name', charNames)
+    for (const c of charRows || []) {
+      charInfoMap[c.character_name as string] = {
+        characterClass: (c.character_class as string) || '',
+        itemLevel: c.item_level == null ? null : Number(c.item_level),
+      }
+    }
+  }
 
   const purchaseIds = Array.from(
     new Set(
@@ -133,7 +151,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
     }
   }
 
-  function nameOf(uid: string): string {
+  function profileNameOf(uid: string): string {
     const pr = profileMap[uid]
     if (!pr) return '길드원'
     return pr.main_character_name || pr.username || '길드원'
@@ -154,11 +172,11 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
     }
     return ''
   }
-  function classOf(uid: string): string {
+  function profileClassOf(uid: string): string {
     const pr = profileMap[uid]
     return pr && pr.character_class ? String(pr.character_class) : ''
   }
-  function ilvlOf(uid: string): number | null {
+  function profileIlvlOf(uid: string): number | null {
     const pr = profileMap[uid]
     if (!pr || pr.item_level == null) return null
     const n = Number(pr.item_level)
@@ -180,14 +198,23 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   for (const p of participantRows) {
     const key = String(p.schedule_id)
     if (!participantsBySchedule[key]) participantsBySchedule[key] = []
-    const cls = classOf(p.user_id)
+
+    const charName = (p.character_name as string) || ''
+    const charInfo = charName ? charInfoMap[charName] : undefined
+
+    // 이름: 신청 캐릭터명 우선, 없으면 대표
+    const displayName = charName || profileNameOf(p.user_id)
+    // 직업/레벨: user_characters 최신값 우선, 없으면 대표(profiles) fallback
+    const cls = charInfo ? charInfo.characterClass : profileClassOf(p.user_id)
+    const ilvl = charInfo ? charInfo.itemLevel : profileIlvlOf(p.user_id)
+
     participantsBySchedule[key].push({
       userId: p.user_id,
-      name: nameOf(p.user_id),
+      name: displayName,
       avatar: avatarOf(p.user_id),
       cardBgUrl: cardBgOf(p.user_id),
       characterClass: cls,
-      itemLevel: ilvlOf(p.user_id),
+      itemLevel: ilvl,
       role: cls ? getClassRole(cls) : null,
       synergy: cls ? getClassSynergy(cls) : '',
     })
@@ -216,7 +243,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       scheduledDate: s.scheduled_date as string,
       scheduledTime: ((s.scheduled_time as string) || '').slice(0, 5),
       createdBy: (s.created_by as string) || '',
-      createdByName: s.created_by ? nameOf(s.created_by) : '길드원',
+      createdByName: s.created_by ? profileNameOf(s.created_by) : '길드원',
       participants: list,
       participantCount: list.length,
       completed: Boolean(s.completed),
