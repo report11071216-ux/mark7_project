@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import GuildAppearanceEditor from "@/components/guild/GuildAppearanceEditor";
 import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
 import WebhookSettings from "@/components/guild/WebhookSettings";
+import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
 
 export default async function GuildAdminPage({
   params,
@@ -17,7 +18,7 @@ export default async function GuildAdminPage({
   if (!user) redirect("/login");
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, code, name, discord_webhook_url")
+    .select("id, code, name, notification_settings")
     .eq("code", code)
     .maybeSingle();
   if (!guild) notFound();
@@ -36,6 +37,25 @@ export default async function GuildAdminPage({
     .select("primary_color, background_color, welcome_message, banner_url")
     .eq("guild_id", guild.id)
     .maybeSingle();
+
+  // notification_settings → 컴포넌트 입력 형태로 정규화 (없는 키는 기본값)
+  const ns = (guild.notification_settings ?? {}) as any;
+  const webhookInitial: WebhookSettingsInput = {
+    default_url: ns.default_url ?? "",
+    notice: {
+      url: ns.notice?.url ?? "",
+      enabled: ns.notice?.enabled !== false,
+    },
+    raid: {
+      url: ns.raid?.url ?? "",
+      enabled: ns.raid?.enabled !== false,
+    },
+    welcome: {
+      url: ns.welcome?.url ?? "",
+      enabled: ns.welcome?.enabled !== false,
+    },
+  };
+
   return (
     <>
       <GuildAppearanceEditor
@@ -47,10 +67,7 @@ export default async function GuildAdminPage({
         initialBanner={theme?.banner_url ?? ""}
       />
       <div className="mt-6">
-        <WebhookSettings
-          guildId={guild.id}
-          initialUrl={guild.discord_webhook_url ?? ""}
-        />
+        <WebhookSettings guildId={guild.id} initial={webhookInitial} />
       </div>
       {isMaster ? (
         <DeleteGuildSection
