@@ -1,6 +1,12 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import {
+  isValidDiscordWebhook,
+  resolveWebhookUrl,
+  postToWebhook,
+  type NotificationType,
+} from "@/lib/discord";
 
 function extractPathsByBucket(
   urls: (string | null | undefined)[],
@@ -45,7 +51,6 @@ export async function deleteGuild(
   if (!normalizedInput || normalizedInput !== expected) {
     return { error: "입력한 길드 코드가 일치하지 않습니다." };
   }
-  // ─ Storage 정리 ─
   const { data: showcases } = await supabase
     .from("guild_showcases")
     .select("image_url")
@@ -68,7 +73,6 @@ export async function deleteGuild(
   if (raidPaths.length > 0) {
     await supabase.storage.from("raid-images").remove(raidPaths);
   }
-  // ─ DB 삭제 (모든 자식 테이블 CASCADE) ─
   const { error: deleteError } = await supabase
     .from("guilds")
     .delete()
@@ -84,7 +88,7 @@ export async function deleteGuild(
 // ─────────────────────────────────────────────
 async function assertGuildManager(
   guildId: string
-): Promise<{ error?: string; webhookUrl?: string | null }> {
+): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -104,35 +108,57 @@ async function assertGuildManager(
   return {};
 }
 
-function isValidDiscordWebhook(url: string): boolean {
-  if (!url) return false;
-  const trimmed = url.trim();
-  return (
-    trimmed.startsWith("https://discord.com/api/webhooks/") ||
-    trimmed.startsWith("https://discordapp.com/api/webhooks/")
-  );
-}
+// 전체 알림 설정 저장 (4칸 + 토글 한꺼번에)
+export type WebhookSettingsInput = {
+  default_url: string;
+  notice: { url: string; enabled: boolean };
+  raid: { url: string; enabled: boolean };
+  welcome: { url: string; enabled: boolean };
+};
 
-// 웹훅 URL 저장 (빈 문자열이면 연동 해제)
-export async function saveWebhookUrl(
+export async function saveNotificationSettings(
   guildId: string,
-  webhookUrl: string
+  input: WebhookSettingsInput
 ): Promise<{ error?: string; success?: boolean }> {
   const auth = await assertGuildManager(guildId);
   if (auth.error) return { error: auth.error };
 
-  const trimmed = (webhookUrl ?? "").trim();
-  if (trimmed && !isValidDiscordWebhook(trimmed)) {
-    return {
-      error:
-        "올바른 디스코드 웹훅 주소가 아니에요. (https://discord.com/api/webhooks/ 로 시작해야 합니다)",
-    };
+  // URL이 채워진 칸만 형식 검증 (빈 칸은 통과 = 기본으로 폴백)
+  const urlsToCheck: { label: string; url: string }[] = [
+    { label: "기본", url: input.default_url },
+    { label: "공지", url: input.notice.url },
+    { label: "레이드", url: input.raid.url },
+    { label: "환영", url: input.welcome.url },
+  ];
+  for (const item of urlsToCheck) {
+    const trimmed = (item.url ?? "").trim();
+    if (trimmed && !isValidDiscordWebhook(trimmed)) {
+      return {
+        error: `${item.label} 채널 주소가 올바른 디스코드 웹훅이 아니에요. (https://discord.com/api/webhooks/ 로 시작해야 합니다)`,
+      };
+    }
   }
+
+  const settings = {
+    default_url: (input.default_url ?? "").trim(),
+    notice: {
+      url: (input.notice.url ?? "").trim(),
+      enabled: input.notice.enabled,
+    },
+    raid: {
+      url: (input.raid.url ?? "").trim(),
+      enabled: input.raid.enabled,
+    },
+    welcome: {
+      url: (input.welcome.url ?? "").trim(),
+      enabled: input.welcome.enabled,
+    },
+  };
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("guilds")
-    .update({ discord_webhook_url: trimmed || null })
+    .update({ notification_settings: settings })
     .eq("id", guildId);
 
   if (error) {
@@ -141,9 +167,10 @@ export async function saveWebhookUrl(
   return { success: true };
 }
 
-// 테스트 메시지 발송
-export async function sendTestWebhook(
-  guildId: string
+// 종류별 테스트 발송 (저장된 설정 기준)
+export async function sendTestNotification(
+  guildId: string,
+  type: NotificationType
 ): Promise<{ error?: string; success?: boolean }> {
   const auth = await assertGuildManager(guildId);
   if (auth.error) return { error: auth.error };
@@ -151,33 +178,43 @@ export async function sendTestWebhook(
   const supabase = await createClient();
   const { data: guild } = await supabase
     .from("guilds")
-    .select("name, discord_webhook_url")
+    .select("name, notification_settings")
     .eq("id", guildId)
     .maybeSingle();
 
-  const url = guild?.discord_webhook_url;
+  const { url, enabled } = resolveWebhookUrl(
+    guild?.notification_settings as any,
+    type
+  );
+  if (!enabled) {
+    return { error: "이 알림이 꺼져 있어요. 먼저 켜고 저장해주세요." };
+  }
   if (!url) {
-    return { error: "먼저 웹훅 주소를 저장해주세요." };
+    return {
+      error: "보낼 웹훅 주소가 없어요. 이 칸이나 기본 칸 중 하나는 채워주세요.",
+    };
   }
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: "길드패스",
-        content: `✅ **${
-          guild?.name ?? "길드"
-        }** 디스코드 연동이 완료됐어요! 앞으로 레이드 일정과 공지를 여기로 알려드릴게요.`,
-      }),
-    });
-    if (!res.ok) {
-      return {
-        error: `디스코드 전송 실패 (코드 ${res.status}). 웹훅 주소를 다시 확인해주세요.`,
-      };
-    }
-    return { success: true };
-  } catch (e: any) {
-    return { error: `전송 중 오류가 발생했어요: ${e?.message ?? "unknown"}` };
+  const labelMap: { [key: string]: string } = {
+    notice: "📢 공지",
+    raid: "⚔️ 레이드",
+    welcome: "👋 환영",
+  };
+  const label = labelMap[type] ?? type;
+
+  const result = await postToWebhook(
+    url,
+    `${label} 테스트 메시지예요. **${
+      guild?.name ?? "길드"
+    }** 알림이 이 채널로 잘 도착했어요!`
+  );
+
+  if (!result.ok) {
+    return {
+      error: result.status
+        ? `디스코드 전송 실패 (코드 ${result.status}). 주소를 다시 확인해주세요.`
+        : `전송 중 오류: ${result.error ?? "unknown"}`,
+    };
   }
+  return { success: true };
 }
