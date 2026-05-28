@@ -196,13 +196,13 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
             <div className="overflow-y-auto px-5 pb-5">
               {raids.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-                  <p className="text-sm text-zinc-400">아직 등록된 레이드가 없어요.</p>
-                  
-                    href={'/guild/' + guildCode + '/raids/new'}
-                    className="mt-2 inline-block text-sm font-medium text-violet-300 hover:underline"
-                  >
-                    레이드 도감에 먼저 등록하기
-                  </a>
+                 <p className="text-sm text-zinc-400">아직 등록된 레이드가 없어요.</p>
+
+  href={'/guild/' + guildCode + '/raids/new'}
+  className="mt-2 inline-block text-sm font-medium text-violet-300 hover:underline"
+>
+  레이드 도감에 먼저 등록하기
+</a>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
