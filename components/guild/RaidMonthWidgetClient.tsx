@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ScheduleCreateModal from "./ScheduleCreateModal";
 import ScheduleDetailModal, { type RaidSchedule } from "./ScheduleDetailModal";
+import { getMyCharacters, type MyCharacter } from "@/app/guild/[code]/raids/calendar/actions";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -56,6 +57,17 @@ export default function RaidMonthWidgetClient({
   const [createDate, setCreateDate] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [detail, setDetail] = useState<RaidSchedule | null>(null);
+  const [myCharacters, setMyCharacters] = useState<MyCharacter[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    getMyCharacters(guildCode).then((list) => {
+      if (alive) setMyCharacters(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [guildCode]);
 
   function onDayClick(dateStr: string) {
     const list = schedulesByDate[dateStr] || [];
@@ -63,7 +75,6 @@ export default function RaidMonthWidgetClient({
       setCreateDate(dateStr);
       setCreateOpen(true);
     } else {
-      // 일정이 여러 개면 첫 번째 일정의 상세를 띄움
       setDetail(list[0]);
     }
   }
@@ -120,7 +131,7 @@ export default function RaidMonthWidgetClient({
               color = "#ffffff";
               weight = 700;
             } else if (hasRaid && allCompleted) {
-              bg = "#10b98122"; // emerald-500 22 alpha
+              bg = "#10b98122";
               color = "#10b981";
               weight = 700;
             } else if (hasRaid) {
@@ -176,6 +187,7 @@ export default function RaidMonthWidgetClient({
         guildCode={guildCode}
         currentUserId={currentUserId}
         currentUserRole={currentUserRole}
+        myCharacters={myCharacters}
         onClose={() => setDetail(null)}
       />
     </div>
