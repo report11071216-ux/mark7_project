@@ -7,6 +7,7 @@ export type MyGuildItem = {
   logo_url: string | null;
   role: string;
   my_points: number;
+  server?: string | null;
 };
 const ROLE_LABEL: { [key: string]: string } = {
   master: "마스터",
@@ -72,9 +73,16 @@ export default function MyGuildsList({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate group-hover:text-slate-600 transition-colors">
-                    {g.name}
-                  </p>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate group-hover:text-slate-600 transition-colors">
+                      {g.name}
+                    </p>
+                    {g.server ? (
+                      <span className="shrink-0 font-mono text-[9px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100">
+                        [{g.server}]
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-[10px] text-slate-500 mt-0.5">
                     {ROLE_LABEL[g.role] ?? g.role} · {g.my_points}P
                   </p>
