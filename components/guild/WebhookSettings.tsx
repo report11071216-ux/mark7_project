@@ -42,12 +42,7 @@ export default function WebhookSettings({
   const setterMap = { notice: setNotice, raid: setRaid, welcome: setWelcome };
 
   function buildInput(): WebhookSettingsInput {
-    return {
-      default_url: defaultUrl,
-      notice,
-      raid,
-      welcome,
-    };
+    return { default_url: defaultUrl, notice, raid, welcome };
   }
 
   async function handleSave() {
@@ -65,7 +60,6 @@ export default function WebhookSettings({
   async function handleTest(type: NotificationType) {
     setTesting(type);
     setMsg(null);
-    // 테스트는 저장된 설정 기준이므로, 먼저 저장하고 보냄
     const saveResult = await saveNotificationSettings(guildId, buildInput());
     if (saveResult.error) {
       setTesting(null);
@@ -85,103 +79,106 @@ export default function WebhookSettings({
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-zinc-900">디스코드 알림 연동</h2>
-      <p className="mt-1 text-sm text-zinc-500">
-        알림 종류마다 다른 채널로 보낼 수 있어요. 칸을 비워두면 기본 채널로
-        전송됩니다.
-      </p>
-
-      <div className="mt-4 rounded-lg bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-600">
-        <strong className="text-zinc-700">웹훅 주소 얻는 법</strong>
-        <br />
-        디스코드 채널 → 설정(톱니) → 연동 → 웹훅 → 새 웹훅 → 웹훅 URL 복사
-      </div>
-
-      {/* 기본 채널 */}
-      <div className="mt-5">
-        <label className="text-sm font-semibold text-zinc-800">
-          기본 채널 <span className="font-normal text-zinc-400">(필수 권장)</span>
-        </label>
-        <p className="text-xs text-zinc-500">
-          종류별 채널을 비워두면 모두 이 채널로 갑니다.
+    <div className="max-w-2xl mx-auto px-6 pb-2">
+      <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">DISCORD NOTIFICATION</p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-bold text-slate-900">디스코드 알림 연동</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          알림 종류마다 다른 채널로 보낼 수 있어요. 칸을 비워두면 기본 채널로
+          전송됩니다.
         </p>
-        <input
-          type="text"
-          value={defaultUrl}
-          onChange={(e) => setDefaultUrl(e.target.value)}
-          placeholder="https://discord.com/api/webhooks/..."
-          className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500"
-        />
-      </div>
 
-      {/* 종류별 채널 */}
-      <div className="mt-5 space-y-4 border-t border-zinc-100 pt-5">
-        {ROWS.map((row) => {
-          const val = stateMap[row.key];
-          const setVal = setterMap[row.key];
-          return (
-            <div key={row.key}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-semibold text-zinc-800">
-                    {row.emoji} {row.label}
-                  </span>
-                  <p className="text-xs text-zinc-500">{row.desc}</p>
+        <div className="mt-4 rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs leading-relaxed text-slate-600">
+          <strong className="text-slate-700">웹훅 주소 얻는 법</strong>
+          <br />
+          디스코드 채널 → 설정(톱니) → 연동 → 웹훅 → 새 웹훅 → 웹훅 URL 복사
+        </div>
+
+        {/* 기본 채널 */}
+        <div className="mt-5">
+          <label className="text-sm font-semibold text-slate-800">
+            기본 채널 <span className="font-normal text-slate-400">(필수 권장)</span>
+          </label>
+          <p className="text-xs text-slate-500">
+            종류별 채널을 비워두면 모두 이 채널로 갑니다.
+          </p>
+          <input
+            type="text"
+            value={defaultUrl}
+            onChange={(e) => setDefaultUrl(e.target.value)}
+            placeholder="https://discord.com/api/webhooks/..."
+            className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-violet-500"
+          />
+        </div>
+
+        {/* 종류별 채널 */}
+        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+          {ROWS.map((row) => {
+            const val = stateMap[row.key];
+            const setVal = setterMap[row.key];
+            return (
+              <div key={row.key}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {row.emoji} {row.label}
+                    </span>
+                    <p className="text-xs text-slate-500">{row.desc}</p>
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={val.enabled}
+                      onChange={(e) =>
+                        setVal({ ...val, enabled: e.target.checked })
+                      }
+                      className="h-4 w-4 accent-violet-600"
+                    />
+                    <span className="text-xs text-slate-500">
+                      {val.enabled ? "켜짐" : "꺼짐"}
+                    </span>
+                  </label>
                 </div>
-                <label className="flex cursor-pointer items-center gap-2">
+                <div className="mt-2 flex gap-2">
                   <input
-                    type="checkbox"
-                    checked={val.enabled}
-                    onChange={(e) =>
-                      setVal({ ...val, enabled: e.target.checked })
-                    }
-                    className="h-4 w-4 accent-violet-600"
+                    type="text"
+                    value={val.url}
+                    onChange={(e) => setVal({ ...val, url: e.target.value })}
+                    placeholder="비우면 기본 채널로 전송"
+                    disabled={!val.enabled}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-violet-500 disabled:bg-slate-100 disabled:text-slate-400"
                   />
-                  <span className="text-xs text-zinc-500">
-                    {val.enabled ? "켜짐" : "꺼짐"}
-                  </span>
-                </label>
+                  <button
+                    onClick={() => handleTest(row.key)}
+                    disabled={testing !== null || !val.enabled}
+                    className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {testing === row.key ? "발송 중..." : "테스트"}
+                  </button>
+                </div>
               </div>
-              <div className="mt-2 flex gap-2">
-                <input
-                  type="text"
-                  value={val.url}
-                  onChange={(e) => setVal({ ...val, url: e.target.value })}
-                  placeholder="비우면 기본 채널로 전송"
-                  disabled={!val.enabled}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 disabled:bg-zinc-100 disabled:text-zinc-400"
-                />
-                <button
-                  onClick={() => handleTest(row.key)}
-                  disabled={testing !== null || !val.enabled}
-                  className="shrink-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-                >
-                  {testing === row.key ? "발송 중..." : "테스트"}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <div className="mt-6 flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
-        >
-          {saving ? "저장 중..." : "전체 저장"}
-        </button>
-        {msg ? (
-          <span
-            className={`text-sm ${
-              msg.type === "ok" ? "text-emerald-600" : "text-red-600"
-            }`}
+        <div className="mt-6 flex items-center justify-end gap-3">
+          {msg ? (
+            <span
+              className={`text-sm ${
+                msg.type === "ok" ? "text-emerald-600" : "text-red-600"
+              }`}
+            >
+              {msg.text}
+            </span>
+          ) : null}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-500 disabled:opacity-50"
           >
-            {msg.text}
-          </span>
-        ) : null}
+            {saving ? "저장 중..." : "전체 저장"}
+          </button>
+        </div>
       </div>
     </div>
   );
