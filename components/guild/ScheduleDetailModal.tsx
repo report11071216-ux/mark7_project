@@ -65,10 +65,11 @@ function dateLabel(dateStr: string): string {
   return m + '월 ' + d + '일 (' + wd + ')'
 }
 
+// 통일된 난이도 색상
 function diffBadgeClass(diff: string): string {
-  if (diff === '하드') return 'border-amber-500/30 bg-amber-500/15 text-amber-300'
-  if (diff === '나메') return 'border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-300'
-  return 'border-zinc-600/40 bg-zinc-700/40 text-zinc-300'
+  if (diff === '하드') return 'border-red-500/40 bg-red-500/15 text-red-300'
+  if (diff === '나메') return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+  return 'border-yellow-500/40 bg-yellow-500/15 text-yellow-300'
 }
 
 export default function ScheduleDetailModal({
@@ -110,7 +111,6 @@ export default function ScheduleDetailModal({
   const canManage = isOwner || isStaff
   const isCompleted = schedule.completed
 
-  // 역할 집계 — 딜러/서포터 수
   let dealerCount = 0
   let supportCount = 0
   for (const p of schedule.participants) {
