@@ -19,14 +19,12 @@ export function isValidDiscordWebhook(url: string): boolean {
   );
 }
 
-// 종류에 맞는 실제 발송 URL 결정: 종류별 URL 있으면 그걸로, 없으면 기본 URL
 export function resolveWebhookUrl(
   settings: NotificationSettings | null | undefined,
   type: NotificationType
 ): { url: string | null; enabled: boolean } {
   const s = settings ?? {};
   const channel: ChannelSetting = s[type] ?? {};
-  // enabled 기본값 true (키가 없으면 켜진 것으로 간주)
   const enabled = channel.enabled !== false;
   const specific = (channel.url ?? "").trim();
   const fallback = (s.default_url ?? "").trim();
@@ -34,7 +32,6 @@ export function resolveWebhookUrl(
   return { url, enabled };
 }
 
-// 직접 URL로 메시지 발송 (저수준)
 export async function postToWebhook(
   url: string,
   content: string
@@ -54,8 +51,6 @@ export async function postToWebhook(
   }
 }
 
-// 길드 ID + 종류로 알림 발송 (2단계에서 이 함수만 부르면 됨)
-// 실패해도 throw 하지 않음 — 알림 실패가 본 기능을 막으면 안 되므로
 export async function sendGuildWebhook(
   guildId: string,
   type: NotificationType,
@@ -78,4 +73,50 @@ export async function sendGuildWebhook(
   } catch {
     // 조용히 무시 (알림은 부가 기능)
   }
+}
+
+// ─────────────────────────────────────────────
+// 메시지 빌더 (문구를 바꾸려면 이 아래만 고치면 됨)
+// ─────────────────────────────────────────────
+
+// 👋 환영: 새 길드원이 들어왔을 때. welcomeMessage가 있으면 덧붙임
+export function buildWelcomeMessage(
+  memberName: string,
+  welcomeMessage?: string | null
+): string {
+  const name = memberName?.trim() || "새 길드원";
+  let msg = `👋 새 길드원 **${name}**님이 들어왔어요! 환영해 주세요 🎉`;
+  const extra = (welcomeMessage ?? "").trim();
+  if (extra) {
+    msg += `\n${extra}`;
+  }
+  return msg;
+}
+
+// 📢 공지: 공지글이 올라왔을 때
+export function buildNoticeMessage(
+  title: string,
+  authorName: string
+): string {
+  const t = title?.trim() || "(제목 없음)";
+  const author = authorName?.trim() || "운영진";
+  return `📢 **새 공지가 올라왔어요**\n${t}\n작성자: ${author}`;
+}
+
+// ⚔️ 레이드: 새 일정이 열렸을 때
+export function buildRaidMessage(args: {
+  raidTitle: string;
+  difficulty: string;
+  skillLevel: string;
+  maxMembers: number;
+  scheduledDate: string;
+  scheduledTime: string;
+}): string {
+  const raid = args.raidTitle?.trim() || "레이드";
+  const parts = [raid, args.difficulty, args.skillLevel].filter(Boolean);
+  return (
+    `⚔️ **새 레이드 일정이 열렸어요!**\n` +
+    `${parts.join(" · ")}\n` +
+    `🗓️ ${args.scheduledDate} ${args.scheduledTime} · 정원 ${args.maxMembers}명`
+  );
 }
