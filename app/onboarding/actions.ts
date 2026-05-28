@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { isValidServer } from "@/lib/lostark-servers";
 
+const GUILD_LIMIT = 2;
+const GUILD_LIMIT_MSG =
+  "최대 2개까지 길드에 참여할 수 있어요. 추가 길드는 결제 단계 이후 가능해요.";
+
 function generateGuildCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -11,7 +15,6 @@ function generateGuildCode(): string {
   }
   return code;
 }
-
 export async function createGuild(
   prevState: { error: string | null },
   formData: FormData
@@ -23,6 +26,16 @@ export async function createGuild(
   if (!user) {
     return { error: "로그인이 필요합니다." };
   }
+
+  // 가입 길드 수 제한 검증 (총 2개까지)
+  const { count: existingCount } = await supabase
+    .from("guild_members")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if ((existingCount ?? 0) >= GUILD_LIMIT) {
+    return { error: GUILD_LIMIT_MSG };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const server = String(formData.get("server") ?? "").trim();
@@ -76,7 +89,6 @@ export async function createGuild(
   }
   redirect(`/guild/${guild.code}`);
 }
-
 export async function joinGuild(
   prevState: { error: string | null },
   formData: FormData
@@ -116,6 +128,16 @@ export async function joinGuild(
   if (existing) {
     redirect(`/guild/${guild.code}`);
   }
+
+  // 이미 다른 길드에서 한도 다 찼는지 검증 (총 2개까지)
+  const { count: existingCount } = await supabase
+    .from("guild_members")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if ((existingCount ?? 0) >= GUILD_LIMIT) {
+    return { error: GUILD_LIMIT_MSG };
+  }
+
   const { error: memberError } = await supabase
     .from("guild_members")
     .insert({
