@@ -6,6 +6,8 @@ import {
   joinRaidSchedule,
   leaveRaidSchedule,
   deleteRaidSchedule,
+  completeRaidSchedule,
+  uncompleteRaidSchedule,
 } from '@/app/guild/[code]/raids/calendar/actions'
 
 export type Participant = {
@@ -33,6 +35,7 @@ export type RaidSchedule = {
   createdByName: string
   participants: Participant[]
   participantCount: number
+  completed: boolean
 }
 
 type Props = {
@@ -104,7 +107,8 @@ export default function ScheduleDetailModal({
   const full = schedule.participants.length >= schedule.maxMembers
   const isOwner = schedule.createdBy === currentUserId
   const isStaff = currentUserRole === 'master' || currentUserRole === 'submaster'
-  const canDelete = isOwner || isStaff
+  const canManage = isOwner || isStaff
+  const isCompleted = schedule.completed
 
   // 역할 집계 — 딜러/서포터 수
   let dealerCount = 0
@@ -157,6 +161,34 @@ export default function ScheduleDetailModal({
     router.refresh()
   }
 
+  async function handleComplete() {
+    if (!schedule) return
+    setError('')
+    setSubmitting(true)
+    const result = await completeRaidSchedule(schedule.id, guildCode)
+    setSubmitting(false)
+    if (!result.ok) {
+      setError(result.error || '완료 처리에 실패했습니다.')
+      return
+    }
+    onClose()
+    router.refresh()
+  }
+
+  async function handleUncomplete() {
+    if (!schedule) return
+    setError('')
+    setSubmitting(true)
+    const result = await uncompleteRaidSchedule(schedule.id, guildCode)
+    setSubmitting(false)
+    if (!result.ok) {
+      setError(result.error || '완료 취소에 실패했습니다.')
+      return
+    }
+    onClose()
+    router.refresh()
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -171,7 +203,10 @@ export default function ScheduleDetailModal({
             <img
               src={schedule.raidImage}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              className={cx(
+                'absolute inset-0 h-full w-full object-cover',
+                isCompleted ? 'opacity-40 grayscale' : ''
+              )}
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-violet-900/50 to-fuchsia-900/40" />
@@ -185,6 +220,12 @@ export default function ScheduleDetailModal({
           >
             X
           </button>
+
+          {isCompleted ? (
+            <div className="absolute left-3 top-3 rounded-md border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+              ✓ 완료됨
+            </div>
+          ) : null}
 
           <div className="absolute bottom-3 left-4">
             <p className="text-xs text-violet-300">
@@ -323,7 +364,11 @@ export default function ScheduleDetailModal({
           ) : null}
 
           <div className="mt-5">
-            {joined ? (
+            {isCompleted ? (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-center text-sm font-medium text-emerald-300">
+                ✓ 완료된 레이드
+              </div>
+            ) : joined ? (
               <button
                 onClick={handleLeave}
                 disabled={submitting}
@@ -349,38 +394,58 @@ export default function ScheduleDetailModal({
             )}
           </div>
 
-          {canDelete ? (
-            confirming ? (
-              <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                <p className="mb-2.5 text-center text-xs text-zinc-300">
-                  이 일정을 삭제할까요? 참여자 정보도 함께 사라져요.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setConfirming(false)}
-                    disabled={submitting}
-                    className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    disabled={submitting}
-                    className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
-                  >
-                    {submitting ? '삭제 중...' : '삭제'}
-                  </button>
+          {canManage ? (
+            <>
+              {isCompleted ? (
+                <button
+                  onClick={handleUncomplete}
+                  disabled={submitting}
+                  className="mt-3 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/15 disabled:opacity-50"
+                >
+                  {submitting ? '처리 중...' : '완료 취소'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleComplete}
+                  disabled={submitting}
+                  className="mt-3 w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                >
+                  {submitting ? '처리 중...' : '✓ 레이드 완료 처리'}
+                </button>
+              )}
+
+              {confirming ? (
+                <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                  <p className="mb-2.5 text-center text-xs text-zinc-300">
+                    이 일정을 삭제할까요? 참여자 정보도 함께 사라져요.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirming(false)}
+                      disabled={submitting}
+                      className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={submitting}
+                      className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+                    >
+                      {submitting ? '삭제 중...' : '삭제'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirming(true)}
-                disabled={submitting}
-                className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
-              >
-                일정 삭제
-              </button>
-            )
+              ) : (
+                <button
+                  onClick={() => setConfirming(true)}
+                  disabled={submitting}
+                  className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
+                >
+                  일정 삭제
+                </button>
+              )}
+            </>
           ) : null}
         </div>
       </div>
