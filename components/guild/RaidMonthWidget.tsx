@@ -56,7 +56,7 @@ export default async function RaidMonthWidget({
       .order("title"),
     supabase
       .from("raid_schedules")
-      .select("id, raid_id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, created_by, raids(title, image_url)")
+      .select("id, raid_id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, created_by, completed, raids(title, image_url)")
       .eq("guild_id", guildId)
       .gte("scheduled_date", firstDate)
       .lte("scheduled_date", lastDate)
@@ -105,7 +105,6 @@ export default async function RaidMonthWidget({
   const profileMap: { [key: string]: any } = {};
   for (const pr of profileRows) profileMap[pr.id] = pr;
 
-  // 코스메틱 — 장착 마크 + 카드 배경
   const purchaseIds = Array.from(
     new Set(
       profileRows
@@ -208,6 +207,7 @@ export default async function RaidMonthWidget({
       createdByName: s.created_by ? nameOf(s.created_by) : "길드원",
       participants: list,
       participantCount: list.length,
+      completed: Boolean(s.completed),
     };
   });
 
