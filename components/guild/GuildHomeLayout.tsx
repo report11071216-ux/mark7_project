@@ -78,8 +78,18 @@ export default function GuildHomeLayout({
                 : <span className="text-white font-bold text-xl">{guild.name?.[0] ?? "G"}</span>
               }
             </div>
-            <div>
-              <h1 className="text-lg font-bold leading-tight" style={{ color: textPrimary }}>{guild.name}</h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h1 className="text-lg font-bold leading-tight truncate" style={{ color: textPrimary }}>{guild.name}</h1>
+                {guild.server ? (
+                  <span
+                    className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0"
+                    style={{ backgroundColor: primaryColor + "22", color: primaryColor }}
+                  >
+                    [{guild.server}]
+                  </span>
+                ) : null}
+              </div>
               <p className="text-[11px] font-mono" style={{ color: primaryColor }}>{guild.code}</p>
             </div>
             <div className="hidden sm:flex items-center gap-6 ml-auto">
