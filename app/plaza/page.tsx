@@ -70,11 +70,6 @@ export default async function PlazaPage() {
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
 
-  const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
-    id: g.id, code: g.code, name: g.name, logo_url: g.display_logo_url,
-    member_count: g.member_count ?? 0, max_members: g.max_members ?? 50, description: g.description,
-  }));
-
   // 길드 자랑 — 길드별 최신 1장만 (created_at desc 정렬이라 처음 나오는 게 최신)
   const seenShowcaseGuilds = new Set<string>();
   const showcaseItems: ShowcaseItem[] = [];
@@ -183,13 +178,41 @@ export default async function PlazaPage() {
     myGuildMap = new Map((myGuildsDisplay ?? []).map((g) => [g.id, g]));
   }
 
+  // 서버 이름 조회 — guilds_display 뷰엔 없어서 guilds 테이블에서 추가 조회
+  const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
+  const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
+  let serverMap = new Map<string, string | null>();
+  if (guildIdsForServer.length > 0) {
+    const { data: serverRows } = await supabase
+      .from("guilds")
+      .select("id, server")
+      .in("id", guildIdsForServer);
+    serverMap = new Map((serverRows ?? []).map((r) => [r.id, (r as any).server ?? null]));
+  }
+
+  const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
+    id: g.id,
+    code: g.code,
+    name: g.name,
+    logo_url: g.display_logo_url,
+    member_count: g.member_count ?? 0,
+    max_members: g.max_members ?? 50,
+    description: g.description,
+    server: serverMap.get(g.id) ?? null,
+  }));
+
   const myGuilds: MyGuildItem[] = memberships
     .filter((m) => myGuildMap.has(m.guild_id))
     .map((m) => {
       const g = myGuildMap.get(m.guild_id)!;
       return {
-        id: g.id, code: g.code, name: g.name,
-        logo_url: g.display_logo_url, role: m.role, my_points: m.points ?? 0,
+        id: g.id,
+        code: g.code,
+        name: g.name,
+        logo_url: g.display_logo_url,
+        role: m.role,
+        my_points: m.points ?? 0,
+        server: serverMap.get(g.id) ?? null,
       };
     });
 
