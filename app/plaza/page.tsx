@@ -115,7 +115,7 @@ export default async function PlazaPage() {
   const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
     user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin, equipped_mark_id, equipped_card_id").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from("guild_members").select("role, points, guild_id").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
-    postGuildIds.length > 0 ? supabase.from("guilds").select("id, name, code").in("id", postGuildIds) : Promise.resolve({ data: [] }),
+    postGuildIds.length > 0 ? supabase.from("guilds").select("id, name, code, server").in("id", postGuildIds) : Promise.resolve({ data: [] }),
     postAuthorIds.length > 0 ? supabase.from("profiles").select("id, username").in("id", postAuthorIds) : Promise.resolve({ data: [] }),
   ]);
 
@@ -127,7 +127,7 @@ export default async function PlazaPage() {
     equipped_card_id: string | null;
   } | null;
   const memberships = (membershipsResult.data ?? []) as any[];
-  const postGuilds = postGuildsResult.data ?? [];
+  const postGuilds = (postGuildsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
 
   // 장착한 마크 / 프로필카드 이미지 가져오기
@@ -225,6 +225,7 @@ export default async function PlazaPage() {
       id: p.id, title: p.title, category: p.category, is_notice: p.is_notice,
       view_count: p.view_count ?? 0, created_at: p.created_at,
       guild_name: g?.name ?? "Unknown", guild_code: g?.code ?? "",
+      guild_server: g?.server ?? null,
       author_name: authorMap.get(p.author_id) ?? "Unknown",
     };
   });
