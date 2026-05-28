@@ -10,7 +10,6 @@ type Props = {
 function kstNow() {
   return new Date(Date.now() + 9 * 3600 * 1000);
 }
-
 function ymd(d: Date) {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -28,6 +27,7 @@ export default async function RaidActivityWidget({ guildId, colors }: Props) {
   const diffToMon = (dow + 6) % 7;
   const monday = new Date(kst.getTime() - diffToMon * 24 * 3600 * 1000);
   const sunday = new Date(monday.getTime() + 6 * 24 * 3600 * 1000);
+
   const y = kst.getUTCFullYear();
   const m = kst.getUTCMonth();
   const monthStart = new Date(Date.UTC(y, m, 1));
@@ -37,9 +37,11 @@ export default async function RaidActivityWidget({ guildId, colors }: Props) {
   const weekEndY = ymd(sunday);
   const monthStartY = ymd(monthStart);
   const monthEndY = ymd(monthEnd);
+
   const rangeStart = weekStartY < monthStartY ? weekStartY : monthStartY;
   const rangeEnd = weekEndY > monthEndY ? weekEndY : monthEndY;
 
+  // 완료된 레이드만 카운트
   const [memberResult, scheduleResult] = await Promise.all([
     supabase
       .from("guild_members")
@@ -49,6 +51,7 @@ export default async function RaidActivityWidget({ guildId, colors }: Props) {
       .from("raid_schedules")
       .select("id, scheduled_date")
       .eq("guild_id", guildId)
+      .eq("completed", true)
       .gte("scheduled_date", rangeStart)
       .lte("scheduled_date", rangeEnd),
   ]);
