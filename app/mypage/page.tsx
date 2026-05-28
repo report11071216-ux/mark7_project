@@ -8,6 +8,7 @@ import {
 import { getRelativeTime } from "@/lib/utils";
 import CharacterCard from "@/components/mypage/CharacterCard";
 import CharacterSync from "@/components/mypage/CharacterSync";
+import SiblingCharacters from "@/components/mypage/SiblingCharacters";
 import ProfileEdit from "@/components/mypage/ProfileEdit";
 import AttendanceCalendar from "@/components/mypage/AttendanceCalendar";
 import MyInventory, { type MyInventoryItem } from "@/components/mypage/MyInventory";
@@ -36,7 +37,7 @@ export default async function MyPage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     .toISOString().split("T")[0];
 
-  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult] =
+  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult, charactersResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -65,6 +66,11 @@ export default async function MyPage() {
         .eq("buyer_id", user.id)
         .eq("shop_type", "activity")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("user_characters")
+        .select("character_name, server_name, character_class, item_level, character_level, is_representative")
+        .eq("user_id", user.id)
+        .order("item_level", { ascending: false }),
     ]);
 
   const profile = profileResult.data;
@@ -74,9 +80,15 @@ export default async function MyPage() {
     (a) => a.attendance_date as string
   );
 
+  const siblingCharacters = (charactersResult.data ?? []).map((c) => ({
+    name: (c.character_name as string) || "",
+    characterClass: (c.character_class as string) || "",
+    itemLevel: c.item_level == null ? 0 : Number(c.item_level),
+    serverName: (c.server_name as string) || "",
+  }));
+
   const rawPurchases = purchasesResult.data ?? [];
 
-  // 구매한 상품들의 이미지 가져오기
   const purchaseItemIds = Array.from(
     new Set(rawPurchases.map((p) => p.item_id).filter(Boolean))
   ) as string[];
@@ -105,7 +117,6 @@ export default async function MyPage() {
     };
   });
 
-  // 장착한 프로필카드의 프레임 URL 찾기
   let equippedFrameUrl: string | null = null;
   if (profile?.equipped_card_id) {
     const equippedPurchase = rawPurchases.find((p) => p.id === profile.equipped_card_id);
@@ -114,7 +125,6 @@ export default async function MyPage() {
     }
   }
 
-  // 장착한 마크 이미지 URL 찾기 (없으면 디스코드 아바타)
   let equippedMarkUrl: string | null = null;
   if (profile?.equipped_mark_id) {
     const markPurchase = rawPurchases.find((p) => p.id === profile.equipped_mark_id);
@@ -270,17 +280,23 @@ export default async function MyPage() {
                 syncedAt={profile?.lostark_synced_at ?? null}
               />
               {hasSynced ? (
-                <CharacterCard
-                  name={profile!.main_character_name!}
-                  characterClass={profile?.character_class ?? ""}
-                  serverName={profile?.server_name ?? ""}
-                  itemLevel={profile?.item_level ?? 0}
-                  combatPower={parseFloat(String(profile?.combat_power ?? 0)) || 0}
-                  expeditionLevel={profile?.expedition_level ?? 0}
-                  imageUrl={profile?.character_image_url ?? null}
-                  syncedAt={profile?.lostark_synced_at ?? null}
-                  frameUrl={equippedFrameUrl}
-                />
+                <>
+                  <CharacterCard
+                    name={profile!.main_character_name!}
+                    characterClass={profile?.character_class ?? ""}
+                    serverName={profile?.server_name ?? ""}
+                    itemLevel={profile?.item_level ?? 0}
+                    combatPower={parseFloat(String(profile?.combat_power ?? 0)) || 0}
+                    expeditionLevel={profile?.expedition_level ?? 0}
+                    imageUrl={profile?.character_image_url ?? null}
+                    syncedAt={profile?.lostark_synced_at ?? null}
+                    frameUrl={equippedFrameUrl}
+                  />
+                  <SiblingCharacters
+                    characters={siblingCharacters}
+                    repName={profile?.main_character_name ?? ""}
+                  />
+                </>
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
                   <Crown className="w-8 h-8 text-slate-200 mx-auto mb-3" />
