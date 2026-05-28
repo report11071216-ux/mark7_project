@@ -64,7 +64,7 @@ export default function RaidActivityCard({ week, month, colors }: Props) {
       <div className="p-4">
         {s.scheduleCount === 0 ? (
           <p className="text-sm text-center py-6" style={{ color: textSecondary }}>
-            {period === "week" ? "이번 주" : "이번 달"} 레이드 일정이 없어요
+            {period === "week" ? "이번 주" : "이번 달"} 완료된 레이드가 없어요
           </p>
         ) : (
           <>
@@ -99,7 +99,7 @@ export default function RaidActivityCard({ week, month, colors }: Props) {
                   길드원 {s.memberCount}명 중 {s.participantCount}명 참여
                 </p>
                 <p className="text-[11px] mt-0.5" style={{ color: textSecondary }}>
-                  레이드 일정 {s.scheduleCount}개
+                  완료된 레이드 {s.scheduleCount}개
                 </p>
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function RaidActivityCard({ week, month, colors }: Props) {
                 내 참여 현황
               </span>
               <span className="text-sm font-bold" style={{ color: primaryColor }}>
-                {s.myCount}회 신청
+                {s.myCount}회 완료
               </span>
             </div>
           </>
