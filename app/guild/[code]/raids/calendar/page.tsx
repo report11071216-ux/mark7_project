@@ -224,7 +224,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   })
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">RAID SCHEDULE</p>
         <h1 className="mt-1 text-2xl font-bold text-zinc-100">레이드 캘린더</h1>
