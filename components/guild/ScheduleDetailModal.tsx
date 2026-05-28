@@ -1,60 +1,49 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  joinRaidSchedule,
-  leaveRaidSchedule,
-  deleteRaidSchedule,
-  completeRaidSchedule,
-  uncompleteRaidSchedule,
-} from '@/app/guild/[code]/raids/calendar/actions'
+import Link from 'next/link'
+import ScheduleCreateModal from './ScheduleCreateModal'
+import ScheduleDetailModal, { type RaidSchedule } from './ScheduleDetailModal'
+import { getMyCharacters, type MyCharacter } from '@/app/guild/[code]/raids/calendar/actions'
 
-export type Participant = {
-  userId: string
-  name: string
-  avatar: string
-  cardBgUrl: string
-  characterClass: string
-  itemLevel: number | null
-  role: 'dealer' | 'support' | null
-  synergy: string
-}
-
-export type RaidSchedule = {
+type RaidOption = {
   id: string
-  raidId: string
-  raidTitle: string
-  raidImage: string
-  difficulty: string
-  skillLevel: string
-  maxMembers: number
-  scheduledDate: string
-  scheduledTime: string
-  createdBy: string
-  createdByName: string
-  participants: Participant[]
-  participantCount: number
-  completed: boolean
+  title: string
+  image_url: string
+  gold_normal: number | null
+  gold_hard: number | null
+  gold_nightmare: number | null
 }
 
 type Props = {
-  open: boolean
-  schedule: RaidSchedule | null
+  year: number
+  month: number
   guildCode: string
   currentUserId: string
   currentUserRole: string
-  onClose: () => void
+  schedules: RaidSchedule[]
+  raids: RaidOption[]
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-function cx(...parts: (string | false | null | undefined)[]): string {
-  return parts.filter(Boolean).join(' ')
+function difficultyBarColor(d: string): string {
+  if (d === '하드') return '#ef4444'
+  if (d === '나메') return '#8b5cf6'
+  return '#eab308'
 }
 
-function dateLabel(dateStr: string): string {
-  if (!dateStr) return ''
+function difficultyBadgeClass(d: string): string {
+  if (d === '하드') return 'border-red-500/40 bg-red-500/15 text-red-300'
+  if (d === '나메') return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+  return 'border-yellow-500/40 bg-yellow-500/15 text-yellow-300'
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+function dateLabelKo(dateStr: string): string {
   const p = dateStr.split('-')
   if (p.length !== 3) return dateStr
   const y = Number(p[0])
@@ -62,132 +51,94 @@ function dateLabel(dateStr: string): string {
   const d = Number(p[2])
   if (!y || !m || !d) return dateStr
   const wd = WEEKDAYS[new Date(y, m - 1, d).getDay()]
-  return m + '월 ' + d + '일 (' + wd + ')'
+  return `${m}월 ${d}일 (${wd})`
 }
 
-// 통일된 난이도 색상
-function diffBadgeClass(diff: string): string {
-  if (diff === '하드') return 'border-red-500/40 bg-red-500/15 text-red-300'
-  if (diff === '나메') return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
-  return 'border-yellow-500/40 bg-yellow-500/15 text-yellow-300'
-}
-
-export default function ScheduleDetailModal({
-  open,
+function ScheduleCard({
   schedule,
-  guildCode,
-  currentUserId,
-  currentUserRole,
+  onClick,
+}: {
+  schedule: RaidSchedule
+  onClick: () => void
+}) {
+  const barColor = difficultyBarColor(schedule.difficulty)
+  const completed = schedule.completed
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      title={`${schedule.raidTitle} · ${schedule.difficulty} · ${schedule.skillLevel}`}
+      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/80 p-1.5 text-left transition hover:border-violet-500/50 hover:bg-zinc-900 ${
+        completed ? 'opacity-60' : ''
+      }`}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 h-full w-1"
+        style={{ backgroundColor: completed ? '#10b981' : barColor }}
+      />
+
+      <div className="ml-1 shrink-0">
+        {schedule.raidImage ? (
+          <img
+            src={schedule.raidImage}
+            alt=""
+            className="h-10 w-10 rounded-md object-cover"
+          />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gradient-to-br from-violet-600 to-fuchsia-600 text-xs font-bold text-white">
+            {schedule.raidTitle.charAt(0)}
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          {completed ? (
+            <span className="shrink-0 text-[10px] font-bold text-emerald-400">✓</span>
+          ) : null}
+          <span className="truncate text-xs font-medium text-zinc-100">
+            {schedule.raidTitle}
+          </span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <span className="font-mono text-[10px] text-violet-300">
+            {schedule.scheduledTime || '--:--'}
+          </span>
+          <span
+            className={`rounded border px-1 py-px text-[9px] font-medium ${difficultyBadgeClass(
+              schedule.difficulty
+            )}`}
+          >
+            {schedule.difficulty}
+          </span>
+          <span className="ml-auto font-mono text-[10px] text-zinc-400">
+            {schedule.participantCount}/{schedule.maxMembers}
+          </span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function DayScheduleListModal({
+  open,
+  dateStr,
+  schedules,
   onClose,
-}: Props) {
-  const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [confirming, setConfirming] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = ''
-      }
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (open) {
-      setError('')
-      setSubmitting(false)
-      setConfirming(false)
-    }
-  }, [open, schedule])
-
-  if (!open || !schedule) return null
-
-  const joined = schedule.participants.some((p) => p.userId === currentUserId)
-  const full = schedule.participants.length >= schedule.maxMembers
-  const isOwner = schedule.createdBy === currentUserId
-  const isStaff = currentUserRole === 'master' || currentUserRole === 'submaster'
-  const canManage = isOwner || isStaff
-  const isCompleted = schedule.completed
-
-  let dealerCount = 0
-  let supportCount = 0
-  for (const p of schedule.participants) {
-    if (p.role === 'support') supportCount++
-    else if (p.role === 'dealer') dealerCount++
-  }
-
-  async function handleJoin() {
-    if (!schedule) return
-    setError('')
-    setSubmitting(true)
-    const result = await joinRaidSchedule(schedule.id, guildCode)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error || '참여 신청에 실패했습니다.')
-      return
-    }
-    onClose()
-    router.refresh()
-  }
-
-  async function handleLeave() {
-    if (!schedule) return
-    setError('')
-    setSubmitting(true)
-    const result = await leaveRaidSchedule(schedule.id, guildCode)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error || '참여 취소에 실패했습니다.')
-      return
-    }
-    onClose()
-    router.refresh()
-  }
-
-  async function handleDelete() {
-    if (!schedule) return
-    setError('')
-    setSubmitting(true)
-    const result = await deleteRaidSchedule(schedule.id, guildCode)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error || '일정 삭제에 실패했습니다.')
-      setConfirming(false)
-      return
-    }
-    onClose()
-    router.refresh()
-  }
-
-  async function handleComplete() {
-    if (!schedule) return
-    setError('')
-    setSubmitting(true)
-    const result = await completeRaidSchedule(schedule.id, guildCode)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error || '완료 처리에 실패했습니다.')
-      return
-    }
-    onClose()
-    router.refresh()
-  }
-
-  async function handleUncomplete() {
-    if (!schedule) return
-    setError('')
-    setSubmitting(true)
-    const result = await uncompleteRaidSchedule(schedule.id, guildCode)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error || '완료 취소에 실패했습니다.')
-      return
-    }
-    onClose()
-    router.refresh()
-  }
+  onPickSchedule,
+}: {
+  open: boolean
+  dateStr: string
+  schedules: RaidSchedule[]
+  onClose: () => void
+  onPickSchedule: (s: RaidSchedule) => void
+}) {
+  if (!open) return null
 
   return (
     <div
@@ -195,260 +146,255 @@ export default function ScheduleDetailModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative h-32 shrink-0 bg-zinc-900">
-          {schedule.raidImage ? (
-            <img
-              src={schedule.raidImage}
-              alt=""
-              className={cx(
-                'absolute inset-0 h-full w-full object-cover',
-                isCompleted ? 'opacity-40 grayscale' : ''
-              )}
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/50 to-fuchsia-900/40" />
-          )}
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-zinc-950 to-transparent" />
-
+        <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+              SCHEDULES
+            </p>
+            <h3 className="mt-0.5 text-base font-bold text-zinc-100">
+              {dateLabelKo(dateStr)} · 일정 {schedules.length}건
+            </h3>
+          </div>
           <button
             onClick={onClose}
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-black/55 text-zinc-200 transition hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
             aria-label="닫기"
           >
             X
           </button>
-
-          {isCompleted ? (
-            <div className="absolute left-3 top-3 rounded-md border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-              ✓ 완료됨
-            </div>
-          ) : null}
-
-          <div className="absolute bottom-3 left-4">
-            <p className="text-xs text-violet-300">
-              {dateLabel(schedule.scheduledDate)} · {schedule.scheduledTime || '--:--'}
-            </p>
-            <h3 className="mt-0.5 text-xl font-bold text-white">{schedule.raidTitle}</h3>
-          </div>
         </div>
 
-        <div className="overflow-y-auto p-5">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span
-              className={cx(
-                'rounded-md border px-2 py-0.5 text-xs font-medium',
-                diffBadgeClass(schedule.difficulty)
-              )}
-            >
-              {schedule.difficulty}
-            </span>
-            <span className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-300">
-              {schedule.skillLevel || '숙련도 미정'}
-            </span>
-            <span className="ml-auto text-xs text-zinc-500">
-              주최 · {schedule.createdByName}
-            </span>
+        <div className="overflow-y-auto p-4">
+          <div className="space-y-2">
+            {schedules.map((s) => (
+              <ScheduleCard
+                key={s.id}
+                schedule={s}
+                onClick={() => onPickSchedule(s)}
+              />
+            ))}
           </div>
-
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs text-zinc-500">참여 인원</p>
-            <div className="flex items-center gap-2">
-              <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-300">
-                딜러 {dealerCount}
-              </span>
-              <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
-                서포터 {supportCount}
-              </span>
-              <span className="text-sm text-zinc-300">
-                {schedule.participants.length}/{schedule.maxMembers}
-              </span>
-            </div>
-          </div>
-
-          {schedule.participants.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-center">
-              <p className="text-sm text-zinc-500">아직 참여한 길드원이 없어요.</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {schedule.participants.map((p) => {
-                const roleLabel =
-                  p.role === 'support' ? '서포터' : p.role === 'dealer' ? '딜러' : null
-                const roleClass =
-                  p.role === 'support'
-                    ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
-                    : 'border-rose-500/30 bg-rose-500/15 text-rose-300'
-                const ilvl =
-                  p.itemLevel != null ? Math.floor(p.itemLevel).toLocaleString() : null
-                return (
-                  <div
-                    key={p.userId}
-                    className={cx(
-                      'relative flex gap-2.5 overflow-hidden rounded-lg border border-zinc-800 p-2.5',
-                      p.cardBgUrl ? '' : 'bg-zinc-900/60'
-                    )}
-                  >
-                    {p.cardBgUrl ? (
-                      <>
-                        <div
-                          className="absolute inset-0 bg-cover bg-center"
-                          style={{ backgroundImage: 'url(' + p.cardBgUrl + ')' }}
-                        />
-                        <div className="absolute inset-0 bg-black/60" />
-                      </>
-                    ) : null}
-
-                    {p.avatar ? (
-                      <img
-                        src={p.avatar}
-                        alt=""
-                        className="relative h-10 w-10 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-sm font-bold text-white">
-                        {p.name.charAt(0)}
-                      </div>
-                    )}
-                    <div className="relative min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm font-medium text-zinc-100">
-                          {p.name}
-                        </span>
-                        {p.userId === currentUserId ? (
-                          <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-300">
-                            나
-                          </span>
-                        ) : null}
-                      </div>
-                      {p.characterClass ? (
-                        <>
-                          <p className="mt-0.5 text-xs text-zinc-300">
-                            {p.characterClass}
-                            {ilvl ? ' · Lv ' + ilvl : ''}
-                          </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1">
-                            {roleLabel ? (
-                              <span
-                                className={cx(
-                                  'rounded border px-1.5 py-0.5 text-[10px] font-medium',
-                                  roleClass
-                                )}
-                              >
-                                {roleLabel}
-                              </span>
-                            ) : null}
-                            {p.synergy ? (
-                              <span className="rounded border border-zinc-600 bg-zinc-800/90 px-1.5 py-0.5 text-[10px] text-zinc-200">
-                                {p.synergy}
-                              </span>
-                            ) : null}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="mt-0.5 text-xs text-zinc-500">캐릭터 미연동</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {error ? (
-            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="mt-5">
-            {isCompleted ? (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-center text-sm font-medium text-emerald-300">
-                ✓ 완료된 레이드
-              </div>
-            ) : joined ? (
-              <button
-                onClick={handleLeave}
-                disabled={submitting}
-                className="w-full rounded-lg border border-red-500/40 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
-              >
-                {submitting ? '처리 중...' : '참여 취소'}
-              </button>
-            ) : full ? (
-              <button
-                disabled
-                className="w-full cursor-not-allowed rounded-lg bg-zinc-800 py-2.5 text-sm font-medium text-zinc-500"
-              >
-                정원이 가득 찼어요
-              </button>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={submitting}
-                className="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
-              >
-                {submitting ? '처리 중...' : '참여 신청'}
-              </button>
-            )}
-          </div>
-
-          {canManage ? (
-            <>
-              {isCompleted ? (
-                <button
-                  onClick={handleUncomplete}
-                  disabled={submitting}
-                  className="mt-3 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/15 disabled:opacity-50"
-                >
-                  {submitting ? '처리 중...' : '완료 취소'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleComplete}
-                  disabled={submitting}
-                  className="mt-3 w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
-                >
-                  {submitting ? '처리 중...' : '✓ 레이드 완료 처리'}
-                </button>
-              )}
-
-              {confirming ? (
-                <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                  <p className="mb-2.5 text-center text-xs text-zinc-300">
-                    이 일정을 삭제할까요? 참여자 정보도 함께 사라져요.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setConfirming(false)}
-                      disabled={submitting}
-                      className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      disabled={submitting}
-                      className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
-                    >
-                      {submitting ? '삭제 중...' : '삭제'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirming(true)}
-                  disabled={submitting}
-                  className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
-                >
-                  일정 삭제
-                </button>
-              )}
-            </>
-          ) : null}
         </div>
       </div>
+    </div>
+  )
+}
+
+export default function RaidCalendar({
+  year,
+  month,
+  guildCode,
+  currentUserId,
+  currentUserRole,
+  schedules,
+  raids,
+}: Props) {
+  const [createOpen, setCreateOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [detail, setDetail] = useState<RaidSchedule | null>(null)
+
+  const [listOpen, setListOpen] = useState(false)
+  const [listDate, setListDate] = useState('')
+  const [listSchedules, setListSchedules] = useState<RaidSchedule[]>([])
+
+  const [myCharacters, setMyCharacters] = useState<MyCharacter[]>([])
+
+  useEffect(() => {
+    let alive = true
+    getMyCharacters(guildCode).then((list) => {
+      if (alive) setMyCharacters(list)
+    })
+    return () => {
+      alive = false
+    }
+  }, [guildCode])
+
+  const schedulesByDate: { [key: string]: RaidSchedule[] } = {}
+  for (const s of schedules) {
+    if (!schedulesByDate[s.scheduledDate]) schedulesByDate[s.scheduledDate] = []
+    schedulesByDate[s.scheduledDate].push(s)
+  }
+
+  const firstWeekday = new Date(year, month - 1, 1).getDay()
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const totalCells = Math.ceil((firstWeekday + daysInMonth) / 7) * 7
+
+  const cells: { day: number | null; dateStr: string | null }[] = []
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - firstWeekday + 1
+    if (dayNum < 1 || dayNum > daysInMonth) {
+      cells.push({ day: null, dateStr: null })
+    } else {
+      cells.push({ day: dayNum, dateStr: `${year}-${pad2(month)}-${pad2(dayNum)}` })
+    }
+  }
+
+  const prev = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 }
+  const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
+
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const todayStr = `${kstNow.getUTCFullYear()}-${pad2(kstNow.getUTCMonth() + 1)}-${pad2(kstNow.getUTCDate())}`
+
+  function openCreate(dateStr: string) {
+    setSelectedDate(dateStr)
+    setCreateOpen(true)
+  }
+
+  function openList(dateStr: string, list: RaidSchedule[]) {
+    setListDate(dateStr)
+    setListSchedules(list)
+    setListOpen(true)
+  }
+
+  function pickFromList(s: RaidSchedule) {
+    setListOpen(false)
+    setDetail(s)
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-zinc-100">
+            {year}년 {month}월
+          </h2>
+          <Link
+            href={`/guild/${guildCode}/raids/calendar`}
+            className="rounded-md border border-zinc-800 px-2.5 py-1 text-xs text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-300"
+          >
+            오늘
+          </Link>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href={`/guild/${guildCode}/raids/calendar?y=${prev.y}&m=${prev.m}`}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-300"
+            aria-label="이전 달"
+          >
+            ‹
+          </Link>
+          <Link
+            href={`/guild/${guildCode}/raids/calendar?y=${next.y}&m=${next.m}`}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-300"
+            aria-label="다음 달"
+          >
+            ›
+          </Link>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/30">
+          <div className="grid grid-cols-7 border-b border-zinc-800 bg-zinc-950/40">
+            {WEEKDAYS.map((w, i) => (
+              <div
+                key={w}
+                className={`py-2.5 text-center text-xs font-medium ${
+                  i === 0 ? 'text-red-400' : i === 6 ? 'text-cyan-400' : 'text-zinc-500'
+                }`}
+              >
+                {w}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7">
+            {cells.map((cell, idx) => {
+              const col = idx % 7
+              const isToday = cell.dateStr === todayStr
+              const daySchedules = cell.dateStr ? schedulesByDate[cell.dateStr] || [] : []
+              const visibleSchedules = daySchedules.slice(0, 2)
+              const remaining = daySchedules.length - visibleSchedules.length
+
+              return (
+                <div
+                  key={idx}
+                  className={`group relative min-h-[120px] border-b border-r border-zinc-800/70 p-1.5 ${
+                    col === 6 ? 'border-r-0' : ''
+                  } ${cell.day ? 'cursor-pointer transition hover:bg-zinc-900/40' : 'bg-zinc-950/40'} ${
+                    isToday ? 'ring-2 ring-inset ring-violet-500/60' : ''
+                  }`}
+                  onClick={() => {
+                    if (cell.dateStr) openCreate(cell.dateStr)
+                  }}
+                >
+                  {cell.day && (
+                    <>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span
+                          className={`text-xs font-semibold ${
+                            isToday
+                              ? 'text-violet-300'
+                              : col === 0
+                              ? 'text-red-400'
+                              : col === 6
+                              ? 'text-cyan-400'
+                              : 'text-zinc-400'
+                          }`}
+                        >
+                          {cell.day}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        {visibleSchedules.map((s) => (
+                          <ScheduleCard
+                            key={s.id}
+                            schedule={s}
+                            onClick={() => setDetail(s)}
+                          />
+                        ))}
+
+                        {remaining > 0 ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openList(cell.dateStr as string, daySchedules)
+                            }}
+                            className="w-full rounded-md py-1 text-[10px] font-medium text-violet-300 transition hover:bg-violet-500/10"
+                          >
+                            외 {remaining}개 더보기
+                          </button>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <ScheduleCreateModal
+        open={createOpen}
+        date={selectedDate}
+        guildCode={guildCode}
+        raids={raids}
+        onClose={() => setCreateOpen(false)}
+      />
+
+      <ScheduleDetailModal
+        open={detail !== null}
+        schedule={detail}
+        guildCode={guildCode}
+        currentUserId={currentUserId}
+        currentUserRole={currentUserRole}
+        myCharacters={myCharacters}
+        onClose={() => setDetail(null)}
+      />
+
+      <DayScheduleListModal
+        open={listOpen}
+        dateStr={listDate}
+        schedules={listSchedules}
+        onClose={() => setListOpen(false)}
+        onPickSchedule={pickFromList}
+      />
     </div>
   )
 }
