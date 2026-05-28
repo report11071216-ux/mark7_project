@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import ScheduleCreateModal from './ScheduleCreateModal'
 import ScheduleDetailModal, { type RaidSchedule } from './ScheduleDetailModal'
+import { getMyCharacters, type MyCharacter } from '@/app/guild/[code]/raids/calendar/actions'
 
 type RaidOption = {
   id: string
@@ -26,11 +27,10 @@ type Props = {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-// 통일 난이도 색상
 function difficultyBarColor(d: string): string {
-  if (d === '하드') return '#ef4444' // red-500
-  if (d === '나메') return '#8b5cf6' // violet-500
-  return '#eab308' // yellow-500 (노말)
+  if (d === '하드') return '#ef4444'
+  if (d === '나메') return '#8b5cf6'
+  return '#eab308'
 }
 
 function difficultyBadgeClass(d: string): string {
@@ -54,7 +54,6 @@ function dateLabelKo(dateStr: string): string {
   return `${m}월 ${d}일 (${wd})`
 }
 
-// 한 셀 안 일정 카드 — 약 56px 높이, 큼직한 썸네일
 function ScheduleCard({
   schedule,
   onClick,
@@ -77,14 +76,12 @@ function ScheduleCard({
         completed ? 'opacity-60' : ''
       }`}
     >
-      {/* 좌측 컬러바 — 완료면 초록, 아니면 난이도 색 */}
       <span
         aria-hidden
         className="absolute left-0 top-0 h-full w-1"
         style={{ backgroundColor: completed ? '#10b981' : barColor }}
       />
 
-      {/* 썸네일 — 큼직하게 */}
       <div className="ml-1 shrink-0">
         {schedule.raidImage ? (
           <img
@@ -99,7 +96,6 @@ function ScheduleCard({
         )}
       </div>
 
-      {/* 본문 */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
           {completed ? (
@@ -129,7 +125,6 @@ function ScheduleCard({
   )
 }
 
-// 더보기 모달 — 한 날짜의 일정 전체 리스트
 function DayScheduleListModal({
   open,
   dateStr,
@@ -205,6 +200,18 @@ export default function RaidCalendar({
   const [listDate, setListDate] = useState('')
   const [listSchedules, setListSchedules] = useState<RaidSchedule[]>([])
 
+  const [myCharacters, setMyCharacters] = useState<MyCharacter[]>([])
+
+  useEffect(() => {
+    let alive = true
+    getMyCharacters(guildCode).then((list) => {
+      if (alive) setMyCharacters(list)
+    })
+    return () => {
+      alive = false
+    }
+  }, [guildCode])
+
   const schedulesByDate: { [key: string]: RaidSchedule[] } = {}
   for (const s of schedules) {
     if (!schedulesByDate[s.scheduledDate]) schedulesByDate[s.scheduledDate] = []
@@ -242,7 +249,6 @@ export default function RaidCalendar({
     setListOpen(true)
   }
 
-  // 더보기 모달에서 일정 클릭 → 더보기 닫고 상세 모달 열기
   function pickFromList(s: RaidSchedule) {
     setListOpen(false)
     setDetail(s)
@@ -282,7 +288,6 @@ export default function RaidCalendar({
 
       <div className="overflow-x-auto">
         <div className="min-w-[800px] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/30">
-          {/* 요일 헤더 */}
           <div className="grid grid-cols-7 border-b border-zinc-800 bg-zinc-950/40">
             {WEEKDAYS.map((w, i) => (
               <div
@@ -296,7 +301,6 @@ export default function RaidCalendar({
             ))}
           </div>
 
-          {/* 셀 그리드 */}
           <div className="grid grid-cols-7">
             {cells.map((cell, idx) => {
               const col = idx % 7
@@ -380,6 +384,7 @@ export default function RaidCalendar({
         guildCode={guildCode}
         currentUserId={currentUserId}
         currentUserRole={currentUserRole}
+        myCharacters={myCharacters}
         onClose={() => setDetail(null)}
       />
 
