@@ -14,6 +14,7 @@ export type PlazaPost = {
   created_at: string;
   guild_name: string;
   guild_code: string;
+  guild_server?: string | null;
   author_name: string;
 };
 
@@ -128,6 +129,11 @@ export default function BoardPreview({ posts }: Props) {
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
                   <span className="text-slate-500 truncate">{post.guild_name}</span>
+                  {post.guild_server ? (
+                    <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100 shrink-0">
+                      [{post.guild_server}]
+                    </span>
+                  ) : null}
                   <span>·</span>
                   <span className="truncate">{post.author_name}</span>
                   <span>·</span>
