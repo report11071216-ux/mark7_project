@@ -109,6 +109,7 @@ export default function RaidMonthWidgetClient({
             }
             const list = schedulesByDate[c.dateStr] || [];
             const hasRaid = list.length > 0;
+            const allCompleted = hasRaid && list.every((s) => s.completed);
             const multi = list.length > 1;
             const isToday = c.dateStr === todayStr;
             let bg = "transparent";
@@ -117,6 +118,10 @@ export default function RaidMonthWidgetClient({
             if (isToday) {
               bg = accent;
               color = "#ffffff";
+              weight = 700;
+            } else if (hasRaid && allCompleted) {
+              bg = "#10b98122"; // emerald-500 22 alpha
+              color = "#10b981";
               weight = 700;
             } else if (hasRaid) {
               bg = accent + "22";
