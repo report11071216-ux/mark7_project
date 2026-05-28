@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import GuildAppearanceEditor from "@/components/guild/GuildAppearanceEditor";
 import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
+import WebhookSettings from "@/components/guild/WebhookSettings";
 
 export default async function GuildAdminPage({
   params,
@@ -10,11 +11,13 @@ export default async function GuildAdminPage({
 }) {
   const supabase = await createClient();
   const code = params.code.toUpperCase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, code, name")
+    .select("id, code, name, discord_webhook_url")
     .eq("code", code)
     .maybeSingle();
   if (!guild) notFound();
@@ -43,6 +46,12 @@ export default async function GuildAdminPage({
         initialWelcome={theme?.welcome_message ?? ""}
         initialBanner={theme?.banner_url ?? ""}
       />
+      <div className="mt-6">
+        <WebhookSettings
+          guildId={guild.id}
+          initialUrl={guild.discord_webhook_url ?? ""}
+        />
+      </div>
       {isMaster ? (
         <DeleteGuildSection
           guildId={guild.id}
