@@ -76,7 +76,7 @@ function CardHeader({
   );
 }
 
-// ─── 오늘 시간표 콘텐츠 공용 (필드보스 / 카오스게이트) ───
+// ─── 오늘 시간표 콘텐츠 공용 (필드보스용) ───
 function TimedContentBody({
   items,
   emptyText,
@@ -123,6 +123,102 @@ function TimedContentBody({
               </div>
             </div>
             <RewardItems items={item.RewardItems} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── 카오스게이트 전용 (지역 묶어서 표시) ───
+type ChaosGroup = {
+  name: string;
+  icon: string | undefined;
+  times: string[];
+  locations: string[];
+  rewards: RewardItem[];
+};
+
+function ChaosGateBody({ items }: { items: CalendarContent[] }) {
+  const todayItems = items.filter(
+    (item) => item.StartTimes?.some((t) => isTodayKST(t))
+  );
+
+  if (todayItems.length === 0) {
+    return (
+      <p className="text-xs text-slate-400 text-center py-4">
+        오늘 카오스게이트 정보가 없어요
+      </p>
+    );
+  }
+
+  // 같은 콘텐츠 이름끼리 묶음 (지역만 다르고 보상·시간은 같음)
+  const groupMap: { [key: string]: ChaosGroup } = {};
+  for (const item of todayItems) {
+    const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
+    if (todayTimes.length === 0) continue;
+    const key = item.ContentsName ?? "카오스게이트";
+    if (!groupMap[key]) {
+      groupMap[key] = {
+        name: key,
+        icon: item.ContentsIcon,
+        times: [],
+        locations: [],
+        rewards: item.RewardItems,
+      };
+    }
+    for (const t of todayTimes) {
+      if (groupMap[key].times.indexOf(t) === -1) groupMap[key].times.push(t);
+    }
+    if (item.Location && groupMap[key].locations.indexOf(item.Location) === -1) {
+      groupMap[key].locations.push(item.Location);
+    }
+  }
+
+  for (const k in groupMap) {
+    groupMap[k].times.sort();
+  }
+
+  const groups = Object.values(groupMap);
+
+  return (
+    <div className="space-y-4">
+      {groups.map((g, i) => {
+        const locCount = g.locations.length;
+        const locPreview = g.locations.slice(0, 2).join(", ");
+        let locLabel = "";
+        if (locCount === 1) {
+          locLabel = g.locations[0];
+        } else if (locCount === 2) {
+          locLabel = `2개 지역 (${locPreview})`;
+        } else if (locCount > 2) {
+          locLabel = `${locCount}개 지역 (${locPreview}…)`;
+        }
+        return (
+          <div key={i}>
+            <div className="flex items-center gap-2">
+              {g.icon && (
+                <img
+                  src={g.icon}
+                  alt={g.name}
+                  className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">{g.name}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-[10px] font-mono text-slate-600">
+                    {g.times.map(formatKST).join(" · ")}
+                  </p>
+                  {locLabel && (
+                    <p className="text-[10px] text-slate-400 truncate">
+                      · {locLabel}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <RewardItems items={g.rewards} />
           </div>
         );
       })}
@@ -251,7 +347,7 @@ function ChaosGateWidget({ items }: { items: CalendarContent[] }) {
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
       <CardHeader icon={Aperture} title="오늘의 카오스게이트" />
       <div className="p-4">
-        <TimedContentBody items={items} emptyText="오늘 카오스게이트 정보가 없어요" />
+        <ChaosGateBody items={items} />
       </div>
     </div>
   );
