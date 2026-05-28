@@ -76,7 +76,7 @@ function CardHeader({
   );
 }
 
-// ─── 오늘 시간표 콘텐츠 공용 (필드보스용) ───
+// ─── 필드보스용 ───
 function TimedContentBody({
   items,
   emptyText,
@@ -130,15 +130,7 @@ function TimedContentBody({
   );
 }
 
-// ─── 카오스게이트 전용 (지역 묶어서 표시) ───
-type ChaosGroup = {
-  name: string;
-  icon: string | undefined;
-  times: string[];
-  locations: string[];
-  rewards: RewardItem[];
-};
-
+// ─── 카오스게이트 전용 (첫 1개 + 외 N개 지역 표기) ───
 function ChaosGateBody({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -152,76 +144,45 @@ function ChaosGateBody({ items }: { items: CalendarContent[] }) {
     );
   }
 
-  // 같은 콘텐츠 이름끼리 묶음 (지역만 다르고 보상·시간은 같음)
-  const groupMap: { [key: string]: ChaosGroup } = {};
-  for (const item of todayItems) {
-    const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
-    if (todayTimes.length === 0) continue;
-    const key = item.ContentsName ?? "카오스게이트";
-    if (!groupMap[key]) {
-      groupMap[key] = {
-        name: key,
-        icon: item.ContentsIcon,
-        times: [],
-        locations: [],
-        rewards: item.RewardItems,
-      };
-    }
-    for (const t of todayTimes) {
-      if (groupMap[key].times.indexOf(t) === -1) groupMap[key].times.push(t);
-    }
-    if (item.Location && groupMap[key].locations.indexOf(item.Location) === -1) {
-      groupMap[key].locations.push(item.Location);
-    }
-  }
-
-  for (const k in groupMap) {
-    groupMap[k].times.sort();
-  }
-
-  const groups = Object.values(groupMap);
+  const first = todayItems[0];
+  const remainder = todayItems.length - 1;
+  const todayTimes = (first.StartTimes ?? []).filter(isTodayKST);
 
   return (
-    <div className="space-y-4">
-      {groups.map((g, i) => {
-        const locCount = g.locations.length;
-        const locPreview = g.locations.slice(0, 2).join(", ");
-        let locLabel = "";
-        if (locCount === 1) {
-          locLabel = g.locations[0];
-        } else if (locCount === 2) {
-          locLabel = `2개 지역 (${locPreview})`;
-        } else if (locCount > 2) {
-          locLabel = `${locCount}개 지역 (${locPreview}…)`;
-        }
-        return (
-          <div key={i}>
-            <div className="flex items-center gap-2">
-              {g.icon && (
-                <img
-                  src={g.icon}
-                  alt={g.name}
-                  className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
-                />
+    <div className="space-y-3">
+      <div>
+        <div className="flex items-center gap-2">
+          {first.ContentsIcon && (
+            <img
+              src={first.ContentsIcon}
+              alt={first.ContentsName}
+              className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-900 truncate">
+              {first.ContentsName}
+            </p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <p className="text-[10px] font-mono text-slate-600">
+                {todayTimes.map(formatKST).join(" · ")}
+              </p>
+              {first.Location && (
+                <p className="text-[10px] text-slate-400 truncate">
+                  · {first.Location}
+                </p>
               )}
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">{g.name}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <p className="text-[10px] font-mono text-slate-600">
-                    {g.times.map(formatKST).join(" · ")}
-                  </p>
-                  {locLabel && (
-                    <p className="text-[10px] text-slate-400 truncate">
-                      · {locLabel}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
-            <RewardItems items={g.rewards} />
           </div>
-        );
-      })}
+        </div>
+        <RewardItems items={first.RewardItems} />
+      </div>
+
+      {remainder > 0 && (
+        <p className="text-[10px] text-slate-400 text-center pt-1 border-t border-slate-100">
+          외 {remainder}개 지역에서도 진행
+        </p>
+      )}
     </div>
   );
 }
