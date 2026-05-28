@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import EmptyRaidsButton from "./EmptyRaidsButton";
 
 type Props = {
   guildId: string;
@@ -57,16 +58,31 @@ export default async function UpcomingRaidsWidget({
   const rangeStart = dateStrOf(0);
   const rangeEnd = dateStrOf(27);
 
-  const { data: rawSchedules } = await supabase
-    .from("raid_schedules")
-    .select("id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, raids(title, image_url)")
-    .eq("guild_id", guildId)
-    .gte("scheduled_date", rangeStart)
-    .lte("scheduled_date", rangeEnd)
-    .order("scheduled_date", { ascending: true })
-    .order("scheduled_time", { ascending: true });
+  const [schedulesResult, raidsResult] = await Promise.all([
+    supabase
+      .from("raid_schedules")
+      .select("id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, raids(title, image_url)")
+      .eq("guild_id", guildId)
+      .gte("scheduled_date", rangeStart)
+      .lte("scheduled_date", rangeEnd)
+      .order("scheduled_date", { ascending: true })
+      .order("scheduled_time", { ascending: true }),
+    supabase
+      .from("raids")
+      .select("id, title, image_url, gold_normal, gold_hard, gold_nightmare")
+      .eq("guild_id", guildId)
+      .order("title"),
+  ]);
 
-  const schedules = (rawSchedules ?? []) as any[];
+  const schedules = (schedulesResult.data ?? []) as any[];
+  const raids = (raidsResult.data ?? []).map((r) => ({
+    id: r.id as string,
+    title: (r.title as string) || "제목 없음",
+    image_url: (r.image_url as string) || "",
+    gold_normal: r.gold_normal == null ? null : Number(r.gold_normal),
+    gold_hard: r.gold_hard == null ? null : Number(r.gold_hard),
+    gold_nightmare: r.gold_nightmare == null ? null : Number(r.gold_nightmare),
+  }));
 
   const ids = schedules.map((s) => s.id);
   const countMap: { [key: string]: number } = {};
@@ -159,9 +175,14 @@ export default async function UpcomingRaidsWidget({
 
       <div className="p-3 space-y-1.5">
         {upcoming.length === 0 ? (
-          <p className="text-xs text-center py-4" style={{ color: textSecondary }}>
-            다가오는 레이드 일정이 없어요
-          </p>
+          <EmptyRaidsButton
+            guildCode={guildCode}
+            todayStr={todayStr}
+            raids={raids}
+            textSecondary={textSecondary}
+            accent={accent}
+            surface={surface}
+          />
         ) : (
           upcoming.map((it) => {
             const badge = diffBadge(it.difficulty);
