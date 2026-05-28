@@ -16,7 +16,7 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.auth.getUser(),
     supabase
       .from("guilds")
-      .select("id, name, code, description, total_points, member_count, max_members, logo_url, is_recruiting")
+      .select("id, name, code, description, total_points, member_count, max_members, logo_url, is_recruiting, server")
       .eq("code", code)
       .single(),
   ]);
@@ -184,6 +184,7 @@ export default async function GuildHomePage({ params }: Props) {
       max_members: (guild as any).max_members ?? 50,
       logo_url: (guild as any).logo_url ?? null,
       is_recruiting: (guild as any).is_recruiting ?? false,
+      server: (guild as any).server ?? null,
     },
     attendanceDates, alreadyAttended, streak, totalAttendances,
     recentMembers, rankingMembers, onlineMembers, noticePosts,
