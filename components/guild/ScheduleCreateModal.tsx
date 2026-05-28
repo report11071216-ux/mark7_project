@@ -60,25 +60,26 @@ function goldFor(raid: RaidOption | undefined, diff: string): number | null {
   return raid.gold_normal
 }
 
+// 통일 색상 - 노말 노랑 / 하드 빨강 / 나메 보라
 function diffButtonClass(diff: string, selected: boolean): string {
   if (!selected) {
     return 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
   }
-  if (diff === '하드') return 'border-amber-500/60 bg-amber-500/15 text-amber-200'
-  if (diff === '나메') return 'border-fuchsia-500/60 bg-fuchsia-500/15 text-fuchsia-200'
-  return 'border-violet-500 bg-violet-500/10 text-violet-200'
+  if (diff === '하드') return 'border-red-500/60 bg-red-500/15 text-red-200'
+  if (diff === '나메') return 'border-violet-500/60 bg-violet-500/15 text-violet-200'
+  return 'border-yellow-500/60 bg-yellow-500/15 text-yellow-200'
 }
 
 function diffBadgeClass(diff: string): string {
-  if (diff === '하드') return 'border-amber-500/30 bg-amber-500/15 text-amber-300'
-  if (diff === '나메') return 'border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-300'
-  return 'border-zinc-600/40 bg-zinc-700/40 text-zinc-300'
+  if (diff === '하드') return 'border-red-500/40 bg-red-500/15 text-red-300'
+  if (diff === '나메') return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+  return 'border-yellow-500/40 bg-yellow-500/15 text-yellow-300'
 }
 
 function diffTextClass(diff: string): string {
-  if (diff === '하드') return 'text-amber-300'
-  if (diff === '나메') return 'text-fuchsia-300'
-  return 'text-zinc-300'
+  if (diff === '하드') return 'text-red-300'
+  if (diff === '나메') return 'text-violet-300'
+  return 'text-yellow-300'
 }
 
 export default function ScheduleCreateModal({ open, date, guildCode, raids, onClose }: Props) {
@@ -196,7 +197,7 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
               {raids.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
                   <p className="text-sm text-zinc-400">아직 등록된 레이드가 없어요.</p>
-                  <a
+                  
                     href={'/guild/' + guildCode + '/raids/new'}
                     className="mt-2 inline-block text-sm font-medium text-violet-300 hover:underline"
                   >
