@@ -44,31 +44,50 @@ export default function MyProfileCard({
 
   return (
     <div className="plaza-card overflow-hidden">
-      {/* 상단 — 배경 이미지 있으면 그 위에, 없으면 기본 */}
-      <div className="relative">
-        {hasBg && (
-          <>
-            {/* 여백 채울 어두운 바탕 */}
-            <div className="absolute inset-0 bg-zinc-900" />
-            {/* 이미지 전체가 보이게 (안 잘림) */}
-            <img
-              src={cardFrameUrl!}
-              alt=""
-              className="absolute inset-0 w-full h-full object-contain"
-            />
-            {/* 연한 어두운 막 */}
-            <div className="absolute inset-0 bg-black/30" />
-          </>
-        )}
+      {hasBg ? (
+        /* 배경 카드 장착 — 가로 배너 풀 표시 (REF 1) */
+        <div className="relative w-full aspect-[16/6] overflow-hidden">
+          <div className="absolute inset-0 bg-zinc-900" />
+          <img
+            src={cardFrameUrl!}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* 좌측 그라데이션 — 이름 가독성 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
 
+          <div className="absolute inset-0 flex items-center gap-3 px-4">
+            {displayAvatar ? (
+              <img
+                src={displayAvatar}
+                alt={profile?.username ?? "User"}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-white/50 shrink-0"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-white/50 shrink-0">
+                <span className="text-base font-bold text-white">
+                  {(profile?.username ?? "?").charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-[10px] font-mono uppercase tracking-wider mb-0.5 text-white/80 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                My Profile
+              </p>
+              <p className="text-base font-bold truncate text-white drop-shadow-[0_1px_6px_rgba(0,0,0,1)]">
+                {profile?.username ?? "이름없음"}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 배경 없음 — 기본 */
         <div className="relative flex items-center gap-3 p-4">
           {displayAvatar ? (
             <img
               src={displayAvatar}
               alt={profile?.username ?? "User"}
-              className={`w-12 h-12 rounded-full object-cover ring-2 ${
-                hasBg ? "ring-white/30" : "ring-blue-100"
-              }`}
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-100"
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center ring-2 ring-blue-100">
@@ -78,22 +97,18 @@ export default function MyProfileCard({
             </div>
           )}
           <div className="min-w-0">
-            <p className={`text-[10px] font-mono uppercase tracking-wider mb-0.5 ${
-              hasBg ? "text-white/80" : "text-blue-600"
-            }`}>
+            <p className="text-[10px] font-mono uppercase tracking-wider mb-0.5 text-blue-600">
               My Profile
             </p>
-            <p className={`text-sm font-bold truncate ${
-              hasBg ? "text-white drop-shadow-[0_1px_5px_rgba(0,0,0,1)]" : "text-slate-900"
-            }`}>
+            <p className="text-sm font-bold truncate text-slate-900">
               {profile?.username ?? "이름없음"}
             </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 버튼 */}
-      <div className="p-4 pt-0 flex flex-col gap-1.5">
+      <div className="p-4 pt-3 flex flex-col gap-1.5">
         <Link
           href="/mypage"
           className="block w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold text-center transition-colors"
