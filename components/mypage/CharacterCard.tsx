@@ -52,14 +52,14 @@ export default function CharacterCard({
         onClick={() => setModalOpen(true)}
         className="relative w-full rounded-xl overflow-hidden bg-zinc-950 border border-amber-500/20 shadow-[0_6px_28px_rgba(245,158,11,0.1)] cursor-pointer hover:border-amber-400/40 transition-all group"
       >
-        {/* 배경 이미지 (장착 시) — 안 잘리게 contain */}
+        {/* 배경 이미지 (장착 시) — 꽉 채우기 (검정 여백 제거) */}
         {hasBg && (
           <>
             <div className="absolute inset-0 bg-zinc-900" />
             <img
               src={frameUrl!}
               alt=""
-              className="absolute inset-0 w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/35" />
           </>
