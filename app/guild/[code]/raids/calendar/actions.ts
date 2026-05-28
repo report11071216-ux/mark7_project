@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { sendGuildWebhook, buildRaidMessage } from '@/lib/discord'
 
 type CreateScheduleInput = {
   guildCode: string
@@ -77,11 +78,30 @@ export async function createRaidSchedule(input: CreateScheduleInput): Promise<Ac
     return { ok: false, error: '일정 생성 실패: ' + error.message }
   }
 
+  // ── 레이드 알림 ──
+  try {
+    const { data: raid } = await supabase
+      .from('raids')
+      .select('title')
+      .eq('id', input.raidId)
+      .maybeSingle()
+    const content = buildRaidMessage({
+      raidTitle: raid?.title || '레이드',
+      difficulty: input.difficulty,
+      skillLevel: input.skillLevel,
+      maxMembers: input.maxMembers,
+      scheduledDate: input.scheduledDate,
+      scheduledTime: input.scheduledTime,
+    })
+    await sendGuildWebhook(guild.id, 'raid', content)
+  } catch {
+    // 알림 실패는 일정 생성을 막지 않음
+  }
+
   revalidatePath('/guild/' + input.guildCode + '/raids/calendar')
   return { ok: true }
 }
 
-// ── 신규: 내 보유 캐릭터 목록 ──
 export async function getMyCharacters(guildCode: string): Promise<MyCharacter[]> {
   const supabase = await createClient()
 
