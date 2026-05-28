@@ -70,6 +70,7 @@ export type GuildLayoutData = {
     max_members: number;
     logo_url: string | null;
     is_recruiting: boolean;
+    server: string | null;
   };
   attendanceDates: string[];
   alreadyAttended: boolean;
