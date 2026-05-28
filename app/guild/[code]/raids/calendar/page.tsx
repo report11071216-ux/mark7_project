@@ -55,7 +55,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       .order('title'),
     supabase
       .from('raid_schedules')
-      .select('id, raid_id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, created_by, raids(title, image_url)')
+      .select('id, raid_id, difficulty, skill_level, max_members, scheduled_date, scheduled_time, created_by, completed, raids(title, image_url)')
       .eq('guild_id', guild.id)
       .gte('scheduled_date', firstDate)
       .lte('scheduled_date', lastDate)
@@ -95,7 +95,6 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   const profileMap: { [key: string]: any } = {}
   for (const pr of profileRows) profileMap[pr.id] = pr
 
-  // 장착한 길드 마크(프로필 아이콘) + 프로필 카드 배경 이미지 조회
   const purchaseIds = Array.from(
     new Set(
       profileRows
@@ -220,6 +219,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       createdByName: s.created_by ? nameOf(s.created_by) : '길드원',
       participants: list,
       participantCount: list.length,
+      completed: Boolean(s.completed),
     }
   })
 
