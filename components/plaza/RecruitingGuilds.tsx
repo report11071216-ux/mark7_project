@@ -8,6 +8,7 @@ export type RecruitingGuild = {
   member_count: number;
   max_members: number;
   description: string | null;
+  server?: string | null;
 };
 export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[] }) {
   return (
@@ -46,9 +47,16 @@ export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[]
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-slate-900 truncate group-hover:text-slate-600 transition-colors">
-                    {g.name}
-                  </p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate group-hover:text-slate-600 transition-colors">
+                      {g.name}
+                    </p>
+                    {g.server ? (
+                      <span className="shrink-0 font-mono text-[10px] px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100">
+                        [{g.server}]
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {g.member_count}/{g.max_members}명
                   </p>
