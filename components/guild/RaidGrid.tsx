@@ -46,7 +46,7 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
+    <div className="pb-24 md:pb-10">
       {/* 헤더 */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
@@ -54,8 +54,8 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
             <Swords className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">레이드</h1>
-            <p className="text-xs text-violet-300 font-mono">{guildName}</p>
+            <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">RAID CODEX</p>
+            <h1 className="text-xl font-bold text-slate-900 leading-tight">레이드 도감</h1>
           </div>
         </div>
         {isStaff && (
@@ -70,11 +70,11 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
       </div>
 
       {raids.length === 0 ? (
-        <div className="rounded-xl bg-card/40 ring-1 ring-border p-12 text-center">
-          <Swords className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">아직 등록된 레이드가 없어요</p>
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+          <Swords className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-sm text-slate-600">아직 등록된 레이드가 없어요</p>
           {isStaff && (
-            <p className="text-xs text-muted-foreground mt-1">레이드를 추가해보세요</p>
+            <p className="text-xs text-slate-400 mt-1">레이드를 추가해보세요</p>
           )}
         </div>
       ) : (
@@ -84,9 +84,9 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
               key={r.id}
               type="button"
               onClick={() => setSelected(r)}
-              className="group rounded-xl overflow-hidden ring-1 ring-border bg-card/60 hover:ring-violet-500/50 transition text-left"
+              className="group rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:border-violet-300 hover:shadow-md transition text-left"
             >
-              <div className="aspect-square bg-zinc-900 overflow-hidden">
+              <div className="aspect-square bg-slate-100 overflow-hidden">
                 {r.image_url ? (
                   <img
                     src={r.image_url}
@@ -95,15 +95,15 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Swords className="w-8 h-8 text-muted-foreground" />
+                    <Swords className="w-8 h-8 text-slate-300" />
                   </div>
                 )}
               </div>
               <div className="p-2.5">
-                <p className="text-[10px] font-mono text-violet-300 uppercase tracking-wider mb-0.5">
+                <p className="text-[10px] font-mono text-violet-500 uppercase tracking-wider mb-0.5">
                   레이드
                 </p>
-                <p className="text-sm font-bold text-white truncate">{r.title}</p>
+                <p className="text-sm font-bold text-slate-900 truncate">{r.title}</p>
               </div>
             </button>
           ))}
@@ -113,53 +113,53 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
       {/* 레이드 상세 모달 */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-zinc-950 ring-1 ring-zinc-800 overflow-hidden"
+            className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative aspect-video bg-zinc-900">
+            <div className="relative aspect-video bg-slate-100">
               {selected.image_url ? (
                 <img src={selected.image_url} alt={selected.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Swords className="w-10 h-10 text-zinc-700" />
+                  <Swords className="w-10 h-10 text-slate-300" />
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/50 hover:bg-black/70 text-white/80 transition"
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5">
-              <p className="text-[10px] font-mono text-violet-300 uppercase tracking-wider mb-1">레이드</p>
-              <h2 className="text-lg font-bold text-white mb-4">{selected.title}</h2>
+              <p className="text-[10px] font-mono text-violet-500 uppercase tracking-wider mb-1">레이드</p>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">{selected.title}</h2>
 
               {/* 난이도별 클리어 골드 */}
               <div className="flex items-center gap-1.5 mb-2">
-                <Coins className="w-3.5 h-3.5 text-amber-400" />
-                <p className="text-xs font-bold text-muted-foreground">난이도별 클리어 골드</p>
+                <Coins className="w-3.5 h-3.5 text-amber-500" />
+                <p className="text-xs font-bold text-slate-500">난이도별 클리어 골드</p>
               </div>
               <div className="space-y-1.5">
                 {[
-                  { label: "노말", value: selected.gold_normal, color: "text-zinc-300" },
-                  { label: "하드", value: selected.gold_hard, color: "text-violet-300" },
-                  { label: "나이트메어", value: selected.gold_nightmare, color: "text-rose-300" },
+                  { label: "노말", value: selected.gold_normal, color: "text-slate-600" },
+                  { label: "하드", value: selected.gold_hard, color: "text-rose-500" },
+                  { label: "나이트메어", value: selected.gold_nightmare, color: "text-violet-600" },
                 ].map((g) => (
                   <div
                     key={g.label}
-                    className="flex items-center justify-between rounded-lg bg-zinc-900 ring-1 ring-zinc-800 px-3 py-2"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-3 py-2"
                   >
                     <span className={`text-xs font-bold ${g.color}`}>{g.label}</span>
-                    <span className="text-sm font-bold text-amber-400 font-mono">
+                    <span className="text-sm font-bold text-amber-600 font-mono">
                       {g.value > 0 ? g.value.toLocaleString() : "—"}
-                      {g.value > 0 && <span className="text-[10px] text-muted-foreground ml-0.5">G</span>}
+                      {g.value > 0 && <span className="text-[10px] text-slate-400 ml-0.5">G</span>}
                     </span>
                   </div>
                 ))}
@@ -169,7 +169,7 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(selected)}
-                  className="mt-4 w-full h-10 rounded-lg bg-rose-500/10 text-rose-300 text-xs font-bold hover:bg-rose-500/20 transition flex items-center justify-center gap-1.5"
+                  className="mt-4 w-full h-10 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition flex items-center justify-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   레이드 삭제
@@ -182,17 +182,17 @@ export default function RaidGrid({ guildCode, guildName, raids, isStaff }: Props
 
       {/* 삭제 확인 모달 */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70">
-          <div className="w-full max-w-xs rounded-2xl bg-card ring-1 ring-border p-5">
-            <p className="text-sm font-bold text-white mb-1">레이드를 삭제할까요?</p>
-            <p className="text-xs text-muted-foreground mb-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-xs rounded-2xl bg-white border border-slate-200 shadow-2xl p-5">
+            <p className="text-sm font-bold text-slate-900 mb-1">레이드를 삭제할까요?</p>
+            <p className="text-xs text-slate-500 mb-4">
               '{confirmDelete.title}'을(를) 삭제합니다
             </p>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 h-10 rounded-lg bg-white/5 text-sm font-bold text-muted-foreground hover:bg-white/10 transition"
+                className="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
               >
                 취소
               </button>
