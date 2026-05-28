@@ -155,29 +155,6 @@ export default function RaidMonthWidgetClient({
             );
           })}
         </div>
-
-        <div
-          className="flex items-center gap-3 mt-2.5 text-[10px]"
-          style={{ color: textSecondary }}
-        >
-          <span className="flex items-center gap-1">
-            <span
-              className="w-2.5 h-2.5 rounded-sm"
-              style={{ backgroundColor: accent + "22" }}
-            />
-            레이드 있는 날
-          </span>
-          <span className="flex items-center gap-1">
-            <span
-              className="w-2.5 h-2.5 rounded-sm"
-              style={{ backgroundColor: accent }}
-            />
-            오늘
-          </span>
-          <span className="ml-auto text-[10px]" style={{ color: textSecondary }}>
-            날짜 클릭으로 생성·참여
-          </span>
-        </div>
       </div>
 
       <ScheduleCreateModal
