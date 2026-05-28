@@ -15,7 +15,6 @@ export async function saveGuildAppearance(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
-
   const { data: member } = await supabase
     .from("guild_members")
     .select("role")
@@ -25,7 +24,6 @@ export async function saveGuildAppearance(
   if (!member || !["master", "submaster"].includes(member.role)) {
     throw new Error("권한이 없어요");
   }
-
   const { error } = await supabase
     .from("guild_themes")
     .upsert(
@@ -40,8 +38,55 @@ export async function saveGuildAppearance(
       { onConflict: "guild_id" }
     );
   if (error) throw new Error(error.message);
-
-  // 'layout' 옵션 — 길드 레이아웃(사이드바)까지 갱신해 색이 바로 반영되게 함
   revalidatePath(`/guild/${guildCode}`, "layout");
   revalidatePath(`/guild/${guildCode}/admin`);
+}
+
+// ── 배너 이미지 업로드 (guild-banners 버킷) ──
+type BannerResult = { ok: true; url: string } | { ok: false; error: string };
+
+export async function uploadGuildBanner(
+  guildId: string,
+  formData: FormData
+): Promise<BannerResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "로그인이 필요해요." };
+
+  const { data: member } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member || !["master", "submaster"].includes(member.role)) {
+    return { ok: false, error: "길드 마스터/부마스터만 변경할 수 있어요." };
+  }
+
+  const file = formData.get("image");
+  if (!file || typeof file === "string") {
+    return { ok: false, error: "이미지를 선택해 주세요." };
+  }
+  const f = file as File;
+  if (!f.type.startsWith("image/")) {
+    return { ok: false, error: "이미지 파일만 올릴 수 있어요." };
+  }
+  if (f.size > 5 * 1024 * 1024) {
+    return { ok: false, error: "이미지는 5MB 이하만 가능해요." };
+  }
+
+  const ext = (f.name.split(".").pop() || "png").toLowerCase();
+  const path = `${guildId}/${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from("guild-banners")
+    .upload(path, f, { contentType: f.type, upsert: false });
+  if (upErr) {
+    return { ok: false, error: `업로드 실패: ${upErr.message}` };
+  }
+
+  const { data: pub } = supabase.storage
+    .from("guild-banners")
+    .getPublicUrl(path);
+
+  return { ok: true, url: pub.publicUrl };
 }
