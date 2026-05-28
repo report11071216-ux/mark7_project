@@ -15,7 +15,7 @@ export type SyncResult = {
 };
 
 // 보유 캐릭터 저장 최소 아이템레벨 (대표 캐릭터는 예외로 항상 저장)
-const MIN_CHARACTER_ITEM_LEVEL = 1600;
+const MIN_CHARACTER_ITEM_LEVEL = 1640;
 
 export async function syncLostarkCharacter(
   characterName: string
