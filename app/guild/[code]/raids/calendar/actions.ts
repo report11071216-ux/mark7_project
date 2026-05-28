@@ -15,6 +15,14 @@ type CreateScheduleInput = {
 
 type ActionResult = { ok: boolean; error?: string }
 
+export type MyCharacter = {
+  name: string
+  characterClass: string
+  itemLevel: number
+  serverName: string
+  isRepresentative: boolean
+}
+
 export async function createRaidSchedule(input: CreateScheduleInput): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -73,9 +81,32 @@ export async function createRaidSchedule(input: CreateScheduleInput): Promise<Ac
   return { ok: true }
 }
 
+// ── 신규: 내 보유 캐릭터 목록 ──
+export async function getMyCharacters(guildCode: string): Promise<MyCharacter[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('user_characters')
+    .select('character_name, character_class, item_level, server_name, is_representative')
+    .eq('user_id', user.id)
+    .order('item_level', { ascending: false })
+
+  return (data || []).map((c) => ({
+    name: (c.character_name as string) || '',
+    characterClass: (c.character_class as string) || '',
+    itemLevel: c.item_level == null ? 0 : Number(c.item_level),
+    serverName: (c.server_name as string) || '',
+    isRepresentative: Boolean(c.is_representative),
+  }))
+}
+
 export async function joinRaidSchedule(
   scheduleId: string,
-  guildCode: string
+  guildCode: string,
+  characterName: string
 ): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -132,7 +163,11 @@ export async function joinRaidSchedule(
 
   const { error } = await supabase
     .from('raid_participants')
-    .insert({ schedule_id: scheduleId, user_id: user.id })
+    .insert({
+      schedule_id: scheduleId,
+      user_id: user.id,
+      character_name: characterName || null,
+    })
 
   if (error) {
     return { ok: false, error: '참여 신청 실패: ' + error.message }
@@ -231,7 +266,6 @@ export async function deleteRaidSchedule(
   return { ok: true }
 }
 
-// ── 신규: 레이드 완료 처리 ──
 export async function completeRaidSchedule(
   scheduleId: string,
   guildCode: string
@@ -285,7 +319,6 @@ export async function completeRaidSchedule(
   return { ok: true }
 }
 
-// ── 신규: 레이드 완료 취소 ──
 export async function uncompleteRaidSchedule(
   scheduleId: string,
   guildCode: string
