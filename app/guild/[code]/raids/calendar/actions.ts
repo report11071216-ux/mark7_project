@@ -86,12 +86,16 @@ export async function joinRaidSchedule(
 
   const { data: schedule } = await supabase
     .from('raid_schedules')
-    .select('id, guild_id, max_members')
+    .select('id, guild_id, max_members, completed')
     .eq('id', scheduleId)
     .single()
 
   if (!schedule) {
     return { ok: false, error: '일정을 찾을 수 없습니다.' }
+  }
+
+  if (schedule.completed) {
+    return { ok: false, error: '이미 완료된 레이드입니다.' }
   }
 
   const { data: membership } = await supabase
@@ -147,6 +151,16 @@ export async function leaveRaidSchedule(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return { ok: false, error: '로그인이 필요합니다.' }
+  }
+
+  const { data: schedule } = await supabase
+    .from('raid_schedules')
+    .select('id, completed')
+    .eq('id', scheduleId)
+    .single()
+
+  if (schedule?.completed) {
+    return { ok: false, error: '완료된 레이드는 참여 취소할 수 없습니다.' }
   }
 
   const { error } = await supabase
@@ -214,5 +228,113 @@ export async function deleteRaidSchedule(
   }
 
   revalidatePath('/guild/' + guildCode + '/raids/calendar')
+  return { ok: true }
+}
+
+// ── 신규: 레이드 완료 처리 ──
+export async function completeRaidSchedule(
+  scheduleId: string,
+  guildCode: string
+): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: '로그인이 필요합니다.' }
+  }
+
+  const { data: schedule } = await supabase
+    .from('raid_schedules')
+    .select('id, guild_id, created_by')
+    .eq('id', scheduleId)
+    .single()
+
+  if (!schedule) {
+    return { ok: false, error: '일정을 찾을 수 없습니다.' }
+  }
+
+  const { data: membership } = await supabase
+    .from('guild_members')
+    .select('role')
+    .eq('guild_id', schedule.guild_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!membership) {
+    return { ok: false, error: '길드원만 처리할 수 있습니다.' }
+  }
+
+  const isOwner = schedule.created_by === user.id
+  const isStaff = membership.role === 'master' || membership.role === 'submaster'
+
+  if (!isOwner && !isStaff) {
+    return { ok: false, error: '주최자 또는 마스터/부마만 완료 처리할 수 있습니다.' }
+  }
+
+  const { error } = await supabase
+    .from('raid_schedules')
+    .update({ completed: true, completed_at: new Date().toISOString() })
+    .eq('id', scheduleId)
+
+  if (error) {
+    return { ok: false, error: '완료 처리 실패: ' + error.message }
+  }
+
+  revalidatePath('/guild/' + guildCode + '/raids/calendar')
+  revalidatePath('/guild/' + guildCode)
+  return { ok: true }
+}
+
+// ── 신규: 레이드 완료 취소 ──
+export async function uncompleteRaidSchedule(
+  scheduleId: string,
+  guildCode: string
+): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: '로그인이 필요합니다.' }
+  }
+
+  const { data: schedule } = await supabase
+    .from('raid_schedules')
+    .select('id, guild_id, created_by')
+    .eq('id', scheduleId)
+    .single()
+
+  if (!schedule) {
+    return { ok: false, error: '일정을 찾을 수 없습니다.' }
+  }
+
+  const { data: membership } = await supabase
+    .from('guild_members')
+    .select('role')
+    .eq('guild_id', schedule.guild_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!membership) {
+    return { ok: false, error: '길드원만 처리할 수 있습니다.' }
+  }
+
+  const isOwner = schedule.created_by === user.id
+  const isStaff = membership.role === 'master' || membership.role === 'submaster'
+
+  if (!isOwner && !isStaff) {
+    return { ok: false, error: '주최자 또는 마스터/부마만 완료 취소할 수 있습니다.' }
+  }
+
+  const { error } = await supabase
+    .from('raid_schedules')
+    .update({ completed: false, completed_at: null })
+    .eq('id', scheduleId)
+
+  if (error) {
+    return { ok: false, error: '완료 취소 실패: ' + error.message }
+  }
+
+  revalidatePath('/guild/' + guildCode + '/raids/calendar')
+  revalidatePath('/guild/' + guildCode)
   return { ok: true }
 }
