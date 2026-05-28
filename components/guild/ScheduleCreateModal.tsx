@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createRaidSchedule } from '@/app/guild/[code]/raids/calendar/actions'
 
 type RaidOption = {
@@ -196,12 +197,12 @@ export default function ScheduleCreateModal({ open, date, guildCode, raids, onCl
               {raids.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
                   <p className="text-sm text-zinc-400">아직 등록된 레이드가 없어요.</p>
-                  
+                  <Link
                     href={'/guild/' + guildCode + '/raids/new'}
                     className="mt-2 inline-block text-sm font-medium text-violet-300 hover:underline"
                   >
                     레이드 도감에 먼저 등록하기
-                  </a>
+                  </Link>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
