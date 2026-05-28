@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendGuildWebhook, buildNoticeMessage } from "@/lib/discord";
 
 type NewPostInput = {
   title: string;
@@ -60,11 +61,27 @@ export async function createGuildPost(guildCode: string, input: NewPostInput) {
     return { success: false, error: error?.message ?? "등록 실패" };
   }
 
+  // ── 공지 알림 (공지글일 때만) ──
+  if (finalIsNotice) {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, main_character_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const authorName =
+        profile?.main_character_name || profile?.username || "운영진";
+      const content = buildNoticeMessage(input.title.trim(), authorName);
+      await sendGuildWebhook(guild.id, "notice", content);
+    } catch {
+      // 알림 실패는 글 작성을 막지 않음
+    }
+  }
+
   revalidatePath(`/guild/${code}/posts`);
   return { success: true, postId: inserted.id };
 }
 
-// 좋아요 토글 — 안 눌렀으면 추가, 이미 눌렀으면 취소
 export async function toggleGuildPostLike(guildCode: string, postId: string) {
   const supabase = await createClient();
 
@@ -82,7 +99,6 @@ export async function toggleGuildPostLike(guildCode: string, postId: string) {
     return { success: false, error: "글을 찾을 수 없습니다" };
   }
 
-  // 이미 좋아요 눌렀는지 확인
   const { data: existing } = await supabase
     .from("post_likes")
     .select("id")
@@ -93,7 +109,6 @@ export async function toggleGuildPostLike(guildCode: string, postId: string) {
   const current = post.like_count ?? 0;
 
   if (existing) {
-    // 취소
     await supabase.from("post_likes").delete().eq("id", existing.id);
     await supabase
       .from("posts")
@@ -103,7 +118,6 @@ export async function toggleGuildPostLike(guildCode: string, postId: string) {
     revalidatePath(`/guild/${guildCode.toUpperCase()}/posts/${postId}`);
     return { success: true, liked: false, likeCount: Math.max(0, current - 1) };
   } else {
-    // 추가
     const { error: insertError } = await supabase
       .from("post_likes")
       .insert({ post_id: postId, user_id: user.id });
