@@ -77,7 +77,7 @@ export async function equipGuildMark(
   return result;
 }
 
-// ── 이모티콘팩 장착/해제 (equipped_sticker_sets 배열 토글) ──
+// ── 이모티콘팩 장착/해제 ──
 export async function toggleStickerPack(
   guildCode: string,
   guildId: string,
@@ -88,8 +88,6 @@ export async function toggleStickerPack(
   if (!user) {
     return { success: false, error: "로그인이 필요합니다" };
   }
-
-  // 마스터/부마만
   const { data: member } = await supabase
     .from("guild_members")
     .select("role")
@@ -99,8 +97,6 @@ export async function toggleStickerPack(
   if (!member || !["master", "submaster"].includes(member.role)) {
     return { success: false, error: "마스터/부마스터만 장착할 수 있어요." };
   }
-
-  // 실제로 그 팩을 길드가 구매했는지 확인
   const { data: owned } = await supabase
     .from("purchases")
     .select("id")
@@ -111,38 +107,90 @@ export async function toggleStickerPack(
   if (!owned) {
     return { success: false, error: "보유하지 않은 팩이에요." };
   }
-
-  // 현재 장착 배열 읽기
   const { data: theme } = await supabase
     .from("guild_themes")
     .select("equipped_sticker_sets")
     .eq("guild_id", guildId)
     .maybeSingle();
-
   const current: string[] = Array.isArray(theme?.equipped_sticker_sets)
     ? (theme!.equipped_sticker_sets as string[])
     : [];
-
   let next: string[];
   if (current.includes(shopItemId)) {
-    next = current.filter((id) => id !== shopItemId); // 해제
+    next = current.filter((id) => id !== shopItemId);
   } else {
-    next = [...current, shopItemId]; // 장착
+    next = [...current, shopItemId];
   }
-
-  // upsert (guild_themes 행이 없을 수도 있으니)
   const { error } = await supabase
     .from("guild_themes")
     .upsert(
       { guild_id: guildId, equipped_sticker_sets: next },
       { onConflict: "guild_id" }
     );
-
   if (error) {
     return { success: false, error: `저장 실패: ${error.message}` };
   }
-
   revalidatePath(`/guild/${guildCode}/inventory`);
   revalidatePath(`/guild/${guildCode}/chat`);
   return { success: true, equipped: next.includes(shopItemId) };
+}
+
+// ── 길드 보관함 아이템 삭제 (마스터/부마, 환불 없음) ──
+export async function deleteGuildPurchase(
+  guildCode: string,
+  guildId: string,
+  purchaseId: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  // 마스터/부마 확인
+  const { data: member } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member || !["master", "submaster"].includes(member.role)) {
+    return { success: false, error: "마스터/부마스터만 삭제할 수 있어요." };
+  }
+
+  // 삭제 대상이 이 길드 것인지 확인
+  const { data: target } = await supabase
+    .from("purchases")
+    .select("id, item_id, guild_id")
+    .eq("id", purchaseId)
+    .maybeSingle();
+  if (!target || target.guild_id !== guildId) {
+    return { success: false, error: "해당 아이템을 찾을 수 없어요." };
+  }
+
+  // 장착 중인 마크면 먼저 해제
+  const { data: theme } = await supabase
+    .from("guild_themes")
+    .select("equipped_mark_id")
+    .eq("guild_id", guildId)
+    .maybeSingle();
+  if (theme?.equipped_mark_id === purchaseId) {
+    await supabase
+      .from("guild_themes")
+      .update({ equipped_mark_id: null })
+      .eq("guild_id", guildId);
+  }
+
+  // 삭제
+  const { error } = await supabase
+    .from("purchases")
+    .delete()
+    .eq("id", purchaseId);
+  if (error) {
+    return { success: false, error: `삭제 실패: ${error.message}` };
+  }
+
+  revalidatePath(`/guild/${guildCode}/inventory`);
+  revalidatePath(`/guild/${guildCode}`);
+  return { success: true };
 }
