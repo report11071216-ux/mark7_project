@@ -49,7 +49,6 @@ export default function BoardPreview({ posts }: Props) {
       ? posts
       : posts.filter((p) => p.category === activeCategory);
 
-  // 좋아요순 정렬 (공지 우선, 그다음 좋아요, 동점이면 최신)
   const sorted = [...filtered].sort((a, b) => {
     if (a.is_notice && !b.is_notice) return -1;
     if (!a.is_notice && b.is_notice) return 1;
@@ -60,7 +59,6 @@ export default function BoardPreview({ posts }: Props) {
   });
   const top10 = sorted.slice(0, 10);
 
-  // 2열로 분배 (왼쪽 0,2,4… 오른쪽 1,3,5…)
   const leftCol = top10.filter((_, i) => i % 2 === 0);
   const rightCol = top10.filter((_, i) => i % 2 === 1);
 
@@ -108,15 +106,15 @@ export default function BoardPreview({ posts }: Props) {
 
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
-      {/* 남색 제목띠 */}
-      <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
+      {/* 가벼운 헤더 */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-white" />
-          <h3 className="text-base font-bold text-white">광장 게시판</h3>
+          <MessageSquare className="w-4 h-4 text-violet-500" />
+          <h3 className="text-[15px] font-bold text-slate-900">광장 게시판</h3>
         </div>
         <Link
           href="/plaza/board"
-          className="text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-0.5"
+          className="text-xs font-medium text-slate-400 hover:text-slate-700 transition flex items-center gap-0.5"
         >
           전체 글
           <ChevronRight className="w-3.5 h-3.5" />
@@ -124,7 +122,7 @@ export default function BoardPreview({ posts }: Props) {
       </div>
 
       {/* 카테고리 탭 */}
-      <div className="flex gap-1 px-4 py-2.5 border-b border-slate-200 bg-slate-50">
+      <div className="flex gap-1 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value}
