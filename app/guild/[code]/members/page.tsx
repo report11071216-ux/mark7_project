@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClassRole } from "@/lib/lostark-classes";
 import MembersList, { type MemberRow } from "@/components/guild/MembersList";
-
+import { getNicknameColors } from "@/lib/nickname-color";
 export const dynamic = "force-dynamic";
 
 function startOfMonthISO(): string {
@@ -119,6 +119,8 @@ export default async function MembersPage({ params }: { params: { code: string }
     }
   }
 
+  // 멤버별 닉네임 색 (장착 카드 등급)
+  const nicknameColors = await getNicknameColors(userIds);
   function markOf(uid: string): string {
     const pr = profileMap[uid];
     if (!pr) return "";
@@ -154,9 +156,9 @@ export default async function MembersPage({ params }: { params: { code: string }
       raidCount: raidCount[m.user_id] || 0,
       markUrl: markOf(m.user_id),
       cardBgUrl: cardBgOf(m.user_id),
+      nicknameColor: nicknameColors[m.user_id] ?? null,
     };
   });
-
   return (
     <MembersList
       guildName={guild.name}
