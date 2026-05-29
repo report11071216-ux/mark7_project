@@ -66,12 +66,12 @@ function CardHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-800 shrink-0">
+    <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 shrink-0">
       <div className="flex items-center gap-1.5 min-w-0">
-        <Icon className="w-4 h-4 text-white shrink-0" />
-        <h3 className="text-sm font-bold text-white whitespace-nowrap">{title}</h3>
+        <Icon className="w-4 h-4 text-violet-500 shrink-0" />
+        <h3 className="text-sm font-bold text-slate-900 whitespace-nowrap">{title}</h3>
       </div>
-      {right && <div className="text-[11px] font-medium text-slate-300 shrink-0">{right}</div>}
+      {right && <div className="text-[11px] font-medium text-slate-400 shrink-0">{right}</div>}
     </div>
   );
 }
