@@ -44,6 +44,14 @@ function dateLabel(iso: string) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+// 같은 사람이 5분 내 연속으로 보낸 메시지인지 (헤더 생략 판단용)
+function isSameGroup(prev: ChatMessage | null, cur: ChatMessage): boolean {
+  if (!prev) return false;
+  if (prev.user_id !== cur.user_id) return false;
+  const gap = new Date(cur.created_at).getTime() - new Date(prev.created_at).getTime();
+  return gap < 5 * 60 * 1000;
+}
+
 export default function GuildChatRoom({
   guildId,
   guildCode,
@@ -122,14 +130,18 @@ export default function GuildChatRoom({
     }
   }
 
-  function renderAvatar(member: ChatMember | undefined, name: string) {
+  function renderAvatar(member: ChatMember | undefined, name: string, mine: boolean) {
     const img = member?.mark_url || member?.avatar_url || null;
     return (
-      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-violet-100">
+      <div
+        className={`w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center ${
+          mine ? "bg-violet-600" : "bg-violet-100"
+        }`}
+      >
         {img ? (
           <img src={img} alt={name} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-xs font-bold text-violet-700">
+          <span className={`text-xs font-bold ${mine ? "text-white" : "text-violet-700"}`}>
             {name[0]?.toUpperCase() ?? "?"}
           </span>
         )}
@@ -154,7 +166,7 @@ export default function GuildChatRoom({
 
       {/* 메시지 목록 */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
-        <div className="max-w-3xl mx-auto space-y-3">
+        <div className="max-w-3xl mx-auto">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center py-20">
               <div className="text-center">
@@ -164,14 +176,20 @@ export default function GuildChatRoom({
               </div>
             </div>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, i) => {
               const mine = msg.user_id === currentUserId;
               const sender = memberMap[msg.user_id];
-              const name = sender?.username ?? "알 수 없음";
+              const name = mine ? "나" : (sender?.username ?? "알 수 없음");
+
+              const prev = i > 0 ? messages[i - 1] : null;
+              const grouped = isSameGroup(prev, msg);
 
               const thisDate = dateLabel(msg.created_at);
               const showDate = thisDate !== lastDate;
               lastDate = thisDate;
+
+              // 날짜가 바뀌면 그룹 끊기
+              const headerHidden = grouped && !showDate;
 
               return (
                 <div key={msg.id}>
@@ -183,33 +201,32 @@ export default function GuildChatRoom({
                     </div>
                   )}
 
-                  {mine ? (
-                    <div className="flex justify-end">
-                      <div className="flex items-end gap-1.5 max-w-[75%]">
-                        <span className="text-[10px] text-slate-400 shrink-0">
-                          {formatTime(msg.created_at)}
-                        </span>
-                        <div className="rounded-2xl rounded-br-sm px-3.5 py-2 text-sm break-words bg-violet-600 text-white">
-                          {msg.content}
-                        </div>
-                      </div>
+                  <div className={`flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
+                    {/* 아바타 자리 — 그룹 연속이면 빈칸으로 자리만 */}
+                    <div className="w-9 shrink-0">
+                      {!headerHidden && renderAvatar(sender, name, mine)}
                     </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      {renderAvatar(sender, name)}
-                      <div className="min-w-0 max-w-[75%]">
-                        <p className="text-[11px] text-slate-500 mb-0.5">{name}</p>
-                        <div className="flex items-end gap-1.5">
-                          <div className="rounded-2xl rounded-tl-sm px-3.5 py-2 text-sm break-words bg-white border border-slate-200 text-slate-800">
-                            {msg.content}
-                          </div>
-                          <span className="text-[10px] text-slate-400 shrink-0">
+
+                    <div className="min-w-0 flex-1">
+                      {!headerHidden && (
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span
+                            className={`text-sm font-bold ${
+                              mine ? "text-violet-700" : "text-slate-800"
+                            }`}
+                          >
+                            {name}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
                             {formatTime(msg.created_at)}
                           </span>
                         </div>
-                      </div>
+                      )}
+                      <p className="text-sm text-slate-700 break-words leading-relaxed">
+                        {msg.content}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })
