@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Pin, ChevronRight, Eye } from "lucide-react";
-import { getRelativeTime } from "@/lib/utils";
+import { MessageSquare, Pin, ChevronRight, Heart } from "lucide-react";
 
 export type PlazaPost = {
   id: string;
@@ -16,6 +15,7 @@ export type PlazaPost = {
   guild_code: string;
   guild_server?: string | null;
   author_name: string;
+  like_count?: number;
 };
 
 type Props = {
@@ -49,15 +49,65 @@ export default function BoardPreview({ posts }: Props) {
       ? posts
       : posts.filter((p) => p.category === activeCategory);
 
+  // 좋아요순 정렬 (공지 우선, 그다음 좋아요, 동점이면 최신)
   const sorted = [...filtered].sort((a, b) => {
     if (a.is_notice && !b.is_notice) return -1;
     if (!a.is_notice && b.is_notice) return 1;
+    const la = a.like_count ?? 0;
+    const lb = b.like_count ?? 0;
+    if (lb !== la) return lb - la;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
-  const top6 = sorted.slice(0, 6);
+  const top10 = sorted.slice(0, 10);
+
+  // 2열로 분배 (왼쪽 0,2,4… 오른쪽 1,3,5…)
+  const leftCol = top10.filter((_, i) => i % 2 === 0);
+  const rightCol = top10.filter((_, i) => i % 2 === 1);
+
+  function renderRow(post: PlazaPost, isLast: boolean) {
+    return (
+      <Link
+        key={post.id}
+        href={`/plaza/board/${post.id}`}
+        className={
+          "flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition group " +
+          (isLast ? "" : "border-b border-slate-100")
+        }
+      >
+        <span className="shrink-0">
+          {post.is_notice ? (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+              <Pin className="w-2.5 h-2.5" />
+              공지
+            </span>
+          ) : post.category ? (
+            <span
+              className={
+                "inline-block px-1.5 py-0.5 rounded text-[10px] font-bold " +
+                (CATEGORY_STYLE[post.category] ?? "bg-slate-100 text-slate-600")
+              }
+            >
+              {CATEGORY_LABEL[post.category] ?? post.category}
+            </span>
+          ) : (
+            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-400">
+              일반
+            </span>
+          )}
+        </span>
+        <span className="flex-1 min-w-0 truncate text-[13px] text-slate-800 group-hover:text-slate-600 transition">
+          {post.title}
+        </span>
+        <span className="shrink-0 flex items-center gap-0.5 text-[11px] text-slate-400">
+          <Heart className="w-3 h-3" />
+          {post.like_count ?? 0}
+        </span>
+      </Link>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden h-full flex flex-col">
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
       {/* 남색 제목띠 */}
       <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
         <div className="flex items-center gap-2">
@@ -79,84 +129,33 @@ export default function BoardPreview({ posts }: Props) {
           <button
             key={cat.value}
             onClick={() => setActiveCategory(cat.value)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition ${
-              activeCategory === cat.value
+            className={
+              "px-3 py-1.5 rounded-lg text-[13px] font-bold transition " +
+              (activeCategory === cat.value
                 ? "bg-slate-800 text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
-            }`}
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200")
+            }
           >
             {cat.label}
           </button>
         ))}
       </div>
 
-      {/* 게시판 헤더 행 */}
-      <div className="grid grid-cols-[auto_1fr_auto] gap-3 px-5 py-2 border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-        <span>구분</span>
-        <span>제목</span>
-        <span>작성</span>
-      </div>
-
-      <div className="divide-y divide-slate-100 flex-1">
-        {top6.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 text-sm">
-            게시글이 없습니다
+      {/* 2열 리스트 */}
+      {top10.length === 0 ? (
+        <div className="p-10 text-center text-slate-400 text-sm">
+          게시글이 없습니다
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="md:border-r border-slate-100">
+            {leftCol.map((p, i) => renderRow(p, i === leftCol.length - 1))}
           </div>
-        ) : (
-          top6.map((post) => (
-            <Link
-              key={post.id}
-              href={`/plaza/board/${post.id}`}
-              className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-5 py-3 transition hover:bg-slate-50 group"
-            >
-              <span className="shrink-0">
-                {post.is_notice ? (
-                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-700">
-                    <Pin className="w-3 h-3" />
-                    공지
-                  </span>
-                ) : post.category ? (
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
-                      CATEGORY_STYLE[post.category] ?? "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {CATEGORY_LABEL[post.category] ?? post.category}
-                  </span>
-                ) : (
-                  <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-400">
-                    일반
-                  </span>
-                )}
-              </span>
-              <div className="min-w-0">
-                <p className="text-[15px] text-slate-900 truncate group-hover:text-slate-600 transition font-medium">
-                  {post.title}
-                </p>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                  <span className="truncate">{post.author_name}</span>
-                  {post.guild_server ? (
-                    <>
-                      <span>·</span>
-                      <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100 shrink-0">
-                        [{post.guild_server}]
-                      </span>
-                    </>
-                  ) : null}
-                  <span>·</span>
-                  <span className="flex items-center gap-0.5">
-                    <Eye className="w-3 h-3" />
-                    {post.view_count}
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs text-slate-400 shrink-0 text-right">
-                {getRelativeTime(post.created_at)}
-              </span>
-            </Link>
-          ))
-        )}
-      </div>
+          <div>
+            {rightCol.map((p, i) => renderRow(p, i === rightCol.length - 1))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
