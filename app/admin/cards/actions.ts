@@ -79,3 +79,25 @@ export async function deleteCard(cardId: string): Promise<Result> {
   if (error) return { ok: false, error: `삭제 실패: ${error.message}` };
   return { ok: true, archived: false };
 }
+
+// ── 11연 패키지 가격 설정 ──
+export async function savePackPrice(price: number, active: boolean): Promise<Result> {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  if (!Number.isFinite(price) || price < 0) {
+    return { ok: false, error: "가격이 올바르지 않아요." };
+  }
+
+  const { error } = await auth.supabase
+    .from("platform_settings")
+    .upsert(
+      { key: "card_pack", value: { price: Math.floor(price), active } },
+      { onConflict: "key" }
+    );
+  if (error) return { ok: false, error: `저장 실패: ${error.message}` };
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/admin/cards");
+  return { ok: true };
+}
