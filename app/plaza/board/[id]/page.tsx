@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight, Eye, Pin, Trash2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
 import CommentForm from "./CommentForm";
+import PostLikeButton from "./PostLikeButton";
 import { deletePost } from "../actions";
 
 type Props = {
@@ -11,9 +12,15 @@ type Props = {
 };
 
 const CATEGORY_STYLE: { [key: string]: string } = {
-  자유: "bg-slate-100 text-slate-600",
-  길드모집: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-  질문: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+  free: "bg-slate-100 text-slate-600",
+  recruit: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
+  question: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+};
+
+const CATEGORY_LABEL: { [key: string]: string } = {
+  free: "자유",
+  recruit: "모집",
+  question: "질문",
 };
 
 export default async function BoardDetailPage({ params }: Props) {
@@ -33,12 +40,24 @@ export default async function BoardDetailPage({ params }: Props) {
 
   const user = userResult.data.user;
 
-  const [commentsResult] = await Promise.all([
+  const [commentsResult, likeCountResult, myLikeResult] = await Promise.all([
     supabase
       .from("comments")
       .select("id, content, created_at, author_id, profiles(username, avatar_url)")
       .eq("post_id", params.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("post_likes")
+      .select("id", { count: "exact", head: true })
+      .eq("post_id", params.id),
+    user
+      ? supabase
+          .from("post_likes")
+          .select("id")
+          .eq("post_id", params.id)
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase
       .from("posts")
       .update({ view_count: (post.view_count ?? 0) + 1 })
@@ -46,6 +65,8 @@ export default async function BoardDetailPage({ params }: Props) {
   ]);
 
   const comments = commentsResult.data ?? [];
+  const likeCount = likeCountResult.count ?? 0;
+  const myLiked = !!myLikeResult.data;
   const isAuthor = user?.id === post.author_id;
   const profiles = post.profiles as any;
 
@@ -79,7 +100,7 @@ export default async function BoardDetailPage({ params }: Props) {
                   CATEGORY_STYLE[post.category] ?? "bg-slate-100 text-slate-600"
                 }`}
               >
-                {post.category}
+                {CATEGORY_LABEL[post.category] ?? post.category}
               </span>
             )}
           </div>
@@ -128,6 +149,16 @@ export default async function BoardDetailPage({ params }: Props) {
 
           <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
             {post.content}
+          </div>
+
+          {/* 좋아요 */}
+          <div className="flex justify-center pt-6 mt-6 border-t border-slate-100">
+            <PostLikeButton
+              postId={params.id}
+              initialLiked={myLiked}
+              initialCount={likeCount}
+              isLoggedIn={!!user}
+            />
           </div>
         </div>
 
