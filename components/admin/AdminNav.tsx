@@ -7,16 +7,16 @@ import {
   SlidersHorizontal,
   Megaphone,
   ShoppingBag,
+  Smile,
 } from "lucide-react";
-
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/guardian", label: "가디언 토벌", icon: Swords },
   { href: "/admin/shop", label: "상품 관리", icon: ShoppingBag },
+  { href: "/admin/stickers", label: "이모티콘팩", icon: Smile },
   { href: "/admin/settings", label: "플랫폼 설정", icon: SlidersHorizontal },
   { href: "/admin/announcement", label: "공지 배너", icon: Megaphone },
 ];
-
 export default function AdminNav() {
   const pathname = usePathname();
   return (
