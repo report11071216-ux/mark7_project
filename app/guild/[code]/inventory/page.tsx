@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import GuildInventory, {
   type InventoryItem,
   type StickerPack,
+  type BackgroundItem,
 } from "@/components/guild/GuildInventory";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default async function GuildInventoryPage({ params }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("guild_themes")
-      .select("equipped_mark_id, equipped_sticker_sets")
+      .select("equipped_mark_id, equipped_sticker_sets, equipped_background_url")
       .eq("guild_id", guild.id)
       .maybeSingle(),
   ]);
@@ -61,7 +62,6 @@ export default async function GuildInventoryPage({ params }: Props) {
     image_url: p.item_id ? imageMap[p.item_id] ?? null : null,
   }));
 
-  // 확성기 아이템 (사용 기능용)
   const megaphoneItems: MegaphoneItem[] = rawPurchases
     .filter((p) => p.item_category === "확성기")
     .map((p) => ({
@@ -72,6 +72,23 @@ export default async function GuildInventoryPage({ params }: Props) {
       expires_at: p.expires_at,
       megaphone_message: p.megaphone_message,
     }));
+
+  // 배경 아이템 (구매한 길드배경)
+  const equippedBg = themeRow?.equipped_background_url ?? null;
+  const backgroundItems: BackgroundItem[] = [];
+  const seenBg = new Set<string>();
+  for (const p of rawPurchases) {
+    if (p.item_category !== "길드배경") continue;
+    const url = p.item_id ? imageMap[p.item_id] ?? null : null;
+    if (!url || seenBg.has(url)) continue;
+    seenBg.add(url);
+    backgroundItems.push({
+      purchase_id: p.id,
+      name: p.item_name,
+      image_url: url,
+      equipped: equippedBg === url,
+    });
+  }
 
   const equippedSets: string[] = Array.isArray(themeRow?.equipped_sticker_sets)
     ? (themeRow!.equipped_sticker_sets as string[]) : [];
@@ -116,6 +133,7 @@ export default async function GuildInventoryPage({ params }: Props) {
       equippedMarkId={themeRow?.equipped_mark_id ?? null}
       stickerPacks={stickerPacks}
       megaphoneItems={megaphoneItems}
+      backgroundItems={backgroundItems}
     />
   );
 }
