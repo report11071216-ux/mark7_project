@@ -1,31 +1,26 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import GuildInventory, { type InventoryItem } from "@/components/guild/GuildInventory";
-
+import GuildInventory, {
+  type InventoryItem,
+  type StickerPack,
+} from "@/components/guild/GuildInventory";
 export const dynamic = "force-dynamic";
-
 type Props = { params: { code: string } };
-
 export default async function GuildInventoryPage({ params }: Props) {
   const supabase = await createClient();
   const code = params.code.toUpperCase();
-
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds").select("id, name, code").eq("code", code).single(),
   ]);
-
   if (!user || !guild) notFound();
-
   const { data: membership } = await supabase
     .from("guild_members")
     .select("role")
     .eq("guild_id", guild.id)
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!membership) notFound();
-
   const [{ data: purchases }, { data: themeRow }] = await Promise.all([
     supabase
       .from("purchases")
@@ -35,18 +30,14 @@ export default async function GuildInventoryPage({ params }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("guild_themes")
-      .select("equipped_mark_id")
+      .select("equipped_mark_id, equipped_sticker_sets")
       .eq("guild_id", guild.id)
       .maybeSingle(),
   ]);
-
   const rawPurchases = purchases ?? [];
-
-  // 구매한 상품들의 이미지 가져오기
   const itemIds = Array.from(
     new Set(rawPurchases.map((p) => p.item_id).filter(Boolean))
   ) as string[];
-
   let imageMap: { [key: string]: string | null } = {};
   if (itemIds.length > 0) {
     const { data: shopItemsData } = await supabase
@@ -57,7 +48,6 @@ export default async function GuildInventoryPage({ params }: Props) {
       imageMap[it.id] = it.image_url;
     }
   }
-
   const items: InventoryItem[] = rawPurchases.map((p) => ({
     id: p.id,
     item_name: p.item_name,
@@ -70,8 +60,48 @@ export default async function GuildInventoryPage({ params }: Props) {
     image_url: p.item_id ? imageMap[p.item_id] ?? null : null,
   }));
 
-  const isStaff = membership.role === "master" || membership.role === "submaster";
+  // ── 이모티콘팩: 구매한 팩 + 각 팩의 이모티콘 5개 ──
+  const equippedSets: string[] = Array.isArray(themeRow?.equipped_sticker_sets)
+    ? (themeRow!.equipped_sticker_sets as string[])
+    : [];
 
+  // 구매한 것 중 이모티콘팩만 (item_id 기준 중복 제거)
+  const packPurchases = rawPurchases.filter((p) => p.item_category === "이모티콘팩");
+  const packItemIds = Array.from(
+    new Set(packPurchases.map((p) => p.item_id).filter(Boolean))
+  ) as string[];
+
+  let stickerPacks: StickerPack[] = [];
+  if (packItemIds.length > 0) {
+    const { data: stickerRows } = await supabase
+      .from("stickers")
+      .select("shop_item_id, image_url, sort_order")
+      .in("shop_item_id", packItemIds)
+      .order("sort_order", { ascending: true });
+
+    // 팩별로 이모티콘 묶기
+    const byPack: { [key: string]: string[] } = {};
+    for (const s of stickerRows ?? []) {
+      if (!byPack[s.shop_item_id]) byPack[s.shop_item_id] = [];
+      byPack[s.shop_item_id].push(s.image_url);
+    }
+
+    // 팩 메타 (이름/대표이미지)는 이미 구매행에 있음
+    const seen = new Set<string>();
+    for (const p of packPurchases) {
+      if (!p.item_id || seen.has(p.item_id)) continue;
+      seen.add(p.item_id);
+      stickerPacks.push({
+        shop_item_id: p.item_id,
+        name: p.item_name,
+        cover_url: imageMap[p.item_id] ?? null,
+        stickers: byPack[p.item_id] ?? [],
+        equipped: equippedSets.includes(p.item_id),
+      });
+    }
+  }
+
+  const isStaff = membership.role === "master" || membership.role === "submaster";
   return (
     <GuildInventory
       guildCode={guild.code}
@@ -80,6 +110,7 @@ export default async function GuildInventoryPage({ params }: Props) {
       items={items}
       isStaff={isStaff}
       equippedMarkId={themeRow?.equipped_mark_id ?? null}
+      stickerPacks={stickerPacks}
     />
   );
 }
