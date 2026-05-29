@@ -90,3 +90,42 @@ export async function uploadGuildBanner(
 
   return { ok: true, url: pub.publicUrl };
 }
+// ── 카드 스타일 저장 (solid / glass-light / glass-dark) ──
+export async function saveCardStyle(
+  guildId: string,
+  guildCode: string,
+  cardStyle: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "로그인이 필요합니다" };
+
+  const { data: member } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member || !["master", "submaster"].includes(member.role)) {
+    return { success: false, error: "마스터/부마스터만 변경할 수 있어요." };
+  }
+
+  const valid = ["solid", "glass-light", "glass-dark"];
+  if (!valid.includes(cardStyle)) {
+    return { success: false, error: "올바르지 않은 스타일이에요." };
+  }
+
+  const { error } = await supabase
+    .from("guild_themes")
+    .upsert(
+      { guild_id: guildId, card_style: cardStyle },
+      { onConflict: "guild_id" }
+    );
+  if (error) {
+    return { success: false, error: `저장 실패: ${error.message}` };
+  }
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/guild/${guildCode}`);
+  return { success: true };
+}
