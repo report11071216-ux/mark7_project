@@ -22,12 +22,12 @@ type Post = {
 type Props = {
   guildCode: string;
   post: Post;
+  authorColor: string | null;
   isAuthor: boolean;
   alreadyLiked: boolean;
 };
 
-export default function GuildPostDetail({ guildCode, post, isAuthor, alreadyLiked }: Props) {
-  const router = useRouter();
+export default function GuildPostDetail({ guildCode, post, authorColor, isAuthor, alreadyLiked }: Props) {
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [liked, setLiked] = useState(alreadyLiked);
   const [isPending, startTransition] = useTransition();
@@ -101,7 +101,7 @@ export default function GuildPostDetail({ guildCode, post, isAuthor, alreadyLike
           )}
           <h1 className="text-lg font-bold text-white leading-snug">{post.title}</h1>
           <div className="flex items-center gap-3 mt-2 text-[11px] font-mono text-muted-foreground">
-            <span>{post.author_name}</span>
+            <span style={authorColor ? { color: authorColor } : undefined} className={authorColor ? "font-bold" : ""}>{post.author_name}</span>
             <span>{getRelativeTime(post.created_at)}</span>
             <span className="flex items-center gap-0.5">
               <Eye className="w-3 h-3" />
