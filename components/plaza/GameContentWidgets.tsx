@@ -66,12 +66,12 @@ function CardHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
-      <div className="flex items-center gap-2">
-        <Icon className="w-5 h-5 text-white" />
-        <h3 className="text-base font-bold text-white">{title}</h3>
+    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-800 shrink-0">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <Icon className="w-4 h-4 text-white shrink-0" />
+        <h3 className="text-sm font-bold text-white whitespace-nowrap">{title}</h3>
       </div>
-      {right && <div className="text-xs font-medium text-slate-300">{right}</div>}
+      {right && <div className="text-[11px] font-medium text-slate-300 shrink-0">{right}</div>}
     </div>
   );
 }
@@ -130,7 +130,7 @@ function TimedContentBody({
   );
 }
 
-// ─── 카오스게이트 전용 (첫 1개 + 외 N개 지역 표기) ───
+// ─── 카오스게이트 전용 ───
 function ChaosGateBody({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -199,9 +199,9 @@ function AdventureIslandWidget({ items }: { items: CalendarContent[] }) {
   }));
 
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
-      <CardHeader icon={Map} title="오늘의 모험섬" />
-      <div className="p-4">
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col h-full">
+      <CardHeader icon={Map} title="모험섬" />
+      <div className="p-4 flex-1">
         <AdventureIslandList items={islandList} />
       </div>
     </div>
@@ -221,13 +221,13 @@ function GuardianRaidWidget({
   const currentName = GUARDIAN_ORDER[guardianIndex] ?? null;
 
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col h-full">
       <CardHeader
         icon={Swords}
-        title="이번 주 가디언"
+        title="가디언"
         right={currentName ? `${guardianIndex + 1}/${GUARDIAN_ORDER.length}` : undefined}
       />
-      <div className="p-4">
+      <div className="p-4 flex-1">
         {!currentName ? (
           <p className="text-xs text-slate-400 text-center py-4">
             가디언 정보가 없어요
@@ -249,7 +249,7 @@ function GuardianRaidWidget({
             </div>
 
             {weaknesses.length > 0 && (
-              <div className="mb-3">
+              <div>
                 <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
                   취약속성
                 </p>
@@ -266,23 +266,6 @@ function GuardianRaidWidget({
                 </div>
               </div>
             )}
-
-            <div className="flex gap-1 flex-wrap">
-              {GUARDIAN_ORDER.map((name, i) => (
-                <span
-                  key={name}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition ${
-                    i === guardianIndex
-                      ? "bg-slate-800 text-white"
-                      : i < guardianIndex
-                      ? "bg-slate-100 text-slate-400 line-through"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {name}
-                </span>
-              ))}
-            </div>
           </div>
         )}
       </div>
@@ -293,9 +276,9 @@ function GuardianRaidWidget({
 // ─── 필드보스 ───
 function FieldBossWidget({ items }: { items: CalendarContent[] }) {
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
-      <CardHeader icon={Skull} title="오늘의 필드보스" />
-      <div className="p-4">
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col h-full">
+      <CardHeader icon={Skull} title="필드보스" />
+      <div className="p-4 flex-1">
         <TimedContentBody items={items} emptyText="오늘 필드보스 정보가 없어요" />
       </div>
     </div>
@@ -305,9 +288,9 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
 // ─── 카오스게이트 ───
 function ChaosGateWidget({ items }: { items: CalendarContent[] }) {
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col">
-      <CardHeader icon={Aperture} title="오늘의 카오스게이트" />
-      <div className="p-4">
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col h-full">
+      <CardHeader icon={Aperture} title="카오스게이트" />
+      <div className="p-4 flex-1">
         <ChaosGateBody items={items} />
       </div>
     </div>
@@ -338,7 +321,7 @@ export default async function GameContentWidgets() {
   const chaosGates = calendar.filter((c) => c.CategoryName?.includes("카오스"));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
       <AdventureIslandWidget items={adventures} />
       <GuardianRaidWidget guardianIndex={guardianIndex} imageUrl={guardianImageUrl} weaknesses={currentWeaknesses} />
       <FieldBossWidget items={fieldBosses} />
