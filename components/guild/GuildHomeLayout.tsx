@@ -71,13 +71,14 @@ export default function GuildHomeLayout({
 
   return (
     <div className="min-h-screen relative" style={hasBg ? undefined : { backgroundColor }}>
-      {/* 배경 이미지 레이어 (장착 시) */}
+      {/* 배경 이미지 레이어 (장착 시) — 콘텐츠 영역 안에만 (사이드바 안 덮음) */}
       {hasBg && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <img
             src={equippedBackgroundUrl}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full object-cover"
+            style={{ position: "sticky", top: 0, height: "100vh" }}
           />
           {/* 가독성 오버레이: 배경을 살짝 눌러서 카드가 잘 떠 보이게 */}
           <div className="absolute inset-0 bg-slate-100/82 backdrop-blur-[2px]" />
