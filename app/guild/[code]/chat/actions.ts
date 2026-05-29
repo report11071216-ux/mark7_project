@@ -13,22 +13,22 @@ type MessageRow = {
 type SendResult = { ok: true; message: MessageRow } | { ok: false; error: string };
 
 type MembershipCtx =
-  | { error: string }
-  | { error?: undefined; user: { id: string }; guildId: string; supabase: Awaited<ReturnType<typeof createClient>> };
+  | { ok: false; error: string }
+  | { ok: true; user: { id: string }; guildId: string; supabase: Awaited<ReturnType<typeof createClient>> };
 
 async function getGuildMembership(guildCode: string): Promise<MembershipCtx> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "로그인이 필요해요." };
+  if (!user) return { ok: false, error: "로그인이 필요해요." };
   const code = guildCode.toUpperCase();
   const { data: guild } = await supabase
     .from("guilds").select("id").eq("code", code).maybeSingle();
-  if (!guild) return { error: "길드를 찾을 수 없어요." };
+  if (!guild) return { ok: false, error: "길드를 찾을 수 없어요." };
   const { data: membership } = await supabase
     .from("guild_members").select("role")
     .eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle();
-  if (!membership) return { error: "이 길드의 멤버가 아니에요." };
-  return { user, guildId: guild.id, supabase };
+  if (!membership) return { ok: false, error: "이 길드의 멤버가 아니에요." };
+  return { ok: true, user, guildId: guild.id, supabase };
 }
 
 export async function sendMessage(guildCode: string, content: string): Promise<SendResult> {
@@ -37,7 +37,7 @@ export async function sendMessage(guildCode: string, content: string): Promise<S
   if (text.length > 1000) return { ok: false, error: "메시지가 너무 길어요. (최대 1000자)" };
 
   const ctx = await getGuildMembership(guildCode);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: inserted, error } = await ctx.supabase
     .from("guild_messages")
@@ -55,7 +55,7 @@ export async function sendSticker(guildCode: string, stickerUrl: string): Promis
   if (!url) return { ok: false, error: "이모티콘이 올바르지 않아요." };
 
   const ctx = await getGuildMembership(guildCode);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  if (!ctx.ok) return { ok: false, error: ctx.error };
 
   // 장착된 팩의 이모티콘만 전송 허용 (검증)
   const { data: theme } = await ctx.supabase
