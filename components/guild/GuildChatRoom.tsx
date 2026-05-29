@@ -3,14 +3,16 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import toast from "react-hot-toast";
-import { MessageCircle, Send, Trash2, SmilePlus } from "lucide-react";
-import { sendMessage, deleteMessage, toggleReaction } from "@/app/guild/[code]/chat/actions";
+import { MessageCircle, Send, Trash2, SmilePlus, Smile } from "lucide-react";
+import { sendMessage, sendSticker, deleteMessage, toggleReaction } from "@/app/guild/[code]/chat/actions";
 
 export type ChatMessage = {
   id: string;
   user_id: string;
   content: string;
   created_at: string;
+  message_type: string;
+  sticker_url: string | null;
 };
 
 export type ChatMember = {
@@ -20,12 +22,7 @@ export type ChatMember = {
   mark_url: string | null;
 };
 
-type Reaction = {
-  id: string;
-  message_id: string;
-  user_id: string;
-  emoji: string;
-};
+type Reaction = { id: string; message_id: string; user_id: string; emoji: string; };
 
 type Props = {
   guildId: string;
@@ -34,6 +31,7 @@ type Props = {
   currentUserId: string;
   members: ChatMember[];
   initialMessages: ChatMessage[];
+  availableStickers: string[];
 };
 
 const EMOJI_SET = ["👍", "❤️", "😂", "🎉", "😮", "😢", "🔥", "👏", "💪", "🙏"];
@@ -47,12 +45,10 @@ function formatTime(iso: string) {
   if (h === 0) h = 12;
   return `${ampm} ${h}:${String(m).padStart(2, "0")}`;
 }
-
 function dateLabel(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
-
 function isSameGroup(prev: ChatMessage | null, cur: ChatMessage): boolean {
   if (!prev) return false;
   if (prev.user_id !== cur.user_id) return false;
@@ -61,12 +57,7 @@ function isSameGroup(prev: ChatMessage | null, cur: ChatMessage): boolean {
 }
 
 export default function GuildChatRoom({
-  guildId,
-  guildCode,
-  guildName,
-  currentUserId,
-  members,
-  initialMessages,
+  guildId, guildCode, guildName, currentUserId, members, initialMessages, availableStickers,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [reactions, setReactions] = useState<Reaction[]>([]);
@@ -74,6 +65,7 @@ export default function GuildChatRoom({
   const [sending, setSending] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [stickerOpen, setStickerOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -84,80 +76,61 @@ export default function GuildChatRoom({
   }, [members]);
 
   const [supabase] = useState(() =>
-    createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   );
 
-  // 초기 반응 로드
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const ids = messages.map((m) => m.id);
       if (ids.length === 0) return;
       const { data } = await supabase
-        .from("message_reactions")
-        .select("id, message_id, user_id, emoji")
-        .in("message_id", ids);
+        .from("message_reactions").select("id, message_id, user_id, emoji").in("message_id", ids);
       if (!cancelled && data) setReactions(data as Reaction[]);
     }
     load();
     return () => { cancelled = true; };
-    // messages 길이가 바뀔 때만 다시 (초기/새 메시지)
   }, [supabase, messages.length]);
 
-  // 메시지 realtime
   useEffect(() => {
     const channel = supabase
       .channel(`guild-chat-room-${guildId}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "guild_messages", filter: `guild_id=eq.${guildId}` },
         (payload) => {
           const row = payload.new as ChatMessage;
           setMessages((prev) => prev.some((m) => m.id === row.id) ? prev : [...prev, row]);
-        }
-      )
-      .on(
-        "postgres_changes",
+        })
+      .on("postgres_changes",
         { event: "DELETE", schema: "public", table: "guild_messages", filter: `guild_id=eq.${guildId}` },
         (payload) => {
           const removed = payload.old as { id: string };
           setMessages((prev) => prev.filter((m) => m.id !== removed.id));
-        }
-      )
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, guildId]);
 
-  // 반응 realtime (전체 구독 후 현재 메시지 것만 반영)
   useEffect(() => {
     const channel = supabase
       .channel(`guild-reactions-${guildId}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "message_reactions" },
         (payload) => {
           const row = payload.new as Reaction;
           setReactions((prev) => prev.some((r) => r.id === row.id) ? prev : [...prev, row]);
-        }
-      )
-      .on(
-        "postgres_changes",
+        })
+      .on("postgres_changes",
         { event: "DELETE", schema: "public", table: "message_reactions" },
         (payload) => {
           const removed = payload.old as { id: string };
           setReactions((prev) => prev.filter((r) => r.id !== removed.id));
-        }
-      )
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, guildId]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   function autoGrow() {
     const ta = taRef.current;
@@ -176,9 +149,15 @@ export default function GuildChatRoom({
       setInput("");
       if (taRef.current) taRef.current.style.height = "auto";
       setMessages((prev) => prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]);
-    } else {
-      toast.error(res.error);
-    }
+    } else { toast.error(res.error); }
+  }
+
+  async function handleSendSticker(url: string) {
+    setStickerOpen(false);
+    const res = await sendSticker(guildCode, url);
+    if (res.ok) {
+      setMessages((prev) => prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]);
+    } else { toast.error(res.error); }
   }
 
   async function handleDelete(id: string) {
@@ -186,58 +165,40 @@ export default function GuildChatRoom({
     setDeletingId(id);
     const res = await deleteMessage(id);
     setDeletingId(null);
-    if (res.ok) {
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-    } else {
-      toast.error(res.error);
-    }
+    if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== id));
+    else toast.error(res.error);
   }
 
   async function handleReact(messageId: string, emoji: string) {
     setPickerFor(null);
-    // 낙관적 토글
     const mineExists = reactions.some(
       (r) => r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji
     );
     if (mineExists) {
       setReactions((prev) => prev.filter(
-        (r) => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji)
-      ));
+        (r) => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji)));
     } else {
-      setReactions((prev) => [
-        ...prev,
-        { id: `tmp-${Date.now()}`, message_id: messageId, user_id: currentUserId, emoji },
-      ]);
+      setReactions((prev) => [...prev,
+        { id: `tmp-${Date.now()}`, message_id: messageId, user_id: currentUserId, emoji }]);
     }
     const res = await toggleReaction(messageId, emoji);
-    if (!res.ok) {
-      toast.error(res.error);
-    }
+    if (!res.ok) toast.error(res.error);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
   function renderAvatar(member: ChatMember | undefined, name: string, mine: boolean) {
     const img = member?.mark_url || member?.avatar_url || null;
     return (
       <div className={`w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center ${mine ? "bg-violet-600" : "bg-violet-100"}`}>
-        {img ? (
-          <img src={img} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          <span className={`text-xs font-bold ${mine ? "text-white" : "text-violet-700"}`}>
-            {name[0]?.toUpperCase() ?? "?"}
-          </span>
-        )}
+        {img ? <img src={img} alt={name} className="w-full h-full object-cover" />
+          : <span className={`text-xs font-bold ${mine ? "text-white" : "text-violet-700"}`}>{name[0]?.toUpperCase() ?? "?"}</span>}
       </div>
     );
   }
 
-  // 메시지별 반응 그룹핑: { emoji: { count, mine } }
   function reactionSummary(messageId: string) {
     const rs = reactions.filter((r) => r.message_id === messageId);
     const map: { [emoji: string]: { count: number; mine: boolean } } = {};
@@ -253,7 +214,6 @@ export default function GuildChatRoom({
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      {/* 헤더 */}
       <div className="shrink-0 flex items-center gap-3 px-4 md:px-6 py-3 bg-white border-b border-slate-200">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
           <MessageCircle className="w-5 h-5 text-white" />
@@ -264,8 +224,7 @@ export default function GuildChatRoom({
         </div>
       </div>
 
-      {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4" onClick={() => setPickerFor(null)}>
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4" onClick={() => { setPickerFor(null); setStickerOpen(false); }}>
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center py-20">
@@ -288,98 +247,67 @@ export default function GuildChatRoom({
               const headerHidden = grouped && !showDate;
               const summary = reactionSummary(msg.id);
               const summaryKeys = Object.keys(summary);
+              const isSticker = msg.message_type === "sticker" && msg.sticker_url;
 
               return (
                 <div key={msg.id}>
                   {showDate && (
                     <div className="flex justify-center my-4">
-                      <span className="text-[11px] text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">
-                        {thisDate}
-                      </span>
+                      <span className="text-[11px] text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">{thisDate}</span>
                     </div>
                   )}
-
                   <div className={`group flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
-                    <div className="w-9 shrink-0">
-                      {!headerHidden && renderAvatar(sender, name, mine)}
-                    </div>
-
+                    <div className="w-9 shrink-0">{!headerHidden && renderAvatar(sender, name, mine)}</div>
                     <div className="min-w-0 flex-1">
                       {!headerHidden && (
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className={`text-sm font-bold ${mine ? "text-violet-700" : "text-slate-800"}`}>
-                            {name}
-                          </span>
+                          <span className={`text-sm font-bold ${mine ? "text-violet-700" : "text-slate-800"}`}>{name}</span>
                           <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
                         </div>
                       )}
                       <div className="flex items-start gap-1.5">
-                        <p className="text-sm text-slate-700 break-words leading-relaxed whitespace-pre-wrap min-w-0">
-                          {msg.content}
-                        </p>
-                        {/* 액션 버튼 (호버 시) */}
+                        {isSticker ? (
+                          <img
+                            src={msg.sticker_url!}
+                            alt="이모티콘"
+                            className="object-contain"
+                            style={{ maxWidth: "120px", maxHeight: "120px" }}
+                          />
+                        ) : (
+                          <p className="text-sm text-slate-700 break-words leading-relaxed whitespace-pre-wrap min-w-0">{msg.content}</p>
+                        )}
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 relative">
-                          <button
-                            type="button"
+                          <button type="button"
                             onClick={(e) => { e.stopPropagation(); setPickerFor(pickerFor === msg.id ? null : msg.id); }}
-                            className="p-1 rounded text-slate-300 hover:text-violet-500 hover:bg-violet-50"
-                            aria-label="반응 추가"
-                            title="반응"
-                          >
+                            className="p-1 rounded text-slate-300 hover:text-violet-500 hover:bg-violet-50" aria-label="반응 추가" title="반응">
                             <SmilePlus className="w-3.5 h-3.5" />
                           </button>
                           {mine && (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(msg.id)}
-                              disabled={deletingId === msg.id}
-                              className="p-1 rounded text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50"
-                              aria-label="메시지 삭제"
-                              title="삭제"
-                            >
+                            <button type="button" onClick={() => handleDelete(msg.id)} disabled={deletingId === msg.id}
+                              className="p-1 rounded text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50" aria-label="메시지 삭제" title="삭제">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
-
-                          {/* 이모지 피커 */}
                           {pickerFor === msg.id && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute z-10 top-7 left-0 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex gap-0.5 flex-wrap w-56"
-                            >
+                            <div onClick={(e) => e.stopPropagation()}
+                              className="absolute z-10 top-7 left-0 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex gap-0.5 flex-wrap w-56">
                               {EMOJI_SET.map((em) => (
-                                <button
-                                  key={em}
-                                  type="button"
-                                  onClick={() => handleReact(msg.id, em)}
-                                  className="w-9 h-9 rounded-lg hover:bg-slate-100 text-lg flex items-center justify-center"
-                                >
-                                  {em}
-                                </button>
+                                <button key={em} type="button" onClick={() => handleReact(msg.id, em)}
+                                  className="w-9 h-9 rounded-lg hover:bg-slate-100 text-lg flex items-center justify-center">{em}</button>
                               ))}
                             </div>
                           )}
                         </div>
                       </div>
-
-                      {/* 반응 칩 */}
                       {summaryKeys.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {summaryKeys.map((em) => {
                             const info = summary[em];
                             return (
-                              <button
-                                key={em}
-                                type="button"
-                                onClick={() => handleReact(msg.id, em)}
+                              <button key={em} type="button" onClick={() => handleReact(msg.id, em)}
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${
-                                  info.mine
-                                    ? "bg-violet-50 border-violet-300 text-violet-700"
-                                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-                                }`}
-                              >
-                                <span>{em}</span>
-                                <span className="font-medium">{info.count}</span>
+                                  info.mine ? "bg-violet-50 border-violet-300 text-violet-700" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                                <span>{em}</span><span className="font-medium">{info.count}</span>
                               </button>
                             );
                           })}
@@ -397,7 +325,36 @@ export default function GuildChatRoom({
 
       {/* 입력창 */}
       <div className="shrink-0 px-4 md:px-6 py-3 bg-white border-t border-slate-200">
-        <div className="max-w-3xl mx-auto flex items-end gap-2">
+        <div className="max-w-3xl mx-auto flex items-end gap-2 relative">
+          {/* 이모티콘 버튼 */}
+          <div className="relative">
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); setStickerOpen((v) => !v); }}
+              className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 hover:text-violet-500 hover:border-violet-300"
+              aria-label="이모티콘">
+              <Smile className="w-5 h-5" />
+            </button>
+            {stickerOpen && (
+              <div onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-14 left-0 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 w-72 max-h-72 overflow-y-auto">
+                {availableStickers.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6 px-2">
+                    장착된 이모티콘팩이 없어요.<br />마스터가 보관함에서 장착하면 여기 떠요.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {availableStickers.map((url, i) => (
+                      <button key={i} type="button" onClick={() => handleSendSticker(url)}
+                        className="aspect-square rounded-lg hover:bg-slate-100 p-1 flex items-center justify-center">
+                        <img src={url} alt={`이모티콘 ${i + 1}`} className="max-w-full max-h-full object-contain" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <textarea
             ref={taRef}
             value={input}
@@ -409,13 +366,8 @@ export default function GuildChatRoom({
             className="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 leading-relaxed"
             style={{ maxHeight: "120px" }}
           />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={sending || input.trim().length === 0}
-            className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-violet-600 text-white transition-opacity disabled:opacity-40 hover:bg-violet-500"
-            aria-label="전송"
-          >
+          <button type="button" onClick={handleSend} disabled={sending || input.trim().length === 0}
+            className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-violet-600 text-white transition-opacity disabled:opacity-40 hover:bg-violet-500" aria-label="전송">
             <Send className="w-4 h-4" />
           </button>
         </div>
