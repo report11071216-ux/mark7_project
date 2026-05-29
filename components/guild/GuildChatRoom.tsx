@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import toast from "react-hot-toast";
-import { MessageCircle, Send } from "lucide-react";
-import { sendMessage } from "@/app/guild/[code]/chat/actions";
+import { MessageCircle, Send, Trash2 } from "lucide-react";
+import { sendMessage, deleteMessage } from "@/app/guild/[code]/chat/actions";
 
 export type ChatMessage = {
   id: string;
@@ -44,7 +44,6 @@ function dateLabel(iso: string) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-// 같은 사람이 5분 내 연속으로 보낸 메시지인지 (헤더 생략 판단용)
 function isSameGroup(prev: ChatMessage | null, cur: ChatMessage): boolean {
   if (!prev) return false;
   if (prev.user_id !== cur.user_id) return false;
@@ -63,7 +62,9 @@ export default function GuildChatRoom({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
   const memberMap = useMemo(() => {
     const map: { [key: string]: ChatMember } = {};
@@ -96,6 +97,19 @@ export default function GuildChatRoom({
           );
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "guild_messages",
+          filter: `guild_id=eq.${guildId}`,
+        },
+        (payload) => {
+          const removed = payload.old as { id: string };
+          setMessages((prev) => prev.filter((m) => m.id !== removed.id));
+        }
+      )
       .subscribe();
 
     return () => {
@@ -107,6 +121,13 @@ export default function GuildChatRoom({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  function autoGrow() {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  }
+
   async function handleSend() {
     const text = input.trim();
     if (!text || sending) return;
@@ -115,6 +136,7 @@ export default function GuildChatRoom({
     setSending(false);
     if (res.ok) {
       setInput("");
+      if (taRef.current) taRef.current.style.height = "auto";
       setMessages((prev) =>
         prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]
       );
@@ -123,7 +145,19 @@ export default function GuildChatRoom({
     }
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  async function handleDelete(id: string) {
+    if (deletingId) return;
+    setDeletingId(id);
+    const res = await deleteMessage(id);
+    setDeletingId(null);
+    if (res.ok) {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    } else {
+      toast.error(res.error);
+    }
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -188,7 +222,6 @@ export default function GuildChatRoom({
               const showDate = thisDate !== lastDate;
               lastDate = thisDate;
 
-              // 날짜가 바뀌면 그룹 끊기
               const headerHidden = grouped && !showDate;
 
               return (
@@ -201,8 +234,8 @@ export default function GuildChatRoom({
                     </div>
                   )}
 
-                  <div className={`flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
-                    {/* 아바타 자리 — 그룹 연속이면 빈칸으로 자리만 */}
+                  <div className={`group flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
+                    {/* 아바타 자리 */}
                     <div className="w-9 shrink-0">
                       {!headerHidden && renderAvatar(sender, name, mine)}
                     </div>
@@ -222,9 +255,24 @@ export default function GuildChatRoom({
                           </span>
                         </div>
                       )}
-                      <p className="text-sm text-slate-700 break-words leading-relaxed">
-                        {msg.content}
-                      </p>
+                      <div className="flex items-start gap-2">
+                        <p className="text-sm text-slate-700 break-words leading-relaxed whitespace-pre-wrap min-w-0">
+                          {msg.content}
+                        </p>
+                        {/* 내 메시지에만 삭제 버튼 (호버 시) */}
+                        {mine && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(msg.id)}
+                            disabled={deletingId === msg.id}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-1 rounded text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50"
+                            aria-label="메시지 삭제"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -237,21 +285,23 @@ export default function GuildChatRoom({
 
       {/* 입력창 */}
       <div className="shrink-0 px-4 md:px-6 py-3 bg-white border-t border-slate-200">
-        <div className="max-w-3xl mx-auto flex items-center gap-2">
-          <input
-            type="text"
+        <div className="max-w-3xl mx-auto flex items-end gap-2">
+          <textarea
+            ref={taRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => { setInput(e.target.value); autoGrow(); }}
             onKeyDown={onKeyDown}
-            placeholder="메시지를 입력하세요"
+            placeholder="메시지를 입력하세요  (Shift+Enter로 줄바꿈)"
             maxLength={1000}
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+            rows={1}
+            className="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 leading-relaxed"
+            style={{ maxHeight: "120px" }}
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={sending || input.trim().length === 0}
-            className="h-11 w-11 rounded-xl flex items-center justify-center bg-violet-600 text-white transition-opacity disabled:opacity-40 hover:bg-violet-500"
+            className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-violet-600 text-white transition-opacity disabled:opacity-40 hover:bg-violet-500"
             aria-label="전송"
           >
             <Send className="w-4 h-4" />
