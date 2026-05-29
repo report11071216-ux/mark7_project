@@ -17,6 +17,7 @@ export type ChatMember = {
   user_id: string;
   username: string;
   avatar_url: string | null;
+  mark_url: string | null;
 };
 
 type Props = {
@@ -121,7 +122,21 @@ export default function GuildChatRoom({
     }
   }
 
-  // 날짜 구분선 판단용
+  function renderAvatar(member: ChatMember | undefined, name: string) {
+    const img = member?.mark_url || member?.avatar_url || null;
+    return (
+      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-violet-100">
+        {img ? (
+          <img src={img} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs font-bold text-violet-700">
+            {name[0]?.toUpperCase() ?? "?"}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   let lastDate = "";
 
   return (
@@ -153,7 +168,6 @@ export default function GuildChatRoom({
               const mine = msg.user_id === currentUserId;
               const sender = memberMap[msg.user_id];
               const name = sender?.username ?? "알 수 없음";
-              const avatar = sender?.avatar_url ?? null;
 
               const thisDate = dateLabel(msg.created_at);
               const showDate = thisDate !== lastDate;
@@ -182,15 +196,7 @@ export default function GuildChatRoom({
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-violet-100">
-                        {avatar ? (
-                          <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xs font-bold text-violet-700">
-                            {name[0]?.toUpperCase() ?? "?"}
-                          </span>
-                        )}
-                      </div>
+                      {renderAvatar(sender, name)}
                       <div className="min-w-0 max-w-[75%]">
                         <p className="text-[11px] text-slate-500 mb-0.5">{name}</p>
                         <div className="flex items-end gap-1.5">
