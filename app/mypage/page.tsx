@@ -12,6 +12,7 @@ import SiblingCharacters from "@/components/mypage/SiblingCharacters";
 import ProfileEdit from "@/components/mypage/ProfileEdit";
 import AttendanceCalendar from "@/components/mypage/AttendanceCalendar";
 import MyInventory, { type MyInventoryItem } from "@/components/mypage/MyInventory";
+import AttendanceCardCollection from "@/components/mypage/AttendanceCardCollection";
 import { signOut } from "@/app/actions/auth";
 
 const ROLE_LABEL: { [key: string]: string } = {
@@ -37,7 +38,7 @@ export default async function MyPage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     .toISOString().split("T")[0];
 
-  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult, charactersResult] =
+  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult, charactersResult, cardDefsResult, userCardsResult, cardStateResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -71,6 +72,19 @@ export default async function MyPage() {
         .select("character_name, server_name, character_class, item_level, character_level, is_representative")
         .eq("user_id", user.id)
         .order("item_level", { ascending: false }),
+      supabase
+        .from("attendance_cards")
+        .select("grade, name, bonus_points, nickname_color, image_url, sort_order")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("user_cards")
+        .select("grade, count")
+        .eq("user_id", user.id),
+      supabase
+        .from("user_card_state")
+        .select("equipped_grade, draw_tickets, total_duplicates")
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
 
   const profile = profileResult.data;
@@ -135,6 +149,26 @@ export default async function MyPage() {
   const displayAvatarUrl = equippedMarkUrl ?? profile?.avatar_url ?? null;
 
   const hasSynced = !!profile?.main_character_name;
+
+  // ── 출석 카드 도감 데이터 ──
+  const cardDefs = (cardDefsResult.data ?? []) as any[];
+  const userCards = (userCardsResult.data ?? []) as any[];
+  const cardState = cardStateResult.data as { equipped_grade: string | null; draw_tickets: number; total_duplicates: number } | null;
+
+  const ownedMap: { [key: string]: number } = {};
+  for (const uc of userCards) {
+    ownedMap[uc.grade] = uc.count ?? 1;
+  }
+
+  const collectionCards = cardDefs.map((c) => ({
+    grade: c.grade,
+    name: c.name,
+    bonus_points: c.bonus_points ?? 0,
+    nickname_color: c.nickname_color ?? null,
+    image_url: c.image_url ?? null,
+    owned: ownedMap[c.grade] != null,
+    count: ownedMap[c.grade] ?? 0,
+  }));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -312,6 +346,14 @@ export default async function MyPage() {
             <AttendanceCalendar attendedDates={attendedDates} />
           </div>
         </div>
+
+        {/* 출석 카드 도감 */}
+        <AttendanceCardCollection
+          cards={collectionCards}
+          equippedGrade={cardState?.equipped_grade ?? null}
+          drawTickets={cardState?.draw_tickets ?? 0}
+          totalDuplicates={cardState?.total_duplicates ?? 0}
+        />
 
         <MyInventory
           items={myItems}
