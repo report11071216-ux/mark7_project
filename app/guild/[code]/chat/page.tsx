@@ -1,8 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import GuildChatRoom, { type ChatMessage, type ChatMember } from "@/components/guild/GuildChatRoom";
+import { getNicknameColors } from "@/lib/nickname-color";
+
 export const dynamic = "force-dynamic";
+
 type Props = { params: { code: string } };
+
 export default async function GuildChatPage({ params }: Props) {
   const supabase = await createClient();
   const code = params.code.toUpperCase();
@@ -71,11 +75,17 @@ export default async function GuildChatPage({ params }: Props) {
     if (!markId) return null;
     return markUrlByPurchase[markId] ?? null;
   };
+
+  // ── 멤버별 닉네임 색 (장착 카드 등급) ──
+  const memberIds = membersRaw.map((m) => m.user_id);
+  const nicknameColors = await getNicknameColors(memberIds);
+
   const members: ChatMember[] = membersRaw.map((m) => ({
     user_id: m.user_id,
     username: m.profiles?.username ?? "익명",
     avatar_url: m.profiles?.avatar_url ?? null,
     mark_url: markUrlOf(m.profiles?.equipped_mark_id),
+    nickname_color: nicknameColors[m.user_id] ?? null,
   }));
   const messages: ChatMessage[] = (rawMessages ?? []).map((m) => ({
     id: m.id,
@@ -86,7 +96,6 @@ export default async function GuildChatPage({ params }: Props) {
     sticker_url: (m as any).sticker_url ?? null,
   }));
 
-  // ── 장착된 이모티콘팩의 이모티콘 목록 (피커용) ──
   const equippedSets: string[] = Array.isArray(themeRow?.equipped_sticker_sets)
     ? (themeRow!.equipped_sticker_sets as string[]) : [];
   let availableStickers: string[] = [];
