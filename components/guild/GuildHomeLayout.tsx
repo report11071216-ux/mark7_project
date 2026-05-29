@@ -30,6 +30,8 @@ export default function GuildHomeLayout({
   showcaseUploadedToday,
 }: Props) {
   const { guild, totalAttendances, streak, primaryColor, backgroundColor, bannerUrl } = data;
+  const equippedBackgroundUrl = (data as any).equippedBackgroundUrl ?? null;
+  const hasBg = !!equippedBackgroundUrl;
 
   const isLight = isLightColor(backgroundColor);
   const textPrimary = isLight ? "#111827" : "#ffffff";
@@ -68,97 +70,119 @@ export default function GuildHomeLayout({
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor }}>
-      {/* 배너 (있을 때만) */}
-      {bannerUrl ? (
-        <div className="w-full" style={{ backgroundColor: cardBg }}>
-          <div className="max-w-[1200px] mx-auto px-4 pt-4">
-            <div className="rounded-2xl overflow-hidden border" style={{ borderColor: cardBorder }}>
-              <img
-                src={bannerUrl}
-                alt={`${guild.name} 배너`}
-                className="w-full h-32 sm:h-44 object-cover"
-              />
-            </div>
-          </div>
+    <div className="min-h-screen relative" style={hasBg ? undefined : { backgroundColor }}>
+      {/* 배경 이미지 레이어 (장착 시) */}
+      {hasBg && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <img
+            src={equippedBackgroundUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          {/* 가독성 오버레이: 배경을 살짝 눌러서 카드가 잘 떠 보이게 */}
+          <div className="absolute inset-0 bg-slate-100/82 backdrop-blur-[2px]" />
         </div>
-      ) : null}
+      )}
 
-      <div className="border-b shadow-sm" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="flex items-center gap-4 py-3">
-            <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
-              {guild.logo_url
-                ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
-                : <span className="text-white font-bold text-xl">{guild.name?.[0] ?? "G"}</span>
-              }
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <h1 className="text-lg font-bold leading-tight truncate" style={{ color: textPrimary }}>{guild.name}</h1>
-                {guild.server ? (
-                  <span
-                    className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0"
-                    style={{ backgroundColor: primaryColor + "22", color: primaryColor }}
-                  >
-                    [{guild.server}]
-                  </span>
-                ) : null}
+      {/* 실제 콘텐츠 (배경 위에) */}
+      <div className="relative z-10">
+        {/* 배너 (있을 때만) */}
+        {bannerUrl ? (
+          <div className="w-full">
+            <div className="max-w-[1200px] mx-auto px-4 pt-4">
+              <div className="rounded-2xl overflow-hidden border shadow-sm" style={{ borderColor: cardBorder }}>
+                <img
+                  src={bannerUrl}
+                  alt={`${guild.name} 배너`}
+                  className="w-full h-32 sm:h-44 object-cover"
+                />
               </div>
-              <p className="text-[11px] font-mono" style={{ color: primaryColor }}>{guild.code}</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-6 ml-auto">
-              {[
-                { label: "멤버", value: `${guild.member_count}/${guild.max_members}`, color: textPrimary },
-                { label: "포인트", value: formatNumber(guild.total_points), color: primaryColor },
-                { label: "내 출석", value: `${totalAttendances}일`, color: textPrimary },
-                { label: "연속", value: `${streak}일`, color: textPrimary },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <p className="text-[10px] uppercase" style={{ color: textSecondary }}>{s.label}</p>
-                  <p className="text-sm font-bold" style={{ color: s.color }}>{s.value}</p>
-                </div>
-              ))}
             </div>
           </div>
+        ) : null}
 
-          <div className="flex" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
-            {tabs.map((tab, i) =>
-              tab.href ? (
-                <Link
-                  key={tab.label}
-                  href={tab.href}
-                  className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
-                  style={{
-                    borderBottomColor: i === 0 ? primaryColor : "transparent",
-                    color: i === 0 ? primaryColor : textSecondary,
-                  }}
-                >
-                  {tab.label}
-                </Link>
-              ) : (
-                <div
-                  key={tab.label}
-                  className="px-5 py-2.5 text-sm font-medium border-b-2 cursor-default"
-                  style={{ borderBottomColor: "transparent", color: textSecondary, opacity: 0.4 }}
-                >
-                  {tab.label}
+        <div
+          className="border-b shadow-sm"
+          style={{
+            backgroundColor: hasBg ? "rgba(255,255,255,0.9)" : cardBg,
+            borderColor: cardBorder,
+          }}
+        >
+          <div className="max-w-[1200px] mx-auto px-4">
+            <div className="flex items-center gap-4 py-3">
+              <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
+                {guild.logo_url
+                  ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
+                  : <span className="text-white font-bold text-xl">{guild.name?.[0] ?? "G"}</span>
+                }
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h1 className="text-lg font-bold leading-tight truncate" style={{ color: textPrimary }}>{guild.name}</h1>
+                  {guild.server ? (
+                    <span
+                      className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0"
+                      style={{ backgroundColor: primaryColor + "22", color: primaryColor }}
+                    >
+                      [{guild.server}]
+                    </span>
+                  ) : null}
                 </div>
-              )
-            )}
+                <p className="text-[11px] font-mono" style={{ color: primaryColor }}>{guild.code}</p>
+              </div>
+              <div className="hidden sm:flex items-center gap-6 ml-auto">
+                {[
+                  { label: "멤버", value: `${guild.member_count}/${guild.max_members}`, color: textPrimary },
+                  { label: "포인트", value: formatNumber(guild.total_points), color: primaryColor },
+                  { label: "내 출석", value: `${totalAttendances}일`, color: textPrimary },
+                  { label: "연속", value: `${streak}일`, color: textPrimary },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p className="text-[10px] uppercase" style={{ color: textSecondary }}>{s.label}</p>
+                    <p className="text-sm font-bold" style={{ color: s.color }}>{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
+              {tabs.map((tab, i) =>
+                tab.href ? (
+                  <Link
+                    key={tab.label}
+                    href={tab.href}
+                    className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
+                    style={{
+                      borderBottomColor: i === 0 ? primaryColor : "transparent",
+                      color: i === 0 ? primaryColor : textSecondary,
+                    }}
+                  >
+                    {tab.label}
+                  </Link>
+                ) : (
+                  <div
+                    key={tab.label}
+                    className="px-5 py-2.5 text-sm font-medium border-b-2 cursor-default"
+                    style={{ borderBottomColor: "transparent", color: textSecondary, opacity: 0.4 }}
+                  >
+                    {tab.label}
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4 items-start">
-        <div className="w-full lg:w-[252px] shrink-0 space-y-3">
-          {renderColumn(columns.left)}
-        </div>
-        <div className="w-full flex-1 min-w-0 space-y-3">
-          {renderColumn(columns.center)}
-        </div>
-        <div className="w-full lg:w-[252px] shrink-0 space-y-3">
-          {renderColumn(columns.right)}
+        <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4 items-start">
+          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
+            {renderColumn(columns.left)}
+          </div>
+          <div className="w-full flex-1 min-w-0 space-y-3">
+            {renderColumn(columns.center)}
+          </div>
+          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
+            {renderColumn(columns.right)}
+          </div>
         </div>
       </div>
 
