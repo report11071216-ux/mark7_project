@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Eye, Pin, Trash2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
+import { getNicknameColors } from "@/lib/nickname-color";
 import CommentForm from "./CommentForm";
 import PostLikeButton from "./PostLikeButton";
 import { deletePost } from "../actions";
@@ -70,6 +71,15 @@ export default async function BoardDetailPage({ params }: Props) {
   const isAuthor = user?.id === post.author_id;
   const profiles = post.profiles as any;
 
+  // ── 닉네임 색: 글 작성자 + 댓글 작성자 모두 ──
+  const colorUserIds: string[] = [];
+  if (post.author_id) colorUserIds.push(post.author_id);
+  for (const c of comments as any[]) {
+    if (c.author_id) colorUserIds.push(c.author_id);
+  }
+  const nicknameColors = await getNicknameColors(colorUserIds);
+  const authorColor = post.author_id ? nicknameColors[post.author_id] ?? null : null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-20">
@@ -123,7 +133,7 @@ export default async function BoardDetailPage({ params }: Props) {
                 </div>
               )}
               <div>
-                <p className="text-sm font-bold text-slate-900">
+                <p className="text-sm font-bold" style={{ color: authorColor ?? "#0f172a" }}>
                   {profiles?.username ?? "알 수 없음"}
                 </p>
                 <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
@@ -174,6 +184,7 @@ export default async function BoardDetailPage({ params }: Props) {
             <div className="divide-y divide-slate-100">
               {(comments as any[]).map((c) => {
                 const cp = c.profiles as any;
+                const cColor = c.author_id ? nicknameColors[c.author_id] ?? null : null;
                 return (
                   <div key={c.id} className="px-5 py-4 flex gap-3">
                     {cp?.avatar_url ? (
@@ -191,7 +202,7 @@ export default async function BoardDetailPage({ params }: Props) {
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-slate-900">
+                        <span className="text-xs font-bold" style={{ color: cColor ?? "#0f172a" }}>
                           {cp?.username ?? "알 수 없음"}
                         </span>
                         <span className="text-[10px] font-mono text-slate-400">
