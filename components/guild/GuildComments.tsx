@@ -16,8 +16,8 @@ export type GuildComment = {
   author_name: string;
   author_avatar: string | null;
   author_mark: string | null;
+  author_color: string | null;
 };
-
 type Props = {
   guildCode: string;
   postId: string;
@@ -96,10 +96,11 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <button
+                   <button
                       type="button"
                       onClick={() => setProfileUserId(c.author_id)}
-                      className="text-sm font-bold text-white hover:text-violet-300 transition"
+                      className="text-sm font-bold hover:opacity-80 transition"
+                      style={{ color: c.author_color ?? "#ffffff" }}
                     >
                       {c.author_name}
                     </button>
