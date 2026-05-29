@@ -1,85 +1,79 @@
 "use client";
 import Link from "next/link";
-import { Crown, Trophy, Award, ChevronRight } from "lucide-react";
+import { Crown, Trophy, Award } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import type { RankedGuild } from "./PodiumTop3";
+
 type Props = {
   guilds: RankedGuild[];
 };
+
 export default function TopRankCompact({ guilds }: Props) {
-  if (guilds.length === 0) {
-    return (
-      <div className="bg-white rounded-xl ring-1 ring-slate-200 p-6 text-center">
-        <p className="text-slate-400 text-sm">아직 랭킹 데이터가 없습니다</p>
-      </div>
-    );
-  }
+  // 항상 3칸 (TOP3). 부족하면 빈 슬롯으로 채움
+  const top3 = guilds.slice(0, 3);
+  const slots: (RankedGuild | null)[] = [
+    top3[0] ?? null,
+    top3[1] ?? null,
+    top3[2] ?? null,
+  ];
+
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
-      {/* 남색 제목띠 */}
-      <div className="flex items-center justify-between px-5 py-3 bg-slate-800">
-        <div className="flex items-center gap-2">
-          <Crown className="w-5 h-5 text-yellow-300" />
-          <h3 className="text-base font-bold text-white">주간 길드 랭킹</h3>
-        </div>
-        <Link
-          href="/plaza/ranking"
-          className="text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-0.5"
-        >
-          전체 랭킹
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-      <div className="grid grid-cols-5 divide-x divide-slate-200">
-        {guilds.slice(0, 5).map((g, i) => (
-          <RankCard key={g.id} guild={g} rank={i + 1} />
-        ))}
-      </div>
+    <div className="grid grid-cols-3 gap-3">
+      {slots.map((g, i) => (
+        <RankCard key={g ? g.id : "empty-" + i} guild={g} rank={i + 1} />
+      ))}
     </div>
   );
 }
-function RankCard(props: { guild: RankedGuild; rank: number }) {
+
+function RankCard(props: { guild: RankedGuild | null; rank: number }) {
   const guild = props.guild;
   const rank = props.rank;
   const isFirst = rank === 1;
-  let Icon: any = null;
+
+  let Icon: any = Award;
   if (rank === 1) Icon = Crown;
   else if (rank === 2) Icon = Trophy;
-  else if (rank === 3) Icon = Award;
-  let rankColor = "text-slate-400";
+
+  let rankColor = "text-amber-500";
   if (rank === 1) rankColor = "text-yellow-500";
-  else if (rank === 2) rankColor = "text-slate-500";
-  else if (rank === 3) rankColor = "text-amber-500";
+  else if (rank === 2) rankColor = "text-slate-400";
+
+  // 빈 슬롯
+  if (!guild) {
+    return (
+      <div className="rounded-xl ring-1 ring-slate-200 bg-slate-50/60 p-4 flex flex-col items-center justify-center text-center min-h-[150px]">
+        <Icon className={"w-5 h-5 mb-2 " + rankColor + " opacity-40"} />
+        <span className={"text-xs font-bold mb-1 " + rankColor + " opacity-50"}>#{rank}</span>
+        <div className="w-10 h-10 rounded-lg bg-slate-200/70 mb-2" />
+        <p className="text-xs text-slate-300">비어있음</p>
+      </div>
+    );
+  }
+
   const cardClass = isFirst
-    ? "block p-4 transition hover:bg-slate-50 bg-gradient-to-b from-yellow-50 to-transparent"
-    : "block p-4 transition hover:bg-slate-50";
+    ? "rounded-xl ring-1 ring-yellow-200 bg-gradient-to-b from-yellow-50 to-white p-4 flex flex-col items-center text-center min-h-[150px] hover:ring-yellow-300 transition"
+    : "rounded-xl ring-1 ring-slate-200 bg-white p-4 flex flex-col items-center text-center min-h-[150px] hover:ring-slate-300 transition";
   const pointColor = isFirst ? "text-yellow-600" : "text-slate-700";
+
   return (
     <Link href={"/guild/" + guild.code} className={cardClass}>
-      <div className="flex items-center gap-1 mb-2">
-        {Icon ? (
-          <Icon className={"w-3.5 h-3.5 " + rankColor} />
-        ) : (
-          <span className="w-3.5" />
-        )}
-        <span className={"text-xs font-bold " + rankColor}>#{rank}</span>
-      </div>
-      <div className="flex items-center gap-2 mb-2">
-        {guild.logo_url ? (
-          <img
-            src={guild.logo_url}
-            alt={guild.name}
-            className="w-8 h-8 rounded-lg object-cover shrink-0"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-bold shrink-0">
-            {guild.name.charAt(0)}
-          </div>
-        )}
-        <p className="text-sm font-bold text-slate-900 truncate flex-1">
-          {guild.name}
-        </p>
-      </div>
+      <Icon className={"w-5 h-5 mb-1.5 " + rankColor} />
+      <span className={"text-xs font-bold mb-2 " + rankColor}>#{rank}</span>
+      {guild.logo_url ? (
+        <img
+          src={guild.logo_url}
+          alt={guild.name}
+          className="w-12 h-12 rounded-xl object-cover mb-2 shrink-0"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600 text-base font-bold mb-2 shrink-0">
+          {guild.name.charAt(0)}
+        </div>
+      )}
+      <p className="text-sm font-bold text-slate-900 truncate w-full mb-1">
+        {guild.name}
+      </p>
       <p className={"text-lg font-bold " + pointColor}>
         {formatNumber(guild.points)}
         <span className="text-xs text-slate-400 ml-0.5">P</span>
