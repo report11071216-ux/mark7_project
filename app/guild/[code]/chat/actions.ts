@@ -12,18 +12,22 @@ type MessageRow = {
 
 type SendResult = { ok: true; message: MessageRow } | { ok: false; error: string };
 
-async function getGuildMembership(guildCode: string) {
+type MembershipCtx =
+  | { error: string }
+  | { error?: undefined; user: { id: string }; guildId: string; supabase: Awaited<ReturnType<typeof createClient>> };
+
+async function getGuildMembership(guildCode: string): Promise<MembershipCtx> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "로그인이 필요해요." as const };
+  if (!user) return { error: "로그인이 필요해요." };
   const code = guildCode.toUpperCase();
   const { data: guild } = await supabase
     .from("guilds").select("id").eq("code", code).maybeSingle();
-  if (!guild) return { error: "길드를 찾을 수 없어요." as const };
+  if (!guild) return { error: "길드를 찾을 수 없어요." };
   const { data: membership } = await supabase
     .from("guild_members").select("role")
     .eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle();
-  if (!membership) return { error: "이 길드의 멤버가 아니에요." as const };
+  if (!membership) return { error: "이 길드의 멤버가 아니에요." };
   return { user, guildId: guild.id, supabase };
 }
 
