@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import CardForm from "@/components/admin/CardForm";
 import CardItem from "@/components/admin/CardItem";
+import CardPackSettings from "@/components/admin/CardPackSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +25,22 @@ export default async function AdminCardsPage() {
     .maybeSingle();
   if (!profile?.is_platform_admin) redirect("/");
 
-  const { data: cards } = await supabase
-    .from("attendance_cards")
-    .select("id, grade, name, image_url, is_active, created_at")
-    .order("created_at", { ascending: false });
+  const [cardsResult, packResult] = await Promise.all([
+    supabase
+      .from("attendance_cards")
+      .select("id, grade, name, image_url, is_active, created_at")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "card_pack")
+      .maybeSingle(),
+  ]);
+
+  const cards = cardsResult.data;
+  const packRaw = packResult.data?.value as { price: number; active: boolean } | null;
+  const packPrice = packRaw?.price ?? 10;
+  const packActive = packRaw?.active ?? true;
 
   // 등급별 그룹
   const byGrade: { [key: string]: any[] } = { common: [], rare: [], unique: [], epic: [] };
@@ -40,10 +53,15 @@ export default async function AdminCardsPage() {
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
         <div className="mb-6">
           <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">PLATFORM ADMIN</p>
-          <h1 className="text-xl font-bold text-slate-900">출석 카드 등록</h1>
+          <h1 className="text-xl font-bold text-slate-900">출석 카드 관리</h1>
           <p className="text-sm text-slate-500 mt-1">
             출석 시 뽑히는 카드를 등록해요. 등급별로 여러 장 등록하면 뽑기 풀에서 랜덤으로 나옵니다.
           </p>
+        </div>
+
+        {/* 11연 패키지 가격 */}
+        <div className="mb-8">
+          <CardPackSettings initialPrice={packPrice} initialActive={packActive} />
         </div>
 
         <CardForm />
