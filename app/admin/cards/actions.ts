@@ -53,3 +53,32 @@ export async function toggleCardActive(cardId: string, isActive: boolean): Promi
   if (error) return { ok: false, error: `변경 실패: ${error.message}` };
   return { ok: true };
 }
+
+export async function deleteCard(cardId: string): Promise<Result> {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  // 보유자 있는지 확인
+  const { count } = await auth.supabase
+    .from("user_cards")
+    .select("id", { count: "exact", head: true })
+    .eq("card_id", cardId);
+
+  if ((count ?? 0) > 0) {
+    // 보유자 있음 → 비활성 전환 (레거시/절판, 도감엔 남김)
+    const { error } = await auth.supabase
+      .from("attendance_cards")
+      .update({ is_active: false })
+      .eq("id", cardId);
+    if (error) return { ok: false, error: `비활성 실패: ${error.message}` };
+    return { ok: true, archived: true, holders: count ?? 0 };
+  }
+
+  // 보유자 없음 → 완전 삭제
+  const { error } = await auth.supabase
+    .from("attendance_cards")
+    .delete()
+    .eq("id", cardId);
+  if (error) return { ok: false, error: `삭제 실패: ${error.message}` };
+  return { ok: true, archived: false };
+}
