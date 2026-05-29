@@ -1,9 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Calendar, Coins, Check, Loader2, Smile, Trash2, X } from "lucide-react";
+import { Package, Calendar, Coins, Check, Loader2, Smile, Trash2, X, ImageIcon } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
-import { equipGuildMark, toggleStickerPack, deleteGuildPurchase } from "@/app/guild/[code]/shop/actions";
+import { equipGuildMark, toggleStickerPack, deleteGuildPurchase, toggleGuildBackground } from "@/app/guild/[code]/shop/actions";
 import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
@@ -27,6 +27,13 @@ export type StickerPack = {
   equipped: boolean;
 };
 
+export type BackgroundItem = {
+  purchase_id: string;
+  name: string;
+  image_url: string;
+  equipped: boolean;
+};
+
 type Props = {
   guildCode: string;
   guildId: string;
@@ -36,32 +43,37 @@ type Props = {
   equippedMarkId: string | null;
   stickerPacks: StickerPack[];
   megaphoneItems: MegaphoneItem[];
+  backgroundItems: BackgroundItem[];
 };
 
-type TabKey = "all" | "sticker" | "cosmetic" | "megaphone";
+type TabKey = "all" | "background" | "sticker" | "cosmetic" | "megaphone";
 
 export default function GuildInventory({
-  guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems,
+  guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [packPending, setPackPending] = useState<string | null>(null);
+  const [bgPending, setBgPending] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
   const [tab, setTab] = useState<TabKey>("all");
 
   const cosmetics = items.filter(
-    (i) => i.item_category !== "확성기" && i.item_category !== "이모티콘팩"
+    (i) => i.item_category !== "확성기" && i.item_category !== "이모티콘팩" && i.item_category !== "길드배경"
   );
   const megaCount = megaphoneItems.length;
+  const bgCount = backgroundItems.length;
 
   const TABS: { key: TabKey; label: string; count: number }[] = [
-    { key: "all", label: "전체", count: stickerPacks.length + cosmetics.length + megaCount },
+    { key: "all", label: "전체", count: bgCount + stickerPacks.length + cosmetics.length + megaCount },
+    { key: "background", label: "길드 배경", count: bgCount },
     { key: "sticker", label: "이모티콘팩", count: stickerPacks.length },
     { key: "cosmetic", label: "코스메틱", count: cosmetics.length },
     { key: "megaphone", label: "확성기", count: megaCount },
   ];
 
+  const showBg = tab === "all" || tab === "background";
   const showSticker = tab === "all" || tab === "sticker";
   const showCosmetic = tab === "all" || tab === "cosmetic";
   const showMegaphone = tab === "all" || tab === "megaphone";
@@ -87,6 +99,17 @@ export default function GuildInventory({
     } else { toast.error(result.error ?? "장착에 실패했습니다"); }
   };
 
+  const handleToggleBg = async (bg: BackgroundItem) => {
+    if (bgPending) return;
+    setBgPending(bg.image_url);
+    const result = await toggleGuildBackground(guildCode, guildId, bg.image_url);
+    setBgPending(null);
+    if (result.success) {
+      toast.success(bg.equipped ? "배경 해제됨" : `'${bg.name}' 배경 적용 완료!`);
+      router.refresh();
+    } else { toast.error(result.error ?? "적용에 실패했습니다"); }
+  };
+
   const handleDelete = async () => {
     if (!confirmDelete || deletePending) return;
     const item = confirmDelete;
@@ -100,7 +123,7 @@ export default function GuildInventory({
     } else { toast.error(result.error ?? "삭제에 실패했습니다"); }
   };
 
-  const totalCount = stickerPacks.length + cosmetics.length + megaCount;
+  const totalCount = bgCount + stickerPacks.length + cosmetics.length + megaCount;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -115,7 +138,6 @@ export default function GuildInventory({
           </div>
         </div>
 
-        {/* 탭 */}
         <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200 mb-6">
           {TABS.map((t) => {
             const active = tab === t.key;
@@ -145,6 +167,42 @@ export default function GuildInventory({
           </div>
         ) : (
           <div className="space-y-8">
+            {/* 길드 배경 */}
+            {showBg && bgCount > 0 && (
+              <div>
+                {tab === "all" && (
+                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <span className="w-1 h-4 rounded-full bg-violet-500" />길드 배경
+                  </h2>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {backgroundItems.map((bg) => (
+                    <div key={bg.purchase_id}
+                      className={"rounded-xl border overflow-hidden transition " + (bg.equipped ? "border-cyan-400 ring-2 ring-cyan-200" : "border-slate-200 shadow-sm")}>
+                      <div className="relative aspect-video bg-slate-100">
+                        <img src={bg.image_url} alt={bg.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-slate-900/20" />
+                        {bg.equipped && (
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center gap-1">
+                            <Check className="w-3 h-3" />적용중
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3 bg-white">
+                        <p className="text-sm font-bold text-slate-900 truncate mb-2">{bg.name}</p>
+                        <button type="button" onClick={() => handleToggleBg(bg)} disabled={bgPending === bg.image_url || !isStaff}
+                          className={"w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (bg.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                          {bgPending === bg.image_url ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : bg.equipped ? <><Check className="w-3.5 h-3.5" />적용중 (해제)</>
+                            : isStaff ? "길드 홈에 적용" : "마스터·부마스터만"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 이모티콘팩 */}
             {showSticker && stickerPacks.length > 0 && (
               <div>
@@ -226,7 +284,7 @@ export default function GuildInventory({
               </div>
             )}
 
-            {/* 확성기 — MegaphoneInventory 재사용 (사용 기능 포함) */}
+            {/* 확성기 */}
             {showMegaphone && megaCount > 0 && (
               <div>
                 {tab === "all" && (
@@ -242,7 +300,8 @@ export default function GuildInventory({
               </div>
             )}
 
-            {((tab === "sticker" && stickerPacks.length === 0) ||
+            {((tab === "background" && bgCount === 0) ||
+              (tab === "sticker" && stickerPacks.length === 0) ||
               (tab === "cosmetic" && cosmetics.length === 0) ||
               (tab === "megaphone" && megaCount === 0)) && (
               <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
@@ -254,7 +313,6 @@ export default function GuildInventory({
         )}
       </div>
 
-      {/* 삭제 확인 모달 */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmDelete(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
