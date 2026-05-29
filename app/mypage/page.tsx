@@ -38,7 +38,7 @@ export default async function MyPage() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     .toISOString().split("T")[0];
 
-  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult, charactersResult, cardDefsResult, userCardsResult, cardStateResult] =
+  const [profileResult, membershipsResult, postsResult, attendanceResult, purchasesResult, charactersResult, cardDefsResult, userCardsResult, cardStateResult, gradesResult] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -74,17 +74,22 @@ export default async function MyPage() {
         .order("item_level", { ascending: false }),
       supabase
         .from("attendance_cards")
-        .select("grade, name, bonus_points, nickname_color, image_url, sort_order")
-        .order("sort_order", { ascending: true }),
+        .select("id, grade, name, image_url, sort_order")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true }),
       supabase
         .from("user_cards")
-        .select("grade, count")
+        .select("card_id, count")
         .eq("user_id", user.id),
       supabase
         .from("user_card_state")
-        .select("equipped_grade, draw_tickets, total_duplicates")
+        .select("equipped_card_id, draw_tickets, total_duplicates")
         .eq("user_id", user.id)
         .maybeSingle(),
+      supabase
+        .from("attendance_card_grades")
+        .select("grade, label, bonus_points, nickname_color, sort_order")
+        .order("sort_order", { ascending: true }),
     ]);
 
   const profile = profileResult.data;
@@ -150,24 +155,31 @@ export default async function MyPage() {
 
   const hasSynced = !!profile?.main_character_name;
 
-  // ── 출석 카드 도감 데이터 ──
+  // ── 출석 카드 도감 데이터 (card_id 기준) ──
   const cardDefs = (cardDefsResult.data ?? []) as any[];
   const userCards = (userCardsResult.data ?? []) as any[];
-  const cardState = cardStateResult.data as { equipped_grade: string | null; draw_tickets: number; total_duplicates: number } | null;
+  const gradeDefs = (gradesResult.data ?? []) as any[];
+  const cardState = cardStateResult.data as { equipped_card_id: string | null; draw_tickets: number; total_duplicates: number } | null;
 
-  const ownedMap: { [key: string]: number } = {};
+  const ownedCardMap: { [key: string]: number } = {};
   for (const uc of userCards) {
-    ownedMap[uc.grade] = uc.count ?? 1;
+    ownedCardMap[uc.card_id] = uc.count ?? 1;
   }
 
   const collectionCards = cardDefs.map((c) => ({
+    id: c.id,
     grade: c.grade,
     name: c.name,
-    bonus_points: c.bonus_points ?? 0,
-    nickname_color: c.nickname_color ?? null,
     image_url: c.image_url ?? null,
-    owned: ownedMap[c.grade] != null,
-    count: ownedMap[c.grade] ?? 0,
+    owned: ownedCardMap[c.id] != null,
+    count: ownedCardMap[c.id] ?? 0,
+  }));
+
+  const collectionGrades = gradeDefs.map((g) => ({
+    grade: g.grade,
+    label: g.label,
+    bonus_points: g.bonus_points ?? 0,
+    nickname_color: g.nickname_color ?? null,
   }));
 
   return (
@@ -350,7 +362,8 @@ export default async function MyPage() {
         {/* 출석 카드 도감 */}
         <AttendanceCardCollection
           cards={collectionCards}
-          equippedGrade={cardState?.equipped_grade ?? null}
+          grades={collectionGrades}
+          equippedCardId={cardState?.equipped_card_id ?? null}
           drawTickets={cardState?.draw_tickets ?? 0}
           totalDuplicates={cardState?.total_duplicates ?? 0}
         />
