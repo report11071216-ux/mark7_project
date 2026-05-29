@@ -3,7 +3,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X } from "lucide-react";
 import { purchaseItem } from "@/app/guild/[code]/shop/actions";
-import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
+import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
 export type ShopItem = {
@@ -45,22 +45,18 @@ export default function GuildShop({
   const guildItems = items.filter((i) => i.shop_type === "guild");
   const currentItems = tab === "activity" ? activityItems : guildItems;
 
-  // 현재 샵의 카테고리 목록
   const categories: string[] = [];
   for (const it of currentItems) {
     if (!categories.includes(it.category)) categories.push(it.category);
   }
 
-  // 샵 탭이 바뀌면 카테고리 탭을 "전체"로 리셋
   useEffect(() => {
     setCatTab("전체");
   }, [tab]);
 
-  // 카테고리 탭으로 거른 아이템
   const filteredItems =
     catTab === "전체" ? currentItems : currentItems.filter((i) => i.category === catTab);
 
-  // "전체"일 땐 카테고리별 그룹핑해서 섹션으로, 개별 탭이면 한 그리드로
   const grouped: { [key: string]: ShopItem[] } = {};
   for (const it of filteredItems) {
     if (!grouped[it.category]) grouped[it.category] = [];
@@ -91,7 +87,6 @@ export default function GuildShop({
   const accentText = accent === "activity" ? "text-violet-600" : "text-cyan-600";
   const balanceAfter = confirmItem ? currentBalance - confirmItem.price : 0;
 
-  // 카테고리별 개수 (탭 뱃지용)
   const countOf = (cat: string) =>
     cat === "전체" ? currentItems.length : currentItems.filter((i) => i.category === cat).length;
 
@@ -151,7 +146,7 @@ export default function GuildShop({
           </div>
         </div>
 
-        {/* 카테고리 탭 (잠금/빈 상태 아닐 때만) */}
+        {/* 카테고리 탭 */}
         {!showGuildLock && categories.length > 0 && (
           <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200 mb-6">
             {["전체", ...categories].map((cat) => {
@@ -180,15 +175,6 @@ export default function GuildShop({
           </div>
         )}
 
-        {/* 보유 확성기 — 길드샵 + 전체/확성기 탭에서만 */}
-        {tab === "guild" && isStaff && (catTab === "전체" || catTab === "확성기") && (
-          <MegaphoneInventory
-            guildCode={guildCode}
-            items={megaphoneItems}
-            canUse={isStaff}
-          />
-        )}
-
         {showGuildLock ? (
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
             <Lock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -208,7 +194,6 @@ export default function GuildShop({
           <div className="space-y-7">
             {groupedCats.map((cat) => (
               <div key={cat}>
-                {/* "전체" 탭일 때만 카테고리 헤더 표시 */}
                 {catTab === "전체" && (
                   <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                     <span className={`w-1 h-4 rounded-full ${tab === "activity" ? "bg-violet-500" : "bg-cyan-500"}`} />
