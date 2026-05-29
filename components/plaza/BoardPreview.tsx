@@ -24,15 +24,21 @@ type Props = {
 
 const CATEGORIES = [
   { value: "all", label: "전체" },
-  { value: "자유", label: "자유" },
-  { value: "길드모집", label: "모집" },
-  { value: "질문", label: "질문" },
+  { value: "free", label: "자유" },
+  { value: "recruit", label: "모집" },
+  { value: "question", label: "질문" },
 ];
 
+const CATEGORY_LABEL: { [key: string]: string } = {
+  free: "자유",
+  recruit: "모집",
+  question: "질문",
+};
+
 const CATEGORY_STYLE: { [key: string]: string } = {
-  자유: "bg-slate-100 text-slate-600",
-  길드모집: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-  질문: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  free: "bg-slate-100 text-slate-600",
+  recruit: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
+  question: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
 };
 
 export default function BoardPreview({ posts }: Props) {
@@ -115,7 +121,7 @@ export default function BoardPreview({ posts }: Props) {
                       CATEGORY_STYLE[post.category] ?? "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {post.category}
+                    {CATEGORY_LABEL[post.category] ?? post.category}
                   </span>
                 ) : (
                   <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-400">
@@ -128,14 +134,15 @@ export default function BoardPreview({ posts }: Props) {
                   {post.title}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                  <span className="text-slate-500 truncate">{post.guild_name}</span>
-                  {post.guild_server ? (
-                    <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100 shrink-0">
-                      [{post.guild_server}]
-                    </span>
-                  ) : null}
-                  <span>·</span>
                   <span className="truncate">{post.author_name}</span>
+                  {post.guild_server ? (
+                    <>
+                      <span>·</span>
+                      <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100 shrink-0">
+                        [{post.guild_server}]
+                      </span>
+                    </>
+                  ) : null}
                   <span>·</span>
                   <span className="flex items-center gap-0.5">
                     <Eye className="w-3 h-3" />
