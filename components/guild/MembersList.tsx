@@ -16,6 +16,7 @@ export type MemberRow = {
   raidCount: number;
   markUrl: string;
   cardBgUrl: string;
+  nicknameColor: string | null;
 };
 
 type SortKey = "points" | "itemLevel" | "joinedAt";
@@ -169,7 +170,7 @@ export default function MembersList({
                   {/* 이름 + 직업/가입일 */}
                   <div className="relative min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium truncate" style={{ color: textPrimary }}>{m.name}</span>
+                      <span className="font-medium truncate" style={{ color: m.nicknameColor ?? textPrimary }}>{m.name}</span>
                       {m.guildRole !== "member" ? (
                         <span
                           className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold"
