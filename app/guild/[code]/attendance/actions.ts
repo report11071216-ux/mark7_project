@@ -5,13 +5,12 @@ import { revalidatePath } from "next/cache";
 
 const ATTENDANCE_POINTS = 1;
 
-// 카드 뽑기 확률 (커먼70 / 레어20 / 유니크8 / 에픽2)
 function drawCardGrade(): string {
   const r = Math.random() * 100;
   if (r < 70) return "common";
-  if (r < 90) return "rare";   // 70~90 = 20%
-  if (r < 98) return "unique"; // 90~98 = 8%
-  return "epic";               // 98~100 = 2%
+  if (r < 90) return "rare";
+  if (r < 98) return "unique";
+  return "epic";
 }
 
 export async function checkAttendance(guildCode: string) {
@@ -49,21 +48,28 @@ export async function checkAttendance(guildCode: string) {
     return { success: false, error: "오늘 이미 출석했습니다" };
   }
 
-  // ── 장착 카드 보너스 포인트 계산 ──
+  // ── 장착 카드 보너스 포인트 (장착 card_id → 그 카드의 grade → bonus_points) ──
   const { data: cardState } = await supabase
     .from("user_card_state")
-    .select("equipped_grade, draw_tickets, total_duplicates")
+    .select("equipped_card_id, draw_tickets, total_duplicates")
     .eq("user_id", user.id)
     .maybeSingle();
 
   let bonusPoints = 0;
-  if (cardState?.equipped_grade) {
+  if (cardState?.equipped_card_id) {
     const { data: equippedCard } = await supabase
       .from("attendance_cards")
-      .select("bonus_points")
-      .eq("grade", cardState.equipped_grade)
+      .select("grade")
+      .eq("id", cardState.equipped_card_id)
       .maybeSingle();
-    bonusPoints = equippedCard?.bonus_points ?? 0;
+    if (equippedCard?.grade) {
+      const { data: gradeRow } = await supabase
+        .from("attendance_card_grades")
+        .select("bonus_points")
+        .eq("grade", equippedCard.grade)
+        .maybeSingle();
+      bonusPoints = gradeRow?.bonus_points ?? 0;
+    }
   }
   const totalPoints = ATTENDANCE_POINTS + bonusPoints;
 
@@ -80,67 +86,77 @@ export async function checkAttendance(guildCode: string) {
     return { success: false, error: "출석 기록 실패" };
   }
 
-  // 개인 포인트 적립 (기본 + 카드 보너스)
   await supabase
     .from("guild_members")
     .update({ points: (member.points ?? 0) + totalPoints })
     .eq("id", member.id);
 
-  // ── 카드 뽑기 ──
+  // ── 카드 뽑기: 등급 뽑고 → 그 등급 활성 카드 중 랜덤 1장 ──
   const drawnGrade = drawCardGrade();
+  let drawnCard: { id: string; grade: string; name: string; image_url: string | null } | null = null;
   let isNew = false;
   let ticketEarned = false;
 
-  // 이미 가진 등급인지 확인
-  const { data: ownedCard } = await supabase
-    .from("user_cards")
-    .select("id, count")
-    .eq("user_id", user.id)
+  const { data: pool } = await supabase
+    .from("attendance_cards")
+    .select("id, grade, name, image_url")
     .eq("grade", drawnGrade)
-    .maybeSingle();
+    .eq("is_active", true);
 
-  if (ownedCard) {
-    // 중복 → count +1
-    await supabase
+  if (pool && pool.length > 0) {
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    drawnCard = picked;
+
+    // 이미 가진 카드인지 (card_id 기준)
+    const { data: owned } = await supabase
       .from("user_cards")
-      .update({ count: (ownedCard.count ?? 1) + 1 })
-      .eq("id", ownedCard.id);
+      .select("id, count")
+      .eq("user_id", user.id)
+      .eq("card_id", picked.id)
+      .maybeSingle();
 
-    // 누적 중복 +1, 5의 배수면 뽑기권 지급
-    const prevDup = cardState?.total_duplicates ?? 0;
-    const newDup = prevDup + 1;
-    const prevTickets = cardState?.draw_tickets ?? 0;
-    let newTickets = prevTickets;
-    if (newDup % 5 === 0) {
-      newTickets = prevTickets + 1;
-      ticketEarned = true;
-    }
-    await supabase
-      .from("user_card_state")
-      .upsert(
-        {
-          user_id: user.id,
-          equipped_grade: cardState?.equipped_grade ?? null,
-          draw_tickets: newTickets,
-          total_duplicates: newDup,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
-  } else {
-    // 새 등급 → 도감 추가
-    isNew = true;
-    await supabase
-      .from("user_cards")
-      .insert({ user_id: user.id, grade: drawnGrade, count: 1 });
+    if (owned) {
+      // 중복
+      await supabase
+        .from("user_cards")
+        .update({ count: (owned.count ?? 1) + 1 })
+        .eq("id", owned.id);
 
-    // 상태 행이 없으면 생성 (중복 아님 → total_duplicates 변동 없음)
-    if (!cardState) {
+      const prevDup = cardState?.total_duplicates ?? 0;
+      const newDup = prevDup + 1;
+      const prevTickets = cardState?.draw_tickets ?? 0;
+      let newTickets = prevTickets;
+      if (newDup % 5 === 0) {
+        newTickets = prevTickets + 1;
+        ticketEarned = true;
+      }
       await supabase
         .from("user_card_state")
-        .insert({ user_id: user.id, total_duplicates: 0, draw_tickets: 0 });
+        .upsert(
+          {
+            user_id: user.id,
+            equipped_card_id: cardState?.equipped_card_id ?? null,
+            draw_tickets: newTickets,
+            total_duplicates: newDup,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+    } else {
+      // 새 카드
+      isNew = true;
+      await supabase
+        .from("user_cards")
+        .insert({ user_id: user.id, card_id: picked.id, count: 1 });
+
+      if (!cardState) {
+        await supabase
+          .from("user_card_state")
+          .insert({ user_id: user.id, total_duplicates: 0, draw_tickets: 0 });
+      }
     }
   }
+  // pool이 비어있으면(해당 등급 카드 미등록) 그냥 뽑기 스킵 (출석은 정상 처리됨)
 
   revalidatePath(`/guild/${guildCode}`);
   revalidatePath("/mypage");
@@ -149,11 +165,15 @@ export async function checkAttendance(guildCode: string) {
     success: true,
     points: totalPoints,
     bonusPoints,
-    // 카드 뽑기 결과 (연출용)
-    card: {
-      grade: drawnGrade,
-      isNew,         // 처음 획득한 등급인지
-      ticketEarned,  // 이번에 뽑기권 받았는지
-    },
+    card: drawnCard
+      ? {
+          id: drawnCard.id,
+          grade: drawnCard.grade,
+          name: drawnCard.name,
+          imageUrl: drawnCard.image_url,
+          isNew,
+          ticketEarned,
+        }
+      : null,
   };
 }
