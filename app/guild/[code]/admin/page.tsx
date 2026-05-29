@@ -3,8 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import GuildAppearanceEditor from "@/components/guild/GuildAppearanceEditor";
 import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
 import WebhookSettings from "@/components/guild/WebhookSettings";
+import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
-
 export default async function GuildAdminPage({
   params,
 }: {
@@ -34,10 +34,9 @@ export default async function GuildAdminPage({
   const isMaster = member.role === "master";
   const { data: theme } = await supabase
     .from("guild_themes")
-    .select("primary_color, background_color, welcome_message, banner_url")
+    .select("primary_color, background_color, welcome_message, banner_url, card_style, equipped_background_url")
     .eq("guild_id", guild.id)
     .maybeSingle();
-
   // notification_settings → 컴포넌트 입력 형태로 정규화 (없는 키는 기본값)
   const ns = (guild.notification_settings ?? {}) as any;
   const webhookInitial: WebhookSettingsInput = {
@@ -55,7 +54,6 @@ export default async function GuildAdminPage({
       enabled: ns.welcome?.enabled !== false,
     },
   };
-
   return (
     <>
       <GuildAppearanceEditor
@@ -66,6 +64,14 @@ export default async function GuildAdminPage({
         initialWelcome={theme?.welcome_message ?? ""}
         initialBanner={theme?.banner_url ?? ""}
       />
+      <div className="mt-6">
+        <CardStyleSelector
+          guildId={guild.id}
+          guildCode={guild.code}
+          initialStyle={theme?.card_style ?? "solid"}
+          hasBackground={!!theme?.equipped_background_url}
+        />
+      </div>
       <div className="mt-6">
         <WebhookSettings guildId={guild.id} initial={webhookInitial} />
       </div>
