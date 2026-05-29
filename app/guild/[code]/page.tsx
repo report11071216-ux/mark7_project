@@ -41,7 +41,7 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
     supabase.from("posts").select("id, title, created_at, is_notice, author:profiles(username)").eq("guild_id", guild.id).order("is_notice", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     supabase.from("raids").select("id, title, image_url, gold_normal, gold_hard, gold_nightmare").eq("guild_id", guild.id).order("created_at", { ascending: false }).limit(12),
-    supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url").eq("guild_id", guild.id).maybeSingle(),
+    supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url, equipped_background_url").eq("guild_id", guild.id).maybeSingle(),
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "current_guardian_index").maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "guardian_images").maybeSingle(),
@@ -113,6 +113,7 @@ export default async function GuildHomePage({ params }: Props) {
   const primaryColor = themeRow?.primary_color ?? "#7c3aed";
   const backgroundColor = themeRow?.background_color ?? "#09090b";
   const bannerUrl = themeRow?.banner_url ?? null;
+  const equippedBackgroundUrl = themeRow?.equipped_background_url ?? null;
 
   const guardianIndex = Number(indexResult.data?.value ?? 0);
   const guardianImages = (imagesResult.data?.value ?? {}) as { [key: string]: string };
@@ -195,6 +196,7 @@ export default async function GuildHomePage({ params }: Props) {
     primaryColor,
     backgroundColor,
     bannerUrl,
+    equippedBackgroundUrl,
   };
 
   return (
