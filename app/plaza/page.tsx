@@ -307,25 +307,26 @@ export default async function PlazaPage() {
         <MegaphoneTicker />
 
         <div className="max-w-7xl mx-auto px-6 py-6">
-          {/* 길드 만들기 CTA 배너 */}
+         {/* 길드 만들기 CTA 배너 */}
           {canCreateGuild && (
             <Link
               href="/onboarding/create"
-              className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-4 mb-6 hover:from-violet-500 hover:to-indigo-500 transition-colors group"
+              className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 mb-5 max-w-md hover:from-violet-500 hover:to-indigo-500 transition-colors group"
             >
-              <div className="min-w-0">
-                <p className="text-white font-bold text-base leading-tight">
-                  {hasGuild ? "새 길드를 만들어보세요" : "나만의 길드를 만들어보세요"}
-                </p>
-                <p className="text-white/80 text-xs mt-0.5">출석 · 레이드 · 랭킹까지 한 곳에서 관리</p>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 shrink-0">
+                  <Plus className="w-4 h-4 text-white" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-white font-bold text-sm leading-tight truncate">
+                    {hasGuild ? "새 길드 만들기" : "나만의 길드 만들기"}
+                  </p>
+                  <p className="text-white/75 text-[11px] leading-tight">출석 · 레이드 · 랭킹 한 곳에서</p>
+                </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-violet-700 text-sm font-bold shrink-0 group-hover:scale-105 transition-transform">
-                <Plus className="w-4 h-4" />
-                길드 만들기
-              </span>
+              <ArrowRight className="w-4 h-4 text-white shrink-0 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           )}
-
           {/* 3단 레이아웃 */}
           <div className="flex flex-col lg:flex-row gap-5 items-start">
             {/* 좌측: 프로필 + 내 길드 */}
