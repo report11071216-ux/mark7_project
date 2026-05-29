@@ -194,3 +194,51 @@ export async function deleteGuildPurchase(
   revalidatePath(`/guild/${guildCode}`);
   return { success: true };
 }
+// ── 길드 배경 장착/해제 ──
+export async function toggleGuildBackground(
+  guildCode: string,
+  guildId: string,
+  backgroundUrl: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  const { data: member } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member || !["master", "submaster"].includes(member.role)) {
+    return { success: false, error: "마스터/부마스터만 장착할 수 있어요." };
+  }
+
+  // 현재 장착 상태 읽기
+  const { data: theme } = await supabase
+    .from("guild_themes")
+    .select("equipped_background_url")
+    .eq("guild_id", guildId)
+    .maybeSingle();
+
+  // 같은 배경이면 해제(null), 다르면 장착
+  const isEquipped = theme?.equipped_background_url === backgroundUrl;
+  const next = isEquipped ? null : backgroundUrl;
+
+  const { error } = await supabase
+    .from("guild_themes")
+    .upsert(
+      { guild_id: guildId, equipped_background_url: next },
+      { onConflict: "guild_id" }
+    );
+
+  if (error) {
+    return { success: false, error: `저장 실패: ${error.message}` };
+  }
+
+  revalidatePath(`/guild/${guildCode}/inventory`);
+  revalidatePath(`/guild/${guildCode}`);
+  return { success: true, equipped: next !== null };
+}
