@@ -4,6 +4,7 @@ import GuildInventory, {
   type InventoryItem,
   type StickerPack,
 } from "@/components/guild/GuildInventory";
+import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 export const dynamic = "force-dynamic";
 type Props = { params: { code: string } };
 export default async function GuildInventoryPage({ params }: Props) {
@@ -60,17 +61,24 @@ export default async function GuildInventoryPage({ params }: Props) {
     image_url: p.item_id ? imageMap[p.item_id] ?? null : null,
   }));
 
-  // ── 이모티콘팩: 구매한 팩 + 각 팩의 이모티콘 5개 ──
-  const equippedSets: string[] = Array.isArray(themeRow?.equipped_sticker_sets)
-    ? (themeRow!.equipped_sticker_sets as string[])
-    : [];
+  // 확성기 아이템 (사용 기능용)
+  const megaphoneItems: MegaphoneItem[] = rawPurchases
+    .filter((p) => p.item_category === "확성기")
+    .map((p) => ({
+      id: p.id,
+      item_name: p.item_name,
+      duration_hours: null,
+      activated_at: p.activated_at,
+      expires_at: p.expires_at,
+      megaphone_message: p.megaphone_message,
+    }));
 
-  // 구매한 것 중 이모티콘팩만 (item_id 기준 중복 제거)
+  const equippedSets: string[] = Array.isArray(themeRow?.equipped_sticker_sets)
+    ? (themeRow!.equipped_sticker_sets as string[]) : [];
   const packPurchases = rawPurchases.filter((p) => p.item_category === "이모티콘팩");
   const packItemIds = Array.from(
     new Set(packPurchases.map((p) => p.item_id).filter(Boolean))
   ) as string[];
-
   let stickerPacks: StickerPack[] = [];
   if (packItemIds.length > 0) {
     const { data: stickerRows } = await supabase
@@ -78,15 +86,11 @@ export default async function GuildInventoryPage({ params }: Props) {
       .select("shop_item_id, image_url, sort_order")
       .in("shop_item_id", packItemIds)
       .order("sort_order", { ascending: true });
-
-    // 팩별로 이모티콘 묶기
     const byPack: { [key: string]: string[] } = {};
     for (const s of stickerRows ?? []) {
       if (!byPack[s.shop_item_id]) byPack[s.shop_item_id] = [];
       byPack[s.shop_item_id].push(s.image_url);
     }
-
-    // 팩 메타 (이름/대표이미지)는 이미 구매행에 있음
     const seen = new Set<string>();
     for (const p of packPurchases) {
       if (!p.item_id || seen.has(p.item_id)) continue;
@@ -111,6 +115,7 @@ export default async function GuildInventoryPage({ params }: Props) {
       isStaff={isStaff}
       equippedMarkId={themeRow?.equipped_mark_id ?? null}
       stickerPacks={stickerPacks}
+      megaphoneItems={megaphoneItems}
     />
   );
 }
