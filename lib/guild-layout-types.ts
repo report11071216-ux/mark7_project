@@ -90,4 +90,5 @@ export type GuildLayoutData = {
   backgroundColor: string;
   bannerUrl: string | null;
   equippedBackgroundUrl?: string | null;
+  cardStyle?: string;
 };
