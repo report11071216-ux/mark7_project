@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles } from "lucide-react";
+import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
 import PlazaSidebar from "@/components/plaza/PlazaSidebar";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
@@ -51,7 +51,7 @@ export default async function PlazaPage() {
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
     supabase.from("weekly_guild_ranking").select("id, code, name, logo_url, weekly_points").order("weekly_points", { ascending: false }).limit(5),
-    supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").is("guild_id", null).order("created_at", { ascending: false }).limit(20),
+    supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").is("guild_id", null).order("created_at", { ascending: false }).limit(30),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
@@ -70,7 +70,21 @@ export default async function PlazaPage() {
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
 
-  // 길드 자랑 — 길드별 최신 1장만 (created_at desc 정렬이라 처음 나오는 게 최신)
+  // ── 광장 글 좋아요 카운트 (화제글 정렬용) ──
+  const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
+  let likeCountMap: { [key: string]: number } = {};
+  if (plazaPostIds.length > 0) {
+    const { data: likeRows } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .in("post_id", plazaPostIds);
+    for (const row of likeRows ?? []) {
+      const pid = (row as any).post_id as string;
+      likeCountMap[pid] = (likeCountMap[pid] ?? 0) + 1;
+    }
+  }
+
+  // 길드 자랑 — 길드별 최신 1장만
   const seenShowcaseGuilds = new Set<string>();
   const showcaseItems: ShowcaseItem[] = [];
   for (const row of (showcaseRaw ?? []) as any[]) {
@@ -86,7 +100,7 @@ export default async function PlazaPage() {
     });
   }
 
-  // 주간 랭킹 길드들의 표시용 로고 가져오기
+  // 주간 랭킹 길드들의 표시용 로고
   const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
   let weeklyLogoMap = new Map<string, string | null>();
   if (weeklyGuildIds.length > 0) {
@@ -109,13 +123,11 @@ export default async function PlazaPage() {
     duration_hours: s.duration_hours,
   }));
 
-  const postGuildIds = Array.from(new Set((rawPosts ?? []).map((p) => p.guild_id).filter(Boolean)));
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
-  const [profileResult, membershipsResult, postGuildsResult, postAuthorsResult] = await Promise.all([
+  const [profileResult, membershipsResult, postAuthorsResult] = await Promise.all([
     user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin, equipped_mark_id, equipped_card_id").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from("guild_members").select("role, points, guild_id").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
-    postGuildIds.length > 0 ? supabase.from("guilds").select("id, name, code, server").in("id", postGuildIds) : Promise.resolve({ data: [] }),
     postAuthorIds.length > 0 ? supabase.from("profiles").select("id, username").in("id", postAuthorIds) : Promise.resolve({ data: [] }),
   ]);
 
@@ -127,10 +139,9 @@ export default async function PlazaPage() {
     equipped_card_id: string | null;
   } | null;
   const memberships = (membershipsResult.data ?? []) as any[];
-  const postGuilds = (postGuildsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  // 장착한 마크 / 프로필카드 이미지 가져오기
+  // 장착 마크 / 프로필카드 이미지
   let equippedMarkUrl: string | null = null;
   let equippedCardFrameUrl: string | null = null;
   if (myProfile && (myProfile.equipped_mark_id || myProfile.equipped_card_id)) {
@@ -167,7 +178,7 @@ export default async function PlazaPage() {
     }
   }
 
-  // 내 길드들의 표시용 정보 가져오기
+  // 내 길드 표시 정보
   const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
   let myGuildMap = new Map<string, { id: string; code: string; name: string; display_logo_url: string | null }>();
   if (myGuildIds.length > 0) {
@@ -178,7 +189,7 @@ export default async function PlazaPage() {
     myGuildMap = new Map((myGuildsDisplay ?? []).map((g) => [g.id, g]));
   }
 
-  // 서버 이름 조회 — guilds_display 뷰엔 없어서 guilds 테이블에서 추가 조회
+  // 서버 이름 조회
   const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
   const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
   let serverMap = new Map<string, string | null>();
@@ -216,22 +227,25 @@ export default async function PlazaPage() {
       };
     });
 
-  const guildMap = new Map(postGuilds.map((g) => [g.id, g]));
   const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
 
-  const plazaPosts: PlazaPost[] = (rawPosts ?? []).map((p) => {
-    const g = guildMap.get(p.guild_id);
-    return {
+  // 광장 글 → 좋아요순 정렬 (동점이면 최신순)
+  const plazaPosts: PlazaPost[] = (rawPosts ?? [])
+    .map((p) => ({
       id: p.id, title: p.title, category: p.category, is_notice: p.is_notice,
       view_count: p.view_count ?? 0, created_at: p.created_at,
-      guild_name: g?.name ?? "Unknown", guild_code: g?.code ?? "",
-      guild_server: g?.server ?? null,
-      author_name: authorMap.get(p.author_id) ?? "Unknown",
-    };
-  });
+      guild_name: "", guild_code: "",
+      guild_server: null,
+      author_name: authorMap.get(p.author_id) ?? "익명",
+      like_count: likeCountMap[p.id] ?? 0,
+    }))
+    .sort((a, b) => {
+      if (b.like_count !== a.like_count) return b.like_count - a.like_count;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-  // 상점 바로가기 — 내 길드 있으면 그 길드 상점으로, 없으면 길드 가입으로
   const hasGuild = myGuilds.length > 0;
+  const canCreateGuild = myGuilds.length < 2;
   const shopHref = hasGuild ? `/guild/${myGuilds[0].code}/shop` : "/onboarding/join";
   const shopLabel = hasGuild ? "내 길드 상점 가기" : "길드 가입하고 상점 이용";
 
@@ -293,56 +307,64 @@ export default async function PlazaPage() {
         <MegaphoneTicker />
 
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="space-y-6">
-
-            {/* 길드 랭킹 */}
-            <section>
-              <SectionHeader icon={Trophy} title="길드 랭킹" />
-              <TopRankCompact guilds={topRankings} />
-            </section>
-
-            {/* 본문 + 길드 자랑 열 */}
-            <div className="flex gap-5">
-              <div className="flex-1 min-w-0 space-y-6">
-                {/* 게시판 + 사이드 */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                  <div className="lg:col-span-8">
-                    <BoardPreview posts={plazaPosts} />
-                  </div>
-                  <aside className="lg:col-span-4 space-y-5">
-                    <MyProfileCard
-                      isLoggedIn={!!user}
-                      profile={myProfile}
-                      isAdmin={myProfile?.is_platform_admin === true}
-                      markUrl={equippedMarkUrl}
-                      cardFrameUrl={equippedCardFrameUrl}
-                    />
-                    <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
-                    <RecruitingGuilds guilds={recruitingGuilds} />
-                  </aside>
-                </div>
-
-                {/* 인게임 정보 */}
-                <section>
-                  <SectionHeader icon={Gamepad2} title="인게임 정보" />
-                  <GameContentWidgets />
-                </section>
-
-                {/* 신규 포인트 상품 */}
-                <section>
-                  <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
-                  <ShopPreview items={shopItems} />
-                </section>
+          {/* 길드 만들기 CTA 배너 */}
+          {canCreateGuild && (
+            <Link
+              href="/onboarding/create"
+              className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-4 mb-6 hover:from-violet-500 hover:to-indigo-500 transition-colors group"
+            >
+              <div className="min-w-0">
+                <p className="text-white font-bold text-base leading-tight">
+                  {hasGuild ? "새 길드를 만들어보세요" : "나만의 길드를 만들어보세요"}
+                </p>
+                <p className="text-white/80 text-xs mt-0.5">출석 · 레이드 · 랭킹까지 한 곳에서 관리</p>
               </div>
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-violet-700 text-sm font-bold shrink-0 group-hover:scale-105 transition-transform">
+                <Plus className="w-4 h-4" />
+                길드 만들기
+              </span>
+            </Link>
+          )}
 
-              {/* 길드 자랑 열 */}
-              <aside className="hidden xl:block w-36 shrink-0">
-                <div className="sticky top-24">
-                  <GuildShowcaseColumn items={showcaseItems} />
-                </div>
-              </aside>
+          {/* 3단 레이아웃 */}
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            {/* 좌측: 프로필 + 내 길드 */}
+            <div className="w-full lg:w-[224px] shrink-0 space-y-4">
+              <MyProfileCard
+                isLoggedIn={!!user}
+                profile={myProfile}
+                isAdmin={myProfile?.is_platform_admin === true}
+                markUrl={equippedMarkUrl}
+                cardFrameUrl={equippedCardFrameUrl}
+              />
+              <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
             </div>
 
+            {/* 중앙: 랭킹 + 화제글 + 인게임 정보 */}
+            <div className="flex-1 min-w-0 space-y-6">
+              <section>
+                <SectionHeader icon={Trophy} title="주간 길드 랭킹" />
+                <TopRankCompact guilds={topRankings} />
+              </section>
+
+              <BoardPreview posts={plazaPosts} />
+
+              <section>
+                <SectionHeader icon={Gamepad2} title="인게임 정보" />
+                <GameContentWidgets />
+              </section>
+
+              <section>
+                <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
+                <ShopPreview items={shopItems} />
+              </section>
+            </div>
+
+            {/* 우측: 모집 길드 + 길드 자랑 */}
+            <aside className="w-full lg:w-[228px] shrink-0 space-y-4">
+              <RecruitingGuilds guilds={recruitingGuilds} />
+              <GuildShowcaseColumn items={showcaseItems} />
+            </aside>
           </div>
         </div>
       </main>
