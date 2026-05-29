@@ -17,7 +17,6 @@ type NavItem = {
 
 export default function PlazaSidebar({ shopHref }: Props) {
   const pathname = usePathname();
-
   const items: NavItem[] = [
     { label: "광장 홈", href: "/plaza", icon: Home, exact: true },
     { label: "전체 랭킹", href: "/plaza/ranking", icon: Trophy, exact: false },
@@ -34,34 +33,26 @@ export default function PlazaSidebar({ shopHref }: Props) {
   }
 
   return (
-    <aside className="w-full md:w-56 md:shrink-0 bg-slate-800 md:sticky md:top-0 md:self-start md:h-screen">
-      <div className="hidden md:block px-5 py-5 border-b border-slate-700">
-        <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.2em] mb-1">
-          GUILD PLAZA
-        </p>
-        <p className="text-lg font-bold text-white">광장</p>
-      </div>
-      <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible px-3 py-2.5">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item);
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap shrink-0 transition-colors " +
-                (active
-                  ? "bg-sky-500 text-white"
-                  : "text-slate-300 hover:bg-slate-700 hover:text-white")
-              }
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+    <nav className="flex gap-1 px-2 overflow-x-auto border-t border-slate-100">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = isActive(item);
+        return (
+          <Link
+            key={item.label}
+            href={item.href}
+            className={
+              "flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors " +
+              (active
+                ? "border-violet-500 text-violet-600"
+                : "border-transparent text-slate-500 hover:text-slate-800")
+            }
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
