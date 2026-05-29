@@ -28,6 +28,7 @@ type Props = {
 };
 
 export default function GuildPostDetail({ guildCode, post, authorColor, isAuthor, alreadyLiked }: Props) {
+  const router = useRouter();
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [liked, setLiked] = useState(alreadyLiked);
   const [isPending, startTransition] = useTransition();
