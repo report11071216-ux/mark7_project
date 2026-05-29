@@ -11,6 +11,7 @@ import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList"
 import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
+import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 60;
@@ -45,6 +46,7 @@ export default async function PlazaPage() {
     totalCountResult,
     announcementResult,
     shopItemsResult,
+    showcaseResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -53,6 +55,7 @@ export default async function PlazaPage() {
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(4),
+    supabase.from("guild_showcases").select("id, image_url, guild_id, created_at, guilds(code, name)").order("created_at", { ascending: false }).limit(40),
   ]);
 
   const user = userResult.data.user;
@@ -61,10 +64,27 @@ export default async function PlazaPage() {
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
   const shopRaw = shopItemsResult.data;
+  const showcaseRaw = showcaseResult.data;
 
   const annRaw = announcementResult.data?.value as { message: string; link: string; active: boolean } | null;
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
+
+  // 길드 자랑 — 길드별 최신 1장만
+  const seenShowcaseGuilds = new Set<string>();
+  const showcaseItems: ShowcaseItem[] = [];
+  for (const row of (showcaseRaw ?? []) as any[]) {
+    if (!row.guild_id || seenShowcaseGuilds.has(row.guild_id)) continue;
+    const g = Array.isArray(row.guilds) ? row.guilds[0] : row.guilds;
+    if (!g) continue;
+    seenShowcaseGuilds.add(row.guild_id);
+    showcaseItems.push({
+      id: row.id,
+      guildCode: g.code,
+      guildName: g.name,
+      imageUrl: row.image_url,
+    });
+  }
 
   // 좋아요 카운트 (화제글 정렬용)
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
@@ -215,7 +235,6 @@ export default async function PlazaPage() {
   const canCreateGuild = myGuilds.length < 2;
   const shopHref = hasGuild ? `/guild/${myGuilds[0].code}/shop` : "/onboarding/join";
 
-  // 좌측 포인트샵 배너용 상품
   const shopItems = (shopRaw ?? []).map((s) => ({
     id: s.id, name: s.name, price: s.price,
     image_url: s.image_url, category: s.category,
@@ -243,7 +262,6 @@ export default async function PlazaPage() {
               </p>
             </div>
           </div>
-          {/* 가로 네비 */}
           <PlazaSidebar shopHref={shopHref} />
         </div>
       </div>
@@ -299,7 +317,6 @@ export default async function PlazaPage() {
               markUrl={equippedMarkUrl}
               cardFrameUrl={equippedCardFrameUrl}
             />
-            {/* 포인트샵 세로 배너 */}
             {shopItems.length > 0 && (
               <div>
                 <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em] mb-2">POINT SHOP</p>
@@ -345,10 +362,11 @@ export default async function PlazaPage() {
             </section>
           </div>
 
-          {/* 우측: 내 길드 + 모집중 */}
+          {/* 우측: 내 길드 + 모집중 + 길드 자랑 */}
           <aside className="w-full lg:w-[212px] shrink-0 space-y-4">
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
             <RecruitingGuilds guilds={recruitingGuilds} />
+            <GuildShowcaseColumn items={showcaseItems} />
           </aside>
         </div>
       </div>
