@@ -31,22 +31,55 @@ export default function GuildHomeLayout({
 }: Props) {
   const { guild, totalAttendances, streak, primaryColor, backgroundColor, bannerUrl } = data;
   const equippedBackgroundUrl = (data as any).equippedBackgroundUrl ?? null;
+  const cardStyle = (data as any).cardStyle ?? "solid";
   const hasBg = !!equippedBackgroundUrl;
 
-  const isLight = isLightColor(backgroundColor);
-  const textPrimary = isLight ? "#111827" : "#ffffff";
-  const textSecondary = isLight ? "#6b7280" : "#a1a1aa";
-  const cardBg = isLight ? "#ffffff" : "#18181b";
-  const cardBorder = isLight ? "#e5e7eb" : "#27272a";
-  const dividerColor = isLight ? "#f3f4f6" : "#27272a";
+  // 배경이 없으면 카드 스타일은 무조건 solid (글래스는 배경 위에서만 의미 있음)
+  const effectiveStyle = hasBg ? cardStyle : "solid";
+  const isGlassLight = effectiveStyle === "glass-light";
+  const isGlassDark = effectiveStyle === "glass-dark";
+  const isGlass = isGlassLight || isGlassDark;
+
+  // ── 카드 톤 3종 ──
+  let textPrimary: string;
+  let textSecondary: string;
+  let cardBg: string;
+  let cardBorder: string;
+  let dividerColor: string;
+  let headerBg: string;
+
+  if (isGlassDark) {
+    textPrimary = "#f1f5f9";
+    textSecondary = "#cbd5e1";
+    cardBg = "rgba(20,28,44,0.58)";
+    cardBorder = "rgba(255,255,255,0.14)";
+    dividerColor = "rgba(255,255,255,0.10)";
+    headerBg = "rgba(20,28,44,0.62)";
+  } else if (isGlassLight) {
+    textPrimary = "#1a2332";
+    textSecondary = "#475569";
+    cardBg = "rgba(255,255,255,0.62)";
+    cardBorder = "rgba(255,255,255,0.7)";
+    dividerColor = "rgba(0,0,0,0.06)";
+    headerBg = "rgba(255,255,255,0.66)";
+  } else {
+    // solid (기존)
+    const isLight = isLightColor(backgroundColor);
+    textPrimary = isLight ? "#111827" : "#ffffff";
+    textSecondary = isLight ? "#6b7280" : "#a1a1aa";
+    cardBg = isLight ? "#ffffff" : "#18181b";
+    cardBorder = isLight ? "#e5e7eb" : "#27272a";
+    dividerColor = isLight ? "#f3f4f6" : "#27272a";
+    headerBg = hasBg ? "rgba(255,255,255,0.9)" : cardBg;
+  }
 
   const colors: WidgetColors = {
-    textPrimary: textPrimary,
-    textSecondary: textSecondary,
-    cardBg: cardBg,
-    cardBorder: cardBorder,
-    dividerColor: dividerColor,
-    primaryColor: primaryColor,
+    textPrimary,
+    textSecondary,
+    cardBg,
+    cardBorder,
+    dividerColor,
+    primaryColor,
   };
 
   const tabs = [
@@ -69,9 +102,19 @@ export default function GuildHomeLayout({
     ));
   }
 
+  // 글래스일 때 카드에 블러 효과를 주기 위한 wrapper 클래스
+  const glassClass = isGlass ? "guild-glass-cards" : "";
+
   return (
-    <div className="min-h-screen relative" style={hasBg ? undefined : { backgroundColor }}>
-      {/* 배경 이미지 레이어 (장착 시) — 콘텐츠 영역 안에만 (사이드바 안 덮음) */}
+    <div className={"min-h-screen relative " + glassClass} style={hasBg ? undefined : { backgroundColor }}>
+      {/* 글래스 카드 블러 (배경 글래스일 때 모든 위젯 카드에 backdrop-blur) */}
+      {isGlass && (
+        <style>{`
+          .guild-glass-cards .rounded-lg { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+        `}</style>
+      )}
+
+      {/* 배경 이미지 레이어 */}
       {hasBg && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <img
@@ -80,23 +123,28 @@ export default function GuildHomeLayout({
             className="w-full object-cover"
             style={{ position: "sticky", top: 0, height: "100vh" }}
           />
-          {/* 가독성 오버레이: 배경을 살짝 눌러서 카드가 잘 떠 보이게 */}
-          <div className="absolute inset-0 bg-slate-100/82 backdrop-blur-[2px]" />
+          {/* 가독성 오버레이: 글래스면 약하게(배경 잘 보임), solid면 강하게 */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: isGlassDark
+                ? "rgba(10,15,25,0.30)"
+                : isGlassLight
+                ? "rgba(241,245,249,0.25)"
+                : "rgba(241,245,249,0.82)",
+            }}
+          />
         </div>
       )}
 
-      {/* 실제 콘텐츠 (배경 위에) */}
+      {/* 콘텐츠 */}
       <div className="relative z-10">
-        {/* 배너 (있을 때만) */}
+        {/* 배너 */}
         {bannerUrl ? (
           <div className="w-full">
             <div className="max-w-[1200px] mx-auto px-4 pt-4">
               <div className="rounded-2xl overflow-hidden border shadow-sm" style={{ borderColor: cardBorder }}>
-                <img
-                  src={bannerUrl}
-                  alt={`${guild.name} 배너`}
-                  className="w-full h-32 sm:h-44 object-cover"
-                />
+                <img src={bannerUrl} alt={`${guild.name} 배너`} className="w-full h-32 sm:h-44 object-cover" />
               </div>
             </div>
           </div>
@@ -105,8 +153,10 @@ export default function GuildHomeLayout({
         <div
           className="border-b shadow-sm"
           style={{
-            backgroundColor: hasBg ? "rgba(255,255,255,0.9)" : cardBg,
+            backgroundColor: headerBg,
             borderColor: cardBorder,
+            backdropFilter: isGlass ? "blur(14px)" : undefined,
+            WebkitBackdropFilter: isGlass ? "blur(14px)" : undefined,
           }}
         >
           <div className="max-w-[1200px] mx-auto px-4">
@@ -121,10 +171,7 @@ export default function GuildHomeLayout({
                 <div className="flex items-center gap-1.5 min-w-0">
                   <h1 className="text-lg font-bold leading-tight truncate" style={{ color: textPrimary }}>{guild.name}</h1>
                   {guild.server ? (
-                    <span
-                      className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0"
-                      style={{ backgroundColor: primaryColor + "22", color: primaryColor }}
-                    >
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>
                       [{guild.server}]
                     </span>
                   ) : null}
