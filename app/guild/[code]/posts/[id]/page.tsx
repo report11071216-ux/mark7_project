@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import GuildPostDetail from "@/components/guild/GuildPostDetail";
 import GuildComments, { type GuildComment } from "@/components/guild/GuildComments";
+import { getNicknameColors } from "@/lib/nickname-color";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,6 @@ export default async function GuildPostDetailPage({ params }: Props) {
       .select("id, username, avatar_url, equipped_mark_id")
       .in("id", commentAuthorIds);
 
-    // 마크 이미지 조회
     const markPurchaseIds = Array.from(
       new Set((authors ?? []).map((a) => a.equipped_mark_id).filter(Boolean))
     ) as string[];
@@ -121,6 +121,15 @@ export default async function GuildPostDetailPage({ params }: Props) {
     }
   }
 
+  // ── 닉네임 색: 글 작성자 + 댓글 작성자 ──
+  const colorUserIds: string[] = [];
+  if (post.author_id) colorUserIds.push(post.author_id);
+  for (const c of rawComments) {
+    if (c.author_id) colorUserIds.push(c.author_id);
+  }
+  const nicknameColors = await getNicknameColors(colorUserIds);
+  const authorColor = post.author_id ? nicknameColors[post.author_id] ?? null : null;
+
   const comments: GuildComment[] = rawComments.map((c) => ({
     id: c.id,
     content: c.content,
@@ -129,6 +138,7 @@ export default async function GuildPostDetailPage({ params }: Props) {
     author_name: commentAuthorMap[c.author_id]?.username ?? "Unknown",
     author_avatar: commentAuthorMap[c.author_id]?.avatar_url ?? null,
     author_mark: commentAuthorMap[c.author_id]?.mark_url ?? null,
+    author_color: c.author_id ? nicknameColors[c.author_id] ?? null : null,
   }));
 
   return (
@@ -145,6 +155,7 @@ export default async function GuildPostDetailPage({ params }: Props) {
           created_at: post.created_at,
           author_name: authorName,
         }}
+        authorColor={authorColor}
         isAuthor={isAuthor}
         alreadyLiked={alreadyLiked}
       />
