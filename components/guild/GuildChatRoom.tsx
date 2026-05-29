@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import toast from "react-hot-toast";
-import { MessageCircle, Send, Trash2 } from "lucide-react";
-import { sendMessage, deleteMessage } from "@/app/guild/[code]/chat/actions";
+import { MessageCircle, Send, Trash2, SmilePlus } from "lucide-react";
+import { sendMessage, deleteMessage, toggleReaction } from "@/app/guild/[code]/chat/actions";
 
 export type ChatMessage = {
   id: string;
@@ -20,6 +20,13 @@ export type ChatMember = {
   mark_url: string | null;
 };
 
+type Reaction = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+};
+
 type Props = {
   guildId: string;
   guildCode: string;
@@ -28,6 +35,8 @@ type Props = {
   members: ChatMember[];
   initialMessages: ChatMessage[];
 };
+
+const EMOJI_SET = ["👍", "❤️", "😂", "🎉", "😮", "😢", "🔥", "👏", "💪", "🙏"];
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -60,9 +69,11 @@ export default function GuildChatRoom({
   initialMessages,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -79,42 +90,69 @@ export default function GuildChatRoom({
     )
   );
 
+  // 초기 반응 로드
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const ids = messages.map((m) => m.id);
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from("message_reactions")
+        .select("id, message_id, user_id, emoji")
+        .in("message_id", ids);
+      if (!cancelled && data) setReactions(data as Reaction[]);
+    }
+    load();
+    return () => { cancelled = true; };
+    // messages 길이가 바뀔 때만 다시 (초기/새 메시지)
+  }, [supabase, messages.length]);
+
+  // 메시지 realtime
   useEffect(() => {
     const channel = supabase
       .channel(`guild-chat-room-${guildId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "guild_messages",
-          filter: `guild_id=eq.${guildId}`,
-        },
+        { event: "INSERT", schema: "public", table: "guild_messages", filter: `guild_id=eq.${guildId}` },
         (payload) => {
           const row = payload.new as ChatMessage;
-          setMessages((prev) =>
-            prev.some((m) => m.id === row.id) ? prev : [...prev, row]
-          );
+          setMessages((prev) => prev.some((m) => m.id === row.id) ? prev : [...prev, row]);
         }
       )
       .on(
         "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "guild_messages",
-          filter: `guild_id=eq.${guildId}`,
-        },
+        { event: "DELETE", schema: "public", table: "guild_messages", filter: `guild_id=eq.${guildId}` },
         (payload) => {
           const removed = payload.old as { id: string };
           setMessages((prev) => prev.filter((m) => m.id !== removed.id));
         }
       )
       .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, guildId]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+  // 반응 realtime (전체 구독 후 현재 메시지 것만 반영)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`guild-reactions-${guildId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const row = payload.new as Reaction;
+          setReactions((prev) => prev.some((r) => r.id === row.id) ? prev : [...prev, row]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const removed = payload.old as { id: string };
+          setReactions((prev) => prev.filter((r) => r.id !== removed.id));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [supabase, guildId]);
 
   useEffect(() => {
@@ -137,9 +175,7 @@ export default function GuildChatRoom({
     if (res.ok) {
       setInput("");
       if (taRef.current) taRef.current.style.height = "auto";
-      setMessages((prev) =>
-        prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]
-      );
+      setMessages((prev) => prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]);
     } else {
       toast.error(res.error);
     }
@@ -157,6 +193,28 @@ export default function GuildChatRoom({
     }
   }
 
+  async function handleReact(messageId: string, emoji: string) {
+    setPickerFor(null);
+    // 낙관적 토글
+    const mineExists = reactions.some(
+      (r) => r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji
+    );
+    if (mineExists) {
+      setReactions((prev) => prev.filter(
+        (r) => !(r.message_id === messageId && r.user_id === currentUserId && r.emoji === emoji)
+      ));
+    } else {
+      setReactions((prev) => [
+        ...prev,
+        { id: `tmp-${Date.now()}`, message_id: messageId, user_id: currentUserId, emoji },
+      ]);
+    }
+    const res = await toggleReaction(messageId, emoji);
+    if (!res.ok) {
+      toast.error(res.error);
+    }
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -167,11 +225,7 @@ export default function GuildChatRoom({
   function renderAvatar(member: ChatMember | undefined, name: string, mine: boolean) {
     const img = member?.mark_url || member?.avatar_url || null;
     return (
-      <div
-        className={`w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center ${
-          mine ? "bg-violet-600" : "bg-violet-100"
-        }`}
-      >
+      <div className={`w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center ${mine ? "bg-violet-600" : "bg-violet-100"}`}>
         {img ? (
           <img src={img} alt={name} className="w-full h-full object-cover" />
         ) : (
@@ -181,6 +235,18 @@ export default function GuildChatRoom({
         )}
       </div>
     );
+  }
+
+  // 메시지별 반응 그룹핑: { emoji: { count, mine } }
+  function reactionSummary(messageId: string) {
+    const rs = reactions.filter((r) => r.message_id === messageId);
+    const map: { [emoji: string]: { count: number; mine: boolean } } = {};
+    for (const r of rs) {
+      if (!map[r.emoji]) map[r.emoji] = { count: 0, mine: false };
+      map[r.emoji].count += 1;
+      if (r.user_id === currentUserId) map[r.emoji].mine = true;
+    }
+    return map;
   }
 
   let lastDate = "";
@@ -199,7 +265,7 @@ export default function GuildChatRoom({
       </div>
 
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4" onClick={() => setPickerFor(null)}>
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center py-20">
@@ -214,15 +280,14 @@ export default function GuildChatRoom({
               const mine = msg.user_id === currentUserId;
               const sender = memberMap[msg.user_id];
               const name = mine ? "나" : (sender?.username ?? "알 수 없음");
-
               const prev = i > 0 ? messages[i - 1] : null;
               const grouped = isSameGroup(prev, msg);
-
               const thisDate = dateLabel(msg.created_at);
               const showDate = thisDate !== lastDate;
               lastDate = thisDate;
-
               const headerHidden = grouped && !showDate;
+              const summary = reactionSummary(msg.id);
+              const summaryKeys = Object.keys(summary);
 
               return (
                 <div key={msg.id}>
@@ -235,7 +300,6 @@ export default function GuildChatRoom({
                   )}
 
                   <div className={`group flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
-                    {/* 아바타 자리 */}
                     <div className="w-9 shrink-0">
                       {!headerHidden && renderAvatar(sender, name, mine)}
                     </div>
@@ -243,36 +307,84 @@ export default function GuildChatRoom({
                     <div className="min-w-0 flex-1">
                       {!headerHidden && (
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span
-                            className={`text-sm font-bold ${
-                              mine ? "text-violet-700" : "text-slate-800"
-                            }`}
-                          >
+                          <span className={`text-sm font-bold ${mine ? "text-violet-700" : "text-slate-800"}`}>
                             {name}
                           </span>
-                          <span className="text-[10px] text-slate-400">
-                            {formatTime(msg.created_at)}
-                          </span>
+                          <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
                         </div>
                       )}
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-1.5">
                         <p className="text-sm text-slate-700 break-words leading-relaxed whitespace-pre-wrap min-w-0">
                           {msg.content}
                         </p>
-                        {/* 내 메시지에만 삭제 버튼 (호버 시) */}
-                        {mine && (
+                        {/* 액션 버튼 (호버 시) */}
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 relative">
                           <button
                             type="button"
-                            onClick={() => handleDelete(msg.id)}
-                            disabled={deletingId === msg.id}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-1 rounded text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50"
-                            aria-label="메시지 삭제"
-                            title="삭제"
+                            onClick={(e) => { e.stopPropagation(); setPickerFor(pickerFor === msg.id ? null : msg.id); }}
+                            className="p-1 rounded text-slate-300 hover:text-violet-500 hover:bg-violet-50"
+                            aria-label="반응 추가"
+                            title="반응"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <SmilePlus className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                          {mine && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(msg.id)}
+                              disabled={deletingId === msg.id}
+                              className="p-1 rounded text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50"
+                              aria-label="메시지 삭제"
+                              title="삭제"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {/* 이모지 피커 */}
+                          {pickerFor === msg.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute z-10 top-7 left-0 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex gap-0.5 flex-wrap w-56"
+                            >
+                              {EMOJI_SET.map((em) => (
+                                <button
+                                  key={em}
+                                  type="button"
+                                  onClick={() => handleReact(msg.id, em)}
+                                  className="w-9 h-9 rounded-lg hover:bg-slate-100 text-lg flex items-center justify-center"
+                                >
+                                  {em}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* 반응 칩 */}
+                      {summaryKeys.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {summaryKeys.map((em) => {
+                            const info = summary[em];
+                            return (
+                              <button
+                                key={em}
+                                type="button"
+                                onClick={() => handleReact(msg.id, em)}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${
+                                  info.mine
+                                    ? "bg-violet-50 border-violet-300 text-violet-700"
+                                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                                }`}
+                              >
+                                <span>{em}</span>
+                                <span className="font-medium">{info.count}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
