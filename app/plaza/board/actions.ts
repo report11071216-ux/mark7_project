@@ -65,3 +65,40 @@ export async function deletePost(postId: string) {
   revalidatePath("/plaza/board");
   redirect("/plaza/board");
 }
+// ── 광장 글 좋아요 토글 ──
+export async function togglePostLike(postId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  // 이미 눌렀는지 확인
+  const { data: existing } = await supabase
+    .from("post_likes")
+    .select("id")
+    .eq("post_id", postId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    // 취소
+    await supabase
+      .from("post_likes")
+      .delete()
+      .eq("id", existing.id);
+  } else {
+    // 추가
+    const { error } = await supabase
+      .from("post_likes")
+      .insert({ post_id: postId, user_id: user.id });
+    if (error) {
+      return { success: false, error: `좋아요 실패: ${error.message}` };
+    }
+  }
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/plaza/board/${postId}`);
+  revalidatePath("/plaza");
+  return { success: true, liked: !existing };
+}
