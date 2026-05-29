@@ -20,8 +20,8 @@ export type ChatMember = {
   username: string;
   avatar_url: string | null;
   mark_url: string | null;
+  nickname_color: string | null;
 };
-
 type Reaction = { id: string; message_id: string; user_id: string; emoji: string; };
 
 type Props = {
@@ -259,9 +259,20 @@ export default function GuildChatRoom({
                   <div className={`group flex gap-2.5 ${headerHidden ? "mt-0.5" : "mt-3"}`}>
                     <div className="w-9 shrink-0">{!headerHidden && renderAvatar(sender, name, mine)}</div>
                     <div className="min-w-0 flex-1">
-                      {!headerHidden && (
+                     {!headerHidden && (
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className={`text-sm font-bold ${mine ? "text-violet-700" : "text-slate-800"}`}>{name}</span>
+                          <span
+                            className="text-sm font-bold"
+                            style={
+                              sender?.nickname_color
+                                ? { color: sender.nickname_color }
+                                : undefined
+                            }
+                          >
+                            <span className={sender?.nickname_color ? "" : (mine ? "text-violet-700" : "text-slate-800")}>
+                              {name}
+                            </span>
+                          </span>
                           <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
                         </div>
                       )}
