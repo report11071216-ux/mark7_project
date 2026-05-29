@@ -130,7 +130,7 @@ function TimedContentBody({
   );
 }
 
-// ─── 카오스게이트 전용 ───
+// ─── 카오스게이트 전용 (매시간 진행이라 시간 나열 대신 텍스트) ───
 function ChaosGateBody({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
@@ -146,40 +146,27 @@ function ChaosGateBody({ items }: { items: CalendarContent[] }) {
 
   const first = todayItems[0];
   const remainder = todayItems.length - 1;
-  const todayTimes = (first.StartTimes ?? []).filter(isTodayKST);
 
   return (
-    <div className="space-y-3">
-      <div>
-        <div className="flex items-center gap-2">
-          {first.ContentsIcon && (
-            <img
-              src={first.ContentsIcon}
-              alt={first.ContentsName}
-              className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
-            />
-          )}
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-900 truncate">
-              {first.ContentsName}
-            </p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <p className="text-[10px] font-mono text-slate-600">
-                {todayTimes.map(formatKST).join(" · ")}
-              </p>
-              {first.Location && (
-                <p className="text-[10px] text-slate-400 truncate">
-                  · {first.Location}
-                </p>
-              )}
-            </div>
-          </div>
+    <div>
+      <div className="flex items-center gap-2">
+        {first.ContentsIcon && (
+          <img
+            src={first.ContentsIcon}
+            alt={first.ContentsName}
+            className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-slate-900 truncate">
+            {first.ContentsName}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">매시간 50분 진행</p>
         </div>
-        <RewardItems items={first.RewardItems} />
       </div>
 
       {remainder > 0 && (
-        <p className="text-[10px] text-slate-400 text-center pt-1 border-t border-slate-100">
+        <p className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100">
           외 {remainder}개 지역에서도 진행
         </p>
       )}
