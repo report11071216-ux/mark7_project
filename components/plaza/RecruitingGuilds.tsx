@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Users, ArrowRight } from "lucide-react";
+
 export type RecruitingGuild = {
   id: string;
   code: string;
@@ -10,13 +11,14 @@ export type RecruitingGuild = {
   description: string | null;
   server?: string | null;
 };
+
 export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[] }) {
   return (
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
-      {/* 남색 제목띠 */}
-      <div className="flex items-center gap-2 px-5 py-3 bg-slate-800">
-        <Users className="w-5 h-5 text-white" />
-        <h3 className="text-base font-bold text-white">모집중 길드</h3>
+      {/* 가벼운 헤더 */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+        <Users className="w-4 h-4 text-violet-500" />
+        <h3 className="text-[15px] font-bold text-slate-900">모집중 길드</h3>
       </div>
       <div className="p-2.5 space-y-1.5">
         {guilds.length === 0 ? (
@@ -66,7 +68,7 @@ export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[]
           ))
         )}
       </div>
-      <div className="px-3 py-2.5 border-t border-slate-200">
+      <div className="px-3 py-2.5 border-t border-slate-100">
         <Link
           href="/plaza/recruiting"
           className="flex items-center justify-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-800"
