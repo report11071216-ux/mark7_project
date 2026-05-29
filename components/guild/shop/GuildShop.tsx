@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X } from "lucide-react";
 import { purchaseItem } from "@/app/guild/[code]/shop/actions";
@@ -36,6 +36,7 @@ export default function GuildShop({
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
+  const [catTab, setCatTab] = useState<string>("전체");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
@@ -44,12 +45,28 @@ export default function GuildShop({
   const guildItems = items.filter((i) => i.shop_type === "guild");
   const currentItems = tab === "activity" ? activityItems : guildItems;
 
-  const grouped: { [key: string]: ShopItem[] } = {};
+  // 현재 샵의 카테고리 목록
+  const categories: string[] = [];
   for (const it of currentItems) {
+    if (!categories.includes(it.category)) categories.push(it.category);
+  }
+
+  // 샵 탭이 바뀌면 카테고리 탭을 "전체"로 리셋
+  useEffect(() => {
+    setCatTab("전체");
+  }, [tab]);
+
+  // 카테고리 탭으로 거른 아이템
+  const filteredItems =
+    catTab === "전체" ? currentItems : currentItems.filter((i) => i.category === catTab);
+
+  // "전체"일 땐 카테고리별 그룹핑해서 섹션으로, 개별 탭이면 한 그리드로
+  const grouped: { [key: string]: ShopItem[] } = {};
+  for (const it of filteredItems) {
     if (!grouped[it.category]) grouped[it.category] = [];
     grouped[it.category].push(it);
   }
-  const categories = Object.keys(grouped);
+  const groupedCats = Object.keys(grouped);
 
   const currentBalance = tab === "activity" ? myPoints : guildPoints;
 
@@ -74,6 +91,12 @@ export default function GuildShop({
   const accentText = accent === "activity" ? "text-violet-600" : "text-cyan-600";
   const balanceAfter = confirmItem ? currentBalance - confirmItem.price : 0;
 
+  // 카테고리별 개수 (탭 뱃지용)
+  const countOf = (cat: string) =>
+    cat === "전체" ? currentItems.length : currentItems.filter((i) => i.category === cat).length;
+
+  const showGuildLock = tab === "guild" && !isStaff;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
@@ -88,8 +111,8 @@ export default function GuildShop({
           </div>
         </div>
 
-        {/* 탭 + 보유 포인트 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        {/* 샵 탭 + 보유 포인트 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex gap-2">
             <button
               type="button"
@@ -128,8 +151,37 @@ export default function GuildShop({
           </div>
         </div>
 
-        {/* 보유 확성기 — 길드샵 탭에서만 */}
-        {tab === "guild" && isStaff && (
+        {/* 카테고리 탭 (잠금/빈 상태 아닐 때만) */}
+        {!showGuildLock && categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200 mb-6">
+            {["전체", ...categories].map((cat) => {
+              const active = catTab === cat;
+              const activeColor =
+                tab === "activity"
+                  ? "bg-violet-600 text-white shadow-[0_2px_8px_rgba(124,58,237,0.25)]"
+                  : "bg-cyan-600 text-white shadow-[0_2px_8px_rgba(8,145,178,0.25)]";
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCatTab(cat)}
+                  className={
+                    "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition " +
+                    (active ? activeColor : "text-slate-600 hover:bg-slate-100")
+                  }
+                >
+                  {cat}
+                  <span className={"text-[11px] font-mono px-1.5 rounded " + (active ? "bg-white/20" : "bg-slate-100 text-slate-400")}>
+                    {countOf(cat)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 보유 확성기 — 길드샵 + 전체/확성기 탭에서만 */}
+        {tab === "guild" && isStaff && (catTab === "전체" || catTab === "확성기") && (
           <MegaphoneInventory
             guildCode={guildCode}
             items={megaphoneItems}
@@ -137,7 +189,7 @@ export default function GuildShop({
           />
         )}
 
-        {tab === "guild" && !isStaff ? (
+        {showGuildLock ? (
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
             <Lock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <p className="text-sm text-slate-800 font-medium">길드샵은 마스터·부마스터만 이용할 수 있어요</p>
@@ -145,19 +197,24 @@ export default function GuildShop({
               길드 포인트로 길드 마크, 확성기 등을 구매할 수 있습니다
             </p>
           </div>
-        ) : categories.length === 0 ? (
+        ) : groupedCats.length === 0 ? (
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
             <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-600">아직 등록된 상품이 없어요</p>
+            <p className="text-sm text-slate-600">
+              {categories.length === 0 ? "아직 등록된 상품이 없어요" : "이 분류에 상품이 없어요"}
+            </p>
           </div>
         ) : (
           <div className="space-y-7">
-            {categories.map((cat) => (
+            {groupedCats.map((cat) => (
               <div key={cat}>
-                <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <span className={`w-1 h-4 rounded-full ${tab === "activity" ? "bg-violet-500" : "bg-cyan-500"}`} />
-                  {cat}
-                </h2>
+                {/* "전체" 탭일 때만 카테고리 헤더 표시 */}
+                {catTab === "전체" && (
+                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <span className={`w-1 h-4 rounded-full ${tab === "activity" ? "bg-violet-500" : "bg-cyan-500"}`} />
+                    {cat}
+                  </h2>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {grouped[cat].map((item) => {
                     const owned = ownedItemIds.includes(item.id);
@@ -197,7 +254,6 @@ export default function GuildShop({
               </div>
 
               <div className="p-5">
-                {/* 상품 */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
                     {confirmItem.image_url ? (
@@ -216,7 +272,6 @@ export default function GuildShop({
                   </div>
                 </div>
 
-                {/* 잔액 계산 */}
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1.5 mb-4">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500">
