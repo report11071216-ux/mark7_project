@@ -11,8 +11,7 @@ import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList"
 import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
-import ShopPreview, { type ShopPreviewItem } from "@/components/plaza/ShopPreview";
-import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
+import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 60;
 
@@ -27,8 +26,8 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-5 h-5 text-slate-700" />
-      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      <Icon className="w-4 h-4 text-violet-500" />
+      <h2 className="text-base font-bold text-slate-900">{title}</h2>
       <div className="flex-1 h-px bg-slate-200 ml-2" />
       {action}
     </div>
@@ -46,7 +45,6 @@ export default async function PlazaPage() {
     totalCountResult,
     announcementResult,
     shopItemsResult,
-    showcaseResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -54,8 +52,7 @@ export default async function PlazaPage() {
     supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").is("guild_id", null).order("created_at", { ascending: false }).limit(30),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
-    supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
-    supabase.from("guild_showcases").select("id, image_url, guild_id, created_at, guilds(code, name)").order("created_at", { ascending: false }).limit(40),
+    supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(4),
   ]);
 
   const user = userResult.data.user;
@@ -64,13 +61,12 @@ export default async function PlazaPage() {
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
   const shopRaw = shopItemsResult.data;
-  const showcaseRaw = showcaseResult.data;
 
   const annRaw = announcementResult.data?.value as { message: string; link: string; active: boolean } | null;
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
 
-  // ── 광장 글 좋아요 카운트 (화제글 정렬용) ──
+  // 좋아요 카운트 (화제글 정렬용)
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
   let likeCountMap: { [key: string]: number } = {};
   if (plazaPostIds.length > 0) {
@@ -84,23 +80,7 @@ export default async function PlazaPage() {
     }
   }
 
-  // 길드 자랑 — 길드별 최신 1장만
-  const seenShowcaseGuilds = new Set<string>();
-  const showcaseItems: ShowcaseItem[] = [];
-  for (const row of (showcaseRaw ?? []) as any[]) {
-    if (!row.guild_id || seenShowcaseGuilds.has(row.guild_id)) continue;
-    const g = Array.isArray(row.guilds) ? row.guilds[0] : row.guilds;
-    if (!g) continue;
-    seenShowcaseGuilds.add(row.guild_id);
-    showcaseItems.push({
-      id: row.id,
-      guildCode: g.code,
-      guildName: g.name,
-      imageUrl: row.image_url,
-    });
-  }
-
-  // 주간 랭킹 길드들의 표시용 로고
+  // 주간 랭킹 로고
   const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
   let weeklyLogoMap = new Map<string, string | null>();
   if (weeklyGuildIds.length > 0) {
@@ -115,12 +95,6 @@ export default async function PlazaPage() {
     id: g.id, code: g.code, name: g.name,
     logo_url: weeklyLogoMap.get(g.id) ?? g.logo_url,
     points: g.weekly_points ?? 0, member_count: 0, master_name: "",
-  }));
-
-  const shopItems: ShopPreviewItem[] = (shopRaw ?? []).map((s) => ({
-    id: s.id, shop_type: s.shop_type, category: s.category,
-    name: s.name, price: s.price, image_url: s.image_url,
-    duration_hours: s.duration_hours,
   }));
 
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
@@ -141,7 +115,7 @@ export default async function PlazaPage() {
   const memberships = (membershipsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  // 장착 마크 / 프로필카드 이미지
+  // 장착 마크/카드 이미지
   let equippedMarkUrl: string | null = null;
   let equippedCardFrameUrl: string | null = null;
   if (myProfile && (myProfile.equipped_mark_id || myProfile.equipped_card_id)) {
@@ -167,7 +141,6 @@ export default async function PlazaPage() {
     }
 
     const purchaseMap = new Map((equippedPurchases ?? []).map((p) => [p.id, p.item_id]));
-
     if (myProfile.equipped_mark_id) {
       const markItemId = purchaseMap.get(myProfile.equipped_mark_id);
       if (markItemId) equippedMarkUrl = itemImageMap[markItemId]?.image_url ?? null;
@@ -189,7 +162,7 @@ export default async function PlazaPage() {
     myGuildMap = new Map((myGuildsDisplay ?? []).map((g) => [g.id, g]));
   }
 
-  // 서버 이름 조회
+  // 서버 이름
   const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
   const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
   let serverMap = new Map<string, string | null>();
@@ -202,9 +175,7 @@ export default async function PlazaPage() {
   }
 
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
-    id: g.id,
-    code: g.code,
-    name: g.name,
+    id: g.id, code: g.code, name: g.name,
     logo_url: g.display_logo_url,
     member_count: g.member_count ?? 0,
     max_members: g.max_members ?? 50,
@@ -217,9 +188,7 @@ export default async function PlazaPage() {
     .map((m) => {
       const g = myGuildMap.get(m.guild_id)!;
       return {
-        id: g.id,
-        code: g.code,
-        name: g.name,
+        id: g.id, code: g.code, name: g.name,
         logo_url: g.display_logo_url,
         role: m.role,
         my_points: m.points ?? 0,
@@ -229,13 +198,11 @@ export default async function PlazaPage() {
 
   const authorMap = new Map(postAuthors.map((a: any) => [a.id, a.username]));
 
-  // 광장 글 → 좋아요순 정렬 (동점이면 최신순)
   const plazaPosts: PlazaPost[] = (rawPosts ?? [])
     .map((p) => ({
       id: p.id, title: p.title, category: p.category, is_notice: p.is_notice,
       view_count: p.view_count ?? 0, created_at: p.created_at,
-      guild_name: "", guild_code: "",
-      guild_server: null,
+      guild_name: "", guild_code: "", guild_server: null,
       author_name: authorMap.get(p.author_id) ?? "익명",
       like_count: likeCountMap[p.id] ?? 0,
     }))
@@ -247,128 +214,144 @@ export default async function PlazaPage() {
   const hasGuild = myGuilds.length > 0;
   const canCreateGuild = myGuilds.length < 2;
   const shopHref = hasGuild ? `/guild/${myGuilds[0].code}/shop` : "/onboarding/join";
-  const shopLabel = hasGuild ? "내 길드 상점 가기" : "길드 가입하고 상점 이용";
 
-  const shopButton = (
-    <Link
-      href={shopHref}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-colors shrink-0"
-    >
-      <ShoppingBag className="w-4 h-4" />
-      <span>{shopLabel}</span>
-      <ArrowRight className="w-4 h-4" />
-    </Link>
-  );
+  // 좌측 포인트샵 배너용 상품
+  const shopItems = (shopRaw ?? []).map((s) => ({
+    id: s.id, name: s.name, price: s.price,
+    image_url: s.image_url, category: s.category,
+  }));
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-white">
-      <PlazaSidebar shopHref={shopHref} />
-
-      <main className="flex-1 min-w-0">
-        {/* 상단 헤더 */}
-        <div className="border-b border-slate-200 bg-white/90 backdrop-blur sticky top-0 z-20">
-          <div className="max-w-7xl mx-auto px-6 py-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
-                  <h1 className="text-xl font-bold text-slate-900 truncate leading-tight">광장</h1>
-                </div>
+    <div className="min-h-screen bg-slate-50">
+      {/* 상단 헤더 */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div className="text-right">
-                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
-                <p className="text-lg font-bold text-slate-800 leading-none">
-                  {totalGuildCount ?? 0}
-                  <span className="text-sm text-slate-400 ml-1">개</span>
-                </p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
+                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">광장</h1>
               </div>
             </div>
+            <div className="text-right">
+              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
+              <p className="text-base font-bold text-slate-800 leading-none">
+                {totalGuildCount ?? 0}<span className="text-sm text-slate-400 ml-1">개</span>
+              </p>
+            </div>
+          </div>
+          {/* 가로 네비 */}
+          <PlazaSidebar shopHref={shopHref} />
+        </div>
+      </div>
+
+      {/* 플랫폼 공지 */}
+      {annMessage.trim().length > 0 && (
+        <div className="bg-slate-100 border-b border-slate-200 w-full">
+          <div className="flex items-center gap-3 max-w-[1400px] mx-auto px-4 md:px-6 py-2">
+            <Megaphone className="w-4 h-4 text-slate-500 shrink-0" />
+            <p className="text-sm font-medium text-slate-700 truncate flex-1">{annMessage}</p>
+            {annLink.length > 0 && (
+              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-slate-500 underline underline-offset-2 shrink-0 hidden sm:block">
+                자세히 보기 →
+              </a>
+            )}
           </div>
         </div>
+      )}
 
-        {/* 플랫폼 공지 */}
-        {annMessage.trim().length > 0 && (
-          <div className="bg-slate-800 w-full">
-            <div className="flex items-center gap-3 max-w-7xl mx-auto px-6 py-2.5">
-              <Megaphone className="w-4 h-4 text-white shrink-0" />
-              <p className="text-sm font-medium text-white truncate flex-1">{annMessage}</p>
-              {annLink.length > 0 && (
-                <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-white/70 underline underline-offset-2 shrink-0 hidden sm:block">
-                  자세히 보기 →
-                </a>
-              )}
+      {/* 확성기 ticker */}
+      <MegaphoneTicker />
+
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
+        {/* 길드 만들기 CTA */}
+        {canCreateGuild && (
+          <Link
+            href="/onboarding/create"
+            className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 mb-5 max-w-md hover:from-violet-500 hover:to-indigo-500 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 shrink-0">
+                <Plus className="w-4 h-4 text-white" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-white font-bold text-sm leading-tight truncate">
+                  {hasGuild ? "새 길드 만들기" : "나만의 길드 만들기"}
+                </p>
+                <p className="text-white/75 text-[11px] leading-tight">출석 · 레이드 · 랭킹 한 곳에서</p>
+              </div>
             </div>
-          </div>
+            <ArrowRight className="w-4 h-4 text-white shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         )}
 
-        <MegaphoneTicker />
-
-        <div className="max-w-7xl mx-auto px-6 py-6">
-         {/* 길드 만들기 CTA 배너 */}
-          {canCreateGuild && (
-            <Link
-              href="/onboarding/create"
-              className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 mb-5 max-w-md hover:from-violet-500 hover:to-indigo-500 transition-colors group"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 shrink-0">
-                  <Plus className="w-4 h-4 text-white" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-white font-bold text-sm leading-tight truncate">
-                    {hasGuild ? "새 길드 만들기" : "나만의 길드 만들기"}
-                  </p>
-                  <p className="text-white/75 text-[11px] leading-tight">출석 · 레이드 · 랭킹 한 곳에서</p>
+        {/* 3단: 좌배너 + 중앙 + 우배너 */}
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          {/* 좌측: 마이프로필 + 포인트샵 */}
+          <div className="w-full lg:w-[200px] shrink-0 space-y-4">
+            <MyProfileCard
+              isLoggedIn={!!user}
+              profile={myProfile}
+              isAdmin={myProfile?.is_platform_admin === true}
+              markUrl={equippedMarkUrl}
+              cardFrameUrl={equippedCardFrameUrl}
+            />
+            {/* 포인트샵 세로 배너 */}
+            {shopItems.length > 0 && (
+              <div>
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em] mb-2">POINT SHOP</p>
+                <div className="space-y-2.5">
+                  {shopItems.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={shopHref}
+                      className="block rounded-xl ring-1 ring-slate-200 bg-white overflow-hidden hover:ring-violet-300 transition group"
+                    >
+                      <div className="aspect-square bg-slate-100 overflow-hidden">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingBag className="w-5 h-5 text-slate-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <p className="text-xs font-bold text-slate-800 truncate">{item.name}</p>
+                        <p className="text-xs font-bold text-violet-600 mt-0.5">{formatNumber(item.price)}P</p>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-white shrink-0 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          )}
-          {/* 3단 레이아웃 */}
-          <div className="flex flex-col lg:flex-row gap-5 items-start">
-            {/* 좌측: 프로필 + 내 길드 */}
-            <div className="w-full lg:w-[224px] shrink-0 space-y-4">
-              <MyProfileCard
-                isLoggedIn={!!user}
-                profile={myProfile}
-                isAdmin={myProfile?.is_platform_admin === true}
-                markUrl={equippedMarkUrl}
-                cardFrameUrl={equippedCardFrameUrl}
-              />
-              <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
-            </div>
-
-            {/* 중앙: 랭킹 + 화제글 + 인게임 정보 */}
-            <div className="flex-1 min-w-0 space-y-6">
-              <section>
-                <SectionHeader icon={Trophy} title="주간 길드 랭킹" />
-                <TopRankCompact guilds={topRankings} />
-              </section>
-
-              <BoardPreview posts={plazaPosts} />
-
-              <section>
-                <SectionHeader icon={Gamepad2} title="인게임 정보" />
-                <GameContentWidgets />
-              </section>
-
-              <section>
-                <SectionHeader icon={ShoppingBag} title="신규 포인트 상품" action={shopButton} />
-                <ShopPreview items={shopItems} />
-              </section>
-            </div>
-
-            {/* 우측: 모집 길드 + 길드 자랑 */}
-            <aside className="w-full lg:w-[228px] shrink-0 space-y-4">
-              <RecruitingGuilds guilds={recruitingGuilds} />
-              <GuildShowcaseColumn items={showcaseItems} />
-            </aside>
+            )}
           </div>
+
+          {/* 중앙 */}
+          <div className="flex-1 min-w-0 space-y-6">
+            <section>
+              <SectionHeader icon={Trophy} title="주간 길드 랭킹" />
+              <TopRankCompact guilds={topRankings} />
+            </section>
+
+            <BoardPreview posts={plazaPosts} />
+
+            <section>
+              <SectionHeader icon={Gamepad2} title="인게임 정보" />
+              <GameContentWidgets />
+            </section>
+          </div>
+
+          {/* 우측: 내 길드 + 모집중 */}
+          <aside className="w-full lg:w-[212px] shrink-0 space-y-4">
+            <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
+            <RecruitingGuilds guilds={recruitingGuilds} />
+          </aside>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
