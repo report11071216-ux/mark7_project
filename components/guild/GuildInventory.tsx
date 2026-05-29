@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Megaphone, Clock, Calendar, Coins, Check, Loader2, Smile, Trash2, X } from "lucide-react";
+import { Package, Megaphone, Clock, Calendar, Coins, Check, Loader2, Smile, Trash2, X, ChevronDown } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
 import { equipGuildMark, toggleStickerPack, deleteGuildPurchase } from "@/app/guild/[code]/shop/actions";
 import toast from "react-hot-toast";
@@ -54,11 +54,16 @@ export default function GuildInventory({
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
   const [tab, setTab] = useState<TabKey>("all");
+  const [showDoneMega, setShowDoneMega] = useState(false);
 
   const cosmetics = items.filter(
     (i) => i.item_category !== "확성기" && i.item_category !== "이모티콘팩"
   );
   const megaphones = items.filter((i) => i.item_category === "확성기");
+
+  // 확성기: 활성(미사용/노출중) vs 완료 분리
+  const activeMega = megaphones.filter((m) => megaphoneStatus(m) !== "done");
+  const doneMega = megaphones.filter((m) => megaphoneStatus(m) === "done");
 
   const TABS: { key: TabKey; label: string; count: number }[] = [
     { key: "all", label: "전체", count: stickerPacks.length + cosmetics.length + megaphones.length },
@@ -107,6 +112,35 @@ export default function GuildInventory({
 
   const totalCount = stickerPacks.length + cosmetics.length + megaphones.length;
 
+  function renderMegaRow(item: InventoryItem) {
+    const status = megaphoneStatus(item);
+    return (
+      <div key={item.id} className="group relative rounded-xl bg-white border border-slate-200 shadow-sm p-3.5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-cyan-50 flex items-center justify-center shrink-0"><Megaphone className="w-4 h-4 text-cyan-600" /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-slate-900">{item.item_name}</p>
+              {status === "active" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-100 text-cyan-700">노출중</span>}
+              {status === "ready" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700">미사용</span>}
+              {status === "done" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">사용완료</span>}
+            </div>
+            {item.megaphone_message ? <p className="text-[11px] text-slate-500 truncate mt-0.5">{item.megaphone_message}</p>
+              : <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-0.5"><Clock className="w-3 h-3" />{getRelativeTime(item.created_at)} 구매</p>}
+          </div>
+          <span className="text-[11px] text-slate-400 shrink-0">{item.price_paid.toLocaleString()}P</span>
+          {isStaff && (
+            <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
+              className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 shrink-0 disabled:opacity-50"
+              aria-label="삭제" title="삭제">
+              {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
@@ -125,19 +159,10 @@ export default function GuildInventory({
           {TABS.map((t) => {
             const active = tab === t.key;
             return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={
-                  "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition " +
-                  (active ? "bg-violet-600 text-white shadow-[0_2px_8px_rgba(124,58,237,0.25)]" : "text-slate-600 hover:bg-slate-100")
-                }
-              >
+              <button key={t.key} type="button" onClick={() => setTab(t.key)}
+                className={"flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition " + (active ? "bg-violet-600 text-white shadow-[0_2px_8px_rgba(124,58,237,0.25)]" : "text-slate-600 hover:bg-slate-100")}>
                 {t.label}
-                <span className={"text-[11px] font-mono px-1.5 rounded " + (active ? "bg-white/20" : "bg-slate-100 text-slate-400")}>
-                  {t.count}
-                </span>
+                <span className={"text-[11px] font-mono px-1.5 rounded " + (active ? "bg-white/20" : "bg-slate-100 text-slate-400")}>{t.count}</span>
               </button>
             );
           })}
@@ -211,7 +236,6 @@ export default function GuildInventory({
                     return (
                       <div key={item.id}
                         className={"group relative rounded-xl border p-3.5 transition " + (isEquipped ? "bg-cyan-50 border-cyan-300" : "bg-white border-slate-200 shadow-sm")}>
-                        {/* 삭제 버튼 (마스터/부마, 호버) */}
                         {isStaff && (
                           <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
                             className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50"
@@ -246,43 +270,42 @@ export default function GuildInventory({
               <div>
                 {tab === "all" && (
                   <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-cyan-500" />확성기 기록
+                    <span className="w-1 h-4 rounded-full bg-cyan-500" />확성기
                   </h2>
                 )}
-                <div className="space-y-2">
-                  {megaphones.map((item) => {
-                    const status = megaphoneStatus(item);
-                    return (
-                      <div key={item.id} className="group relative rounded-xl bg-white border border-slate-200 shadow-sm p-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-cyan-50 flex items-center justify-center shrink-0"><Megaphone className="w-4 h-4 text-cyan-600" /></div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-slate-900">{item.item_name}</p>
-                              {status === "active" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-100 text-cyan-700">노출중</span>}
-                              {status === "ready" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700">미사용</span>}
-                              {status === "done" && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">사용완료</span>}
-                            </div>
-                            {item.megaphone_message ? <p className="text-[11px] text-slate-500 truncate mt-0.5">{item.megaphone_message}</p>
-                              : <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-0.5"><Clock className="w-3 h-3" />{getRelativeTime(item.created_at)} 구매</p>}
-                          </div>
-                          <span className="text-[11px] text-slate-400 shrink-0">{item.price_paid.toLocaleString()}P</span>
-                          {isStaff && (
-                            <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 shrink-0 disabled:opacity-50"
-                              aria-label="삭제" title="삭제">
-                              {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-                        </div>
+                {/* 활성(미사용/노출중) */}
+                {activeMega.length > 0 ? (
+                  <div className="space-y-2">
+                    {activeMega.map(renderMegaRow)}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 py-2">사용 가능한 확성기가 없어요.</p>
+                )}
+
+                {/* 사용완료 접기 토글 */}
+                {doneMega.length > 0 && (
+                  <div className="mt-3">
+                    <button type="button" onClick={() => setShowDoneMega((v) => !v)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-600 transition">
+                      <ChevronDown className={"w-3.5 h-3.5 transition-transform " + (showDoneMega ? "rotate-180" : "")} />
+                      사용완료 {doneMega.length}개 {showDoneMega ? "숨기기" : "보기"}
+                    </button>
+                    {showDoneMega && (
+                      <div className="space-y-2 mt-2 opacity-70">
+                        {doneMega.map(renderMegaRow)}
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                  </div>
+                )}
+
+                {isStaff && activeMega.length > 0 && (
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    미사용 확성기는 상점 → 길드샵 → 보유 확성기에서 사용할 수 있어요.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* 현재 탭이 비어있을 때 */}
             {((tab === "sticker" && stickerPacks.length === 0) ||
               (tab === "cosmetic" && cosmetics.length === 0) ||
               (tab === "megaphone" && megaphones.length === 0)) && (
