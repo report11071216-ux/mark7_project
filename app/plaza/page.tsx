@@ -51,7 +51,7 @@ export default async function PlazaPage() {
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
     supabase.from("weekly_guild_ranking").select("id, code, name, logo_url, weekly_points").order("weekly_points", { ascending: false }).limit(5),
-    supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").order("created_at", { ascending: false }).limit(20),
+    supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").is("guild_id", null).order("created_at", { ascending: false }).limit(20),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
