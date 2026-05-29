@@ -44,7 +44,6 @@ export async function deleteMessage(messageId: string): Promise<DeleteResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "로그인이 필요해요." };
 
-  // RLS가 본인 메시지만 삭제 허용하지만, 명확한 에러를 위해 먼저 확인
   const { data: target } = await supabase
     .from("guild_messages")
     .select("id, user_id")
@@ -65,4 +64,43 @@ export async function deleteMessage(messageId: string): Promise<DeleteResult> {
     return { ok: false, error: error.message };
   }
   return { ok: true };
+}
+
+type ReactionResult =
+  | { ok: true; action: "added" | "removed" }
+  | { ok: false; error: string };
+
+export async function toggleReaction(
+  messageId: string,
+  emoji: string
+): Promise<ReactionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "로그인이 필요해요." };
+
+  // 이미 눌렀는지 확인
+  const { data: existing } = await supabase
+    .from("message_reactions")
+    .select("id")
+    .eq("message_id", messageId)
+    .eq("user_id", user.id)
+    .eq("emoji", emoji)
+    .maybeSingle();
+
+  if (existing) {
+    // 취소
+    const { error } = await supabase
+      .from("message_reactions")
+      .delete()
+      .eq("id", existing.id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, action: "removed" };
+  } else {
+    // 추가
+    const { error } = await supabase
+      .from("message_reactions")
+      .insert({ message_id: messageId, user_id: user.id, emoji });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, action: "added" };
+  }
 }
