@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import CardForm from "@/components/admin/CardForm";
+import CardItem from "@/components/admin/CardItem";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function AdminCardsPage() {
     .select("id, grade, name, image_url, is_active, created_at")
     .order("created_at", { ascending: false });
 
-  // 등급별 그룹 + 카운트
+  // 등급별 그룹
   const byGrade: { [key: string]: any[] } = { common: [], rare: [], unique: [], epic: [] };
   for (const c of cards ?? []) {
     if (byGrade[c.grade]) byGrade[c.grade].push(c);
@@ -58,19 +59,14 @@ export default async function AdminCardsPage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                   {byGrade[g].map((c) => (
-                    <div key={c.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                      <div className="aspect-[3/4] bg-slate-100 overflow-hidden">
-                        {c.image_url ? (
-                          <img src={c.image_url} alt={c.name} className={`w-full h-full object-cover ring-2 ${GRADE_RING[c.grade]}`} />
-                        ) : null}
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-bold text-slate-900 truncate">{c.name}</p>
-                        {!c.is_active && (
-                          <span className="text-[10px] text-slate-400">비활성</span>
-                        )}
-                      </div>
-                    </div>
+                    <CardItem
+                      key={c.id}
+                      id={c.id}
+                      name={c.name}
+                      imageUrl={c.image_url}
+                      isActive={c.is_active}
+                      ringClass={GRADE_RING[c.grade]}
+                    />
                   ))}
                 </div>
               )}
