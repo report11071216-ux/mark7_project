@@ -77,17 +77,7 @@ export async function createGuild(
   if (guildError || !guild) {
     return { error: `길드 생성 실패: ${guildError?.message ?? "알 수 없는 오류"}` };
   }
-  const { error: memberError } = await supabase
-    .from("guild_members")
-    .insert({
-      guild_id: guild.id,
-      user_id: user.id,
-      role: "master",
-      points: 0,
-    });
-  if (memberError) {
-    return { error: `멤버 등록 실패: ${memberError.message}` };
-  }
+  // 마스터 등록 + 기본 테마 생성은 on_guild_created 트리거가 자동 처리함
   redirect(`/guild/${guild.code}`);
 }
 
