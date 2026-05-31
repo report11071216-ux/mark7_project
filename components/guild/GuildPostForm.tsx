@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, PenLine, Pin, Loader2 } from "lucide-react";
+import { ChevronLeft, PenLine, Loader2 } from "lucide-react";
 import { createGuildPost } from "@/app/guild/[code]/posts/actions";
+import { BOARD_CATEGORIES, type BoardCategory } from "@/lib/guild-board";
 import toast from "react-hot-toast";
 
 type Props = {
@@ -17,8 +18,10 @@ export default function GuildPostForm({ guildCode, guildName, isStaff }: Props) 
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [isNotice, setIsNotice] = useState(false);
+  const [category, setCategory] = useState<BoardCategory>("free");
   const [isPending, startTransition] = useTransition();
+
+  const available = BOARD_CATEGORIES.filter((c) => isStaff || !c.staffOnly);
 
   const handleSubmit = () => {
     if (!title.trim()) {
@@ -34,7 +37,7 @@ export default function GuildPostForm({ guildCode, guildName, isStaff }: Props) 
       const result = await createGuildPost(guildCode, {
         title: title.trim(),
         content: content.trim(),
-        is_notice: isStaff ? isNotice : false,
+        category,
       });
       if (result.success && result.postId) {
         toast.success("글이 등록되었어요");
@@ -64,28 +67,34 @@ export default function GuildPostForm({ guildCode, guildName, isStaff }: Props) 
         </div>
 
         <div className="space-y-4">
-          {/* 공지 체크 — 운영진만 */}
-          {isStaff && (
-            <button
-              type="button"
-              onClick={() => setIsNotice(!isNotice)}
-              className={`flex items-center gap-2 w-full px-4 py-3 rounded-xl border transition ${
-                isNotice
-                  ? "bg-amber-50 border-amber-300 text-amber-700"
-                  : "bg-white border-slate-200 text-slate-500 hover:border-amber-300"
-              }`}
-            >
-              <span className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                isNotice ? "bg-amber-500 text-white" : "bg-slate-100"
-              }`}>
-                {isNotice && <Pin className="w-3 h-3" />}
-              </span>
-              <span className="text-sm font-bold">공지로 등록</span>
-              <span className="text-[11px] ml-auto">
-                {isNotice ? "게시판 상단에 고정돼요" : "체크하면 상단 고정"}
-              </span>
-            </button>
-          )}
+          {/* 카테고리 선택 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1.5">분류</label>
+            <div className="flex flex-wrap gap-2">
+              {available.map((c) => {
+                const active = category === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setCategory(c.key)}
+                    className={`px-3.5 h-9 rounded-lg text-sm font-bold transition ${
+                      active
+                        ? c.activeClass
+                        : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+            {category === "notice" && (
+              <p className="text-[11px] text-amber-600 mt-2">
+                공지로 등록하면 게시판 상단에 고정되고 디스코드 알림이 전송돼요
+              </p>
+            )}
+          </div>
 
           {/* 제목 */}
           <div>
