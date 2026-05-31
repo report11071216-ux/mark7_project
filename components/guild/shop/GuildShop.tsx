@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X } from "lucide-react";
+import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X, Eye } from "lucide-react";
 import { purchaseItem } from "@/app/guild/[code]/shop/actions";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
@@ -66,6 +66,9 @@ export default function GuildShop({
 
   const currentBalance = tab === "activity" ? myPoints : guildPoints;
 
+  // 길드샵은 staff만 구매 가능 (일반 길드원은 구경만)
+  const canBuyInCurrentTab = tab === "activity" ? true : isStaff;
+
   const confirmPurchase = () => {
     if (!confirmItem) return;
     const item = confirmItem;
@@ -89,8 +92,6 @@ export default function GuildShop({
 
   const countOf = (cat: string) =>
     cat === "전체" ? currentItems.length : currentItems.filter((i) => i.category === cat).length;
-
-  const showGuildLock = tab === "guild" && !isStaff;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -146,8 +147,18 @@ export default function GuildShop({
           </div>
         </div>
 
+        {/* 길드샵 구경 안내 (일반 길드원) */}
+        {tab === "guild" && !isStaff && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-cyan-50 border border-cyan-200 mb-4">
+            <Eye className="w-4 h-4 text-cyan-600 shrink-0" />
+            <p className="text-xs text-cyan-800">
+              길드샵 상품은 <b>마스터·부마스터</b>가 길드 포인트로 구매해요. 어떤 게 있는지 구경하고, 길드 포인트를 함께 모아보세요!
+            </p>
+          </div>
+        )}
+
         {/* 카테고리 탭 */}
-        {!showGuildLock && categories.length > 0 && (
+        {categories.length > 0 && (
           <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200 mb-6">
             {["전체", ...categories].map((cat) => {
               const active = catTab === cat;
@@ -175,15 +186,7 @@ export default function GuildShop({
           </div>
         )}
 
-        {showGuildLock ? (
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
-            <Lock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-800 font-medium">길드샵은 마스터·부마스터만 이용할 수 있어요</p>
-            <p className="text-xs text-slate-400 mt-1">
-              길드 포인트로 길드 마크, 확성기 등을 구매할 수 있습니다
-            </p>
-          </div>
-        ) : groupedCats.length === 0 ? (
+        {groupedCats.length === 0 ? (
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
             <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <p className="text-sm text-slate-600">
@@ -210,6 +213,7 @@ export default function GuildShop({
                         item={item}
                         owned={owned}
                         canAfford={canAfford}
+                        canBuy={canBuyInCurrentTab}
                         accent={tab}
                         loading={pendingId === item.id && isPending}
                         disabled={isPending}
@@ -302,18 +306,19 @@ export default function GuildShop({
 }
 
 function ShopCard({
-  item, owned, canAfford, accent, loading, disabled, onBuy,
+  item, owned, canAfford, canBuy, accent, loading, disabled, onBuy,
 }: {
   item: ShopItem;
   owned: boolean;
   canAfford: boolean;
+  canBuy: boolean;
   accent: "activity" | "guild";
   loading: boolean;
   disabled: boolean;
   onBuy: () => void;
 }) {
   const accentText = accent === "activity" ? "text-violet-600" : "text-cyan-600";
-  const buyable = !owned && canAfford && !disabled;
+  const buyable = canBuy && !owned && canAfford && !disabled;
 
   return (
     <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -340,33 +345,40 @@ function ShopCard({
           <span className="text-[10px] text-slate-400 ml-0.5">P</span>
         </p>
 
-        <button
-          type="button"
-          onClick={onBuy}
-          disabled={!buyable}
-          className={`mt-2 w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 ${
-            owned
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-              : !canAfford
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-              : accent === "activity"
-              ? "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60"
-              : "bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-60"
-          }`}
-        >
-          {loading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : owned ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              보유중
-            </>
-          ) : !canAfford ? (
-            "포인트 부족"
-          ) : (
-            "구매하기"
-          )}
-        </button>
+        {!canBuy ? (
+          <div className="mt-2 w-full h-9 rounded-lg bg-slate-100 text-slate-400 text-xs font-bold flex items-center justify-center gap-1">
+            <Lock className="w-3.5 h-3.5" />
+            마스터·부마만
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onBuy}
+            disabled={!buyable}
+            className={`mt-2 w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 ${
+              owned
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : !canAfford
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : accent === "activity"
+                ? "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60"
+                : "bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-60"
+            }`}
+          >
+            {loading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : owned ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                보유중
+              </>
+            ) : !canAfford ? (
+              "포인트 부족"
+            ) : (
+              "구매하기"
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
