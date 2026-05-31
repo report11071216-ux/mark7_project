@@ -265,12 +265,20 @@ export default async function UpcomingRaidsWidget({
   // 다가오는 일정 (오늘 이후) 5개
   const upcoming = schedules.filter((s) => s.scheduledDate >= todayStr).slice(0, 5);
 
+  // 주간 스트립(7일) 범위의 모든 일정 — 날짜 클릭 필터용
+  const weekStartStr = dateStrOf(0);
+  const weekEndStr = dateStrOf(6);
+  const weekSchedules = schedules.filter(
+    (s) => s.scheduledDate >= weekStartStr && s.scheduledDate <= weekEndStr
+  );
+
   return (
     <UpcomingRaidsWidgetClient
       guildCode={guildCode}
       todayStr={todayStr}
       weekCells={weekCells}
       upcoming={upcoming}
+      weekSchedules={weekSchedules}
       raids={raids}
       currentUserId={user?.id || ""}
       currentUserRole={currentUserRole}
