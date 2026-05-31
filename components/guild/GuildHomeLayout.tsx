@@ -103,14 +103,20 @@ export default function GuildHomeLayout({
 
   return (
     <div className={"min-h-screen relative " + glassClass} style={hasBg ? undefined : { backgroundColor }}>
-      {/* 글래스 카드 블러 — 컬럼의 직계 자식(위젯 최상위 카드)에만 적용.
-          안쪽 .rounded-lg(배너/아바타 등)에는 안 걸리게 > 셀렉터 사용 */}
+      {/* 글래스 카드 블러 — 위젯 최상위 카드에만. 안쪽 이미지/배너/rounded는 강제 해제 */}
       {isGlass && (
         <style>{`
           .guild-glass-cards .glass-col > .rounded-lg,
           .guild-glass-cards .glass-col > div > .rounded-lg {
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
+          }
+          .guild-glass-cards .glass-col > .rounded-lg .rounded-lg,
+          .guild-glass-cards .glass-col > div > .rounded-lg .rounded-lg,
+          .guild-glass-cards .glass-col img,
+          .guild-glass-cards .glass-col [class*="aspect-"] {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
           }
         `}</style>
       )}
