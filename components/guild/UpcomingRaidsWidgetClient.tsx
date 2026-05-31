@@ -29,6 +29,7 @@ type Props = {
   todayStr: string;
   weekCells: WeekCell[];
   upcoming: RaidSchedule[];
+  weekSchedules: RaidSchedule[];
   raids: RaidOption[];
   currentUserId: string;
   currentUserRole: string;
@@ -57,6 +58,7 @@ export default function UpcomingRaidsWidgetClient({
   todayStr,
   weekCells,
   upcoming,
+  weekSchedules,
   raids,
   currentUserId,
   currentUserRole,
@@ -84,13 +86,12 @@ export default function UpcomingRaidsWidgetClient({
 
   const calendarHref = `/guild/${guildCode}/raids/calendar`;
 
-  // 선택된 날짜로 필터링 (없으면 전체)
   const visibleList = selectedDate
-    ? upcoming.filter((it) => it.scheduledDate === selectedDate)
+    ? weekSchedules.filter((it) => it.scheduledDate === selectedDate)
     : upcoming;
 
   function handleSelectDate(dateStr: string, count: number) {
-    if (count === 0) return; // 일정 없는 날은 선택 무시
+    if (count === 0) return;
     setSelectedDate((prev) => (prev === dateStr ? null : dateStr));
   }
 
@@ -164,7 +165,6 @@ export default function UpcomingRaidsWidgetClient({
         })}
       </div>
 
-      {/* 선택된 날짜 표시 + 전체 보기 토글 */}
       {selectedDate ? (
         <div className="flex items-center justify-between px-4 pt-3">
           <span className="text-[11px] font-mono" style={{ color: accent }}>
