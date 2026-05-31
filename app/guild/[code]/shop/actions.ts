@@ -147,7 +147,6 @@ export async function deleteGuildPurchase(
     return { success: false, error: "로그인이 필요합니다" };
   }
 
-  // 마스터/부마 확인
   const { data: member } = await supabase
     .from("guild_members")
     .select("role")
@@ -158,7 +157,6 @@ export async function deleteGuildPurchase(
     return { success: false, error: "마스터/부마스터만 삭제할 수 있어요." };
   }
 
-  // 삭제 대상이 이 길드 것인지 확인
   const { data: target } = await supabase
     .from("purchases")
     .select("id, item_id, guild_id")
@@ -168,7 +166,6 @@ export async function deleteGuildPurchase(
     return { success: false, error: "해당 아이템을 찾을 수 없어요." };
   }
 
-  // 장착 중인 마크면 먼저 해제
   const { data: theme } = await supabase
     .from("guild_themes")
     .select("equipped_mark_id")
@@ -181,7 +178,6 @@ export async function deleteGuildPurchase(
       .eq("guild_id", guildId);
   }
 
-  // 삭제
   const { error } = await supabase
     .from("purchases")
     .delete()
@@ -194,6 +190,7 @@ export async function deleteGuildPurchase(
   revalidatePath(`/guild/${guildCode}`);
   return { success: true };
 }
+
 // ── 길드 배경 장착/해제 ──
 export async function toggleGuildBackground(
   guildCode: string,
@@ -216,14 +213,12 @@ export async function toggleGuildBackground(
     return { success: false, error: "마스터/부마스터만 장착할 수 있어요." };
   }
 
-  // 현재 장착 상태 읽기
   const { data: theme } = await supabase
     .from("guild_themes")
     .select("equipped_background_url")
     .eq("guild_id", guildId)
     .maybeSingle();
 
-  // 같은 배경이면 해제(null), 다르면 장착
   const isEquipped = theme?.equipped_background_url === backgroundUrl;
   const next = isEquipped ? null : backgroundUrl;
 
@@ -241,4 +236,74 @@ export async function toggleGuildBackground(
   revalidatePath(`/guild/${guildCode}/inventory`);
   revalidatePath(`/guild/${guildCode}`);
   return { success: true, equipped: next !== null };
+}
+
+// ── 11연 뽑기권 패키지 구매 (활동 포인트 → 뽑기권 11개) ──
+export async function buyCardPack(guildCode: string, guildId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  // 패키지 설정 (가격/활성)
+  const { data: setting } = await supabase
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "card_pack")
+    .maybeSingle();
+  const pack = setting?.value as { price: number; active: boolean } | null;
+  if (!pack || !pack.active) {
+    return { success: false, error: "지금은 판매하지 않는 상품이에요." };
+  }
+  const price = Math.floor(pack.price ?? 0);
+
+  // 내 활동 포인트 (이 길드)
+  const { data: member } = await supabase
+    .from("guild_members")
+    .select("id, points")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) {
+    return { success: false, error: "길드원이 아니에요." };
+  }
+  const myPoints = member.points ?? 0;
+  if (myPoints < price) {
+    return { success: false, error: "포인트가 부족해요." };
+  }
+
+  // 포인트 차감
+  const { error: pointError } = await supabase
+    .from("guild_members")
+    .update({ points: myPoints - price })
+    .eq("id", member.id);
+  if (pointError) {
+    return { success: false, error: `결제 실패: ${pointError.message}` };
+  }
+
+  // 뽑기권 11개 충전 (user_card_state 없으면 생성)
+  const { data: state } = await supabase
+    .from("user_card_state")
+    .select("draw_tickets, total_duplicates, equipped_card_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (state) {
+    await supabase
+      .from("user_card_state")
+      .update({
+        draw_tickets: (state.draw_tickets ?? 0) + 11,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id);
+  } else {
+    await supabase
+      .from("user_card_state")
+      .insert({ user_id: user.id, draw_tickets: 11, total_duplicates: 0 });
+  }
+
+  revalidatePath(`/guild/${guildCode}/shop`);
+  revalidatePath("/mypage");
+  return { success: true, tickets: 11, price };
 }
