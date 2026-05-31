@@ -52,6 +52,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
     supabase
       .from('raids')
       .select('id, title, image_url, gold_normal, gold_hard, gold_nightmare')
+      .eq('guild_id', guild.id)
       .order('title'),
     supabase
       .from('raid_schedules')
@@ -202,9 +203,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
     const charName = (p.character_name as string) || ''
     const charInfo = charName ? charInfoMap[charName] : undefined
 
-    // 이름: 신청 캐릭터명 우선, 없으면 대표
     const displayName = charName || profileNameOf(p.user_id)
-    // 직업/레벨: user_characters 최신값 우선, 없으면 대표(profiles) fallback
     const cls = charInfo ? charInfo.characterClass : profileClassOf(p.user_id)
     const ilvl = charInfo ? charInfo.itemLevel : profileIlvlOf(p.user_id)
 
