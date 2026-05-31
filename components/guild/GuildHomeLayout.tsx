@@ -34,13 +34,11 @@ export default function GuildHomeLayout({
   const cardStyle = (data as any).cardStyle ?? "solid";
   const hasBg = !!equippedBackgroundUrl;
 
-  // 배경이 없으면 카드 스타일은 무조건 solid (글래스는 배경 위에서만 의미 있음)
   const effectiveStyle = hasBg ? cardStyle : "solid";
   const isGlassLight = effectiveStyle === "glass-light";
   const isGlassDark = effectiveStyle === "glass-dark";
   const isGlass = isGlassLight || isGlassDark;
 
-  // ── 카드 톤 3종 ──
   let textPrimary: string;
   let textSecondary: string;
   let cardBg: string;
@@ -63,7 +61,6 @@ export default function GuildHomeLayout({
     dividerColor = "rgba(0,0,0,0.06)";
     headerBg = "rgba(255,255,255,0.66)";
   } else {
-    // solid (기존)
     const isLight = isLightColor(backgroundColor);
     textPrimary = isLight ? "#111827" : "#ffffff";
     textSecondary = isLight ? "#6b7280" : "#a1a1aa";
@@ -102,15 +99,19 @@ export default function GuildHomeLayout({
     ));
   }
 
-  // 글래스일 때 카드에 블러 효과를 주기 위한 wrapper 클래스
   const glassClass = isGlass ? "guild-glass-cards" : "";
 
   return (
     <div className={"min-h-screen relative " + glassClass} style={hasBg ? undefined : { backgroundColor }}>
-      {/* 글래스 카드 블러 (배경 글래스일 때 모든 위젯 카드에 backdrop-blur) */}
+      {/* 글래스 카드 블러 — 컬럼의 직계 자식(위젯 최상위 카드)에만 적용.
+          안쪽 .rounded-lg(배너/아바타 등)에는 안 걸리게 > 셀렉터 사용 */}
       {isGlass && (
         <style>{`
-          .guild-glass-cards .rounded-lg { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+          .guild-glass-cards .glass-col > .rounded-lg,
+          .guild-glass-cards .glass-col > div > .rounded-lg {
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+          }
         `}</style>
       )}
 
@@ -123,7 +124,6 @@ export default function GuildHomeLayout({
             className="w-full object-cover"
             style={{ position: "sticky", top: 0, height: "100vh" }}
           />
-          {/* 가독성 오버레이: 글래스면 약하게(배경 잘 보임), solid면 강하게 */}
           <div
             className="absolute inset-0"
             style={{
@@ -139,7 +139,6 @@ export default function GuildHomeLayout({
 
       {/* 콘텐츠 */}
       <div className="relative z-10">
-        {/* 배너 */}
         {bannerUrl ? (
           <div className="w-full">
             <div className="max-w-[1200px] mx-auto px-4 pt-4">
@@ -222,13 +221,13 @@ export default function GuildHomeLayout({
         </div>
 
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4 items-start">
-          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
+          <div className="glass-col w-full lg:w-[252px] shrink-0 space-y-3">
             {renderColumn(columns.left)}
           </div>
-          <div className="w-full flex-1 min-w-0 space-y-3">
+          <div className="glass-col w-full flex-1 min-w-0 space-y-3">
             {renderColumn(columns.center)}
           </div>
-          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
+          <div className="glass-col w-full lg:w-[252px] shrink-0 space-y-3">
             {renderColumn(columns.right)}
           </div>
         </div>
