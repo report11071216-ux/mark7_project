@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Badge } from "@/components/ui/badge";
 import {
-  Home, Bell, CalendarDays, Users, MessageCircle,
+  Home, ClipboardList, CalendarDays, Users, MessageCircle,
   Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -73,7 +73,7 @@ export function Sidebar({
   const baseUrl = `/guild/${guildCode}`;
   const menu = [
     { icon: Home, label: "홈", href: baseUrl },
-    { icon: Bell, label: "공지", href: `${baseUrl}/posts` },
+    { icon: ClipboardList, label: "게시판", href: `${baseUrl}/posts` },
     { icon: CalendarDays, label: "레이드", href: `${baseUrl}/raids` },
     { icon: Users, label: "멤버", href: `${baseUrl}/members`, badge: memberCount },
     { icon: MessageCircle, label: "채팅", href: `${baseUrl}/chat` },
