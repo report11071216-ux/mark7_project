@@ -82,7 +82,7 @@ export default function GuildHomeLayout({
 
   const tabs = [
     { label: "홈", href: `/guild/${guildCode}` },
-    { label: "공지", href: `/guild/${guildCode}/posts` },
+    { label: "게시판", href: `/guild/${guildCode}/posts` },
     { label: "멤버", href: `/guild/${guildCode}/members` },
     { label: "랭킹", href: null },
     { label: "레이드", href: `/guild/${guildCode}/raids` },
