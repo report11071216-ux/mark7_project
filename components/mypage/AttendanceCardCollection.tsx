@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import { Sparkles, Check, Loader2, Lock, Ticket } from "lucide-react";
-import { equipAttendanceCard, drawWithTicket } from "@/app/mypage/card-actions";
+import { equipAttendanceCard, drawWithTicket, drawEleven } from "@/app/mypage/card-actions";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import CardDrawResultModal from "./CardDrawResultModal";
 
 type CardItem = {
   id: string;
@@ -21,9 +22,17 @@ type GradeMeta = {
   nickname_color: string | null;
 };
 
+type DrawnCard = {
+  id: string;
+  grade: string;
+  name: string;
+  imageUrl: string | null;
+  isNew: boolean;
+};
+
 type Props = {
-  cards: CardItem[];          // 전체 활성 카드 (보유여부 포함)
-  grades: GradeMeta[];        // 등급 4종 메타
+  cards: CardItem[];
+  grades: GradeMeta[];
   equippedCardId: string | null;
   drawTickets: number;
   totalDuplicates: number;
@@ -55,6 +64,8 @@ export default function AttendanceCardCollection({
   const [activeGrade, setActiveGrade] = useState("common");
   const [pending, setPending] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
+  const [resultCards, setResultCards] = useState<DrawnCard[] | null>(null);
+  const [resultTickets, setResultTickets] = useState(0);
 
   const towardNext = totalDuplicates % 5;
 
@@ -66,7 +77,6 @@ export default function AttendanceCardCollection({
   const gradeMetaMap: { [key: string]: GradeMeta } = {};
   for (const g of grades) gradeMetaMap[g.grade] = g;
 
-  // 현재 탭 카드들
   const tabCards = cards.filter((c) => c.grade === activeGrade);
   const tabOwned = tabCards.filter((c) => c.owned).length;
 
@@ -83,30 +93,41 @@ export default function AttendanceCardCollection({
     }
   }
 
-  async function handleDraw() {
+  async function handleDrawOne() {
     if (drawing || drawTickets < 1) return;
     setDrawing(true);
     const result = await drawWithTicket();
     setDrawing(false);
-    if (result.success && result.card) {
-      if (result.card.isNew) {
-        toast.success(`✨ 새 카드 [${result.card.name}] 획득!`);
-      } else {
-        toast.success(`[${result.card.name}] (중복)`);
-      }
-      if (result.card.ticketEarned) {
-        toast.success("🎟️ 중복 5장 달성! 뽑기권 +1");
-      }
-      router.refresh();
+    if (result.success && result.cards) {
+      setResultCards(result.cards as DrawnCard[]);
+      setResultTickets(result.ticketsEarned ?? 0);
     } else {
       toast.error(result.error ?? "뽑기 실패");
     }
   }
 
+  async function handleDrawEleven() {
+    if (drawing || drawTickets < 11) return;
+    setDrawing(true);
+    const result = await drawEleven();
+    setDrawing(false);
+    if (result.success && result.cards) {
+      setResultCards(result.cards as DrawnCard[]);
+      setResultTickets(result.ticketsEarned ?? 0);
+    } else {
+      toast.error(result.error ?? "뽑기 실패");
+    }
+  }
+
+  function handleCloseResult() {
+    setResultCards(null);
+    router.refresh();
+  }
+
   return (
     <div className="plaza-card p-4">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-blue-600" />
           <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-bold">
@@ -118,17 +139,24 @@ export default function AttendanceCardCollection({
             <Ticket className="w-3.5 h-3.5" />
             뽑기권 {drawTickets}
           </span>
-          {drawTickets > 0 && (
-            <button
-              type="button"
-              onClick={handleDraw}
-              disabled={drawing}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-bold hover:bg-violet-500 transition disabled:opacity-50"
-            >
-              {drawing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              뽑기
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleDrawOne}
+            disabled={drawing || drawTickets < 1}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-bold hover:bg-violet-500 transition disabled:opacity-40"
+          >
+            {drawing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            1회 뽑기
+          </button>
+          <button
+            type="button"
+            onClick={handleDrawEleven}
+            disabled={drawing || drawTickets < 11}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold hover:opacity-90 transition disabled:opacity-40"
+          >
+            {drawing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            11연 뽑기
+          </button>
         </div>
       </div>
 
@@ -261,6 +289,9 @@ export default function AttendanceCardCollection({
       <p className="text-[10px] text-slate-400 mt-3 text-center">
         출석하면 매일 카드를 1장 뽑아요 · 카드를 눌러서 장착하면 등급만큼 출석 포인트가 추가됩니다
       </p>
+
+      {/* 뽑기 결과 연출 */}
+      <CardDrawResultModal cards={resultCards} ticketsEarned={resultTickets} onClose={handleCloseResult} />
     </div>
   );
 }
