@@ -70,6 +70,7 @@ export default function UpcomingRaidsWidgetClient({
   const [detail, setDetail] = useState<RaidSchedule | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [myCharacters, setMyCharacters] = useState<MyCharacter[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +83,23 @@ export default function UpcomingRaidsWidgetClient({
   }, [guildCode]);
 
   const calendarHref = `/guild/${guildCode}/raids/calendar`;
+
+  // 선택된 날짜로 필터링 (없으면 전체)
+  const visibleList = selectedDate
+    ? upcoming.filter((it) => it.scheduledDate === selectedDate)
+    : upcoming;
+
+  function handleSelectDate(dateStr: string, count: number) {
+    if (count === 0) return; // 일정 없는 날은 선택 무시
+    setSelectedDate((prev) => (prev === dateStr ? null : dateStr));
+  }
+
+  const selectedLabel = selectedDate
+    ? (() => {
+        const dp = selectedDate.split("-");
+        return `${Number(dp[1])}/${Number(dp[2])}`;
+      })()
+    : null;
 
   return (
     <div className="rounded-lg border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
@@ -96,53 +114,84 @@ export default function UpcomingRaidsWidgetClient({
       </div>
 
       <div className="grid grid-cols-7 gap-1 px-3 pt-3">
-        {weekCells.map((c) => (
-          <Link
-            key={c.dateStr}
-            href={calendarHref}
-            className="flex flex-col items-center rounded-md py-1.5 transition-opacity hover:opacity-80"
-            style={{ backgroundColor: c.isToday ? accent : c.count > 0 ? surface : "transparent" }}
-          >
-            <span
-              className="text-[9px]"
+        {weekCells.map((c) => {
+          const isSelected = selectedDate === c.dateStr;
+          return (
+            <button
+              key={c.dateStr}
+              type="button"
+              onClick={() => handleSelectDate(c.dateStr, c.count)}
+              className="flex flex-col items-center rounded-md py-1.5 transition-opacity hover:opacity-80"
               style={{
-                color: c.isToday
-                  ? "#ffffff"
-                  : c.weekday === 0
-                  ? "#f87171"
-                  : c.weekday === 6
-                  ? "#22d3ee"
-                  : textSecondary,
+                backgroundColor: isSelected
+                  ? accent
+                  : c.isToday
+                  ? accent + "33"
+                  : c.count > 0
+                  ? surface
+                  : "transparent",
+                cursor: c.count > 0 ? "pointer" : "default",
+                outline: isSelected ? `2px solid ${accent}` : "none",
               }}
             >
-              {WEEKDAYS[c.weekday]}
-            </span>
-            <span className="text-xs font-bold" style={{ color: c.isToday ? "#ffffff" : textPrimary }}>
-              {c.dayNum}
-            </span>
-            <span className="mt-0.5 h-1.5 flex items-center">
-              {c.count > 0 ? (
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: c.isToday ? "#ffffff" : accent }}
-                />
-              ) : null}
-            </span>
-          </Link>
-        ))}
+              <span
+                className="text-[9px]"
+                style={{
+                  color: isSelected
+                    ? "#ffffff"
+                    : c.weekday === 0
+                    ? "#f87171"
+                    : c.weekday === 6
+                    ? "#22d3ee"
+                    : textSecondary,
+                }}
+              >
+                {WEEKDAYS[c.weekday]}
+              </span>
+              <span className="text-xs font-bold" style={{ color: isSelected ? "#ffffff" : textPrimary }}>
+                {c.dayNum}
+              </span>
+              <span className="mt-0.5 h-1.5 flex items-center">
+                {c.count > 0 ? (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: isSelected ? "#ffffff" : accent }}
+                  />
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
+      {/* 선택된 날짜 표시 + 전체 보기 토글 */}
+      {selectedDate ? (
+        <div className="flex items-center justify-between px-4 pt-3">
+          <span className="text-[11px] font-mono" style={{ color: accent }}>
+            {selectedLabel} 일정 {visibleList.length}개
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedDate(null)}
+            className="text-[11px] hover:underline"
+            style={{ color: textSecondary }}
+          >
+            전체 보기
+          </button>
+        </div>
+      ) : null}
+
       <div className="p-3 space-y-1.5">
-        {upcoming.length === 0 ? (
+        {visibleList.length === 0 ? (
           <Link
             href={calendarHref}
             className="block rounded-md border border-dashed py-4 text-center text-xs transition-opacity hover:opacity-80"
             style={{ borderColor: cardBorder, color: textSecondary }}
           >
-            예정된 레이드가 없어요 · 일정 만들기 →
+            {selectedDate ? "이 날짜에 일정이 없어요" : "예정된 레이드가 없어요 · 일정 만들기 →"}
           </Link>
         ) : (
-          upcoming.map((it) => {
+          visibleList.map((it) => {
             const badge = diffBadge(it.difficulty);
             const dp = it.scheduledDate.split("-");
             const dateLabel = `${Number(dp[1])}/${Number(dp[2])}`;
