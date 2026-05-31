@@ -2,32 +2,24 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import GuildShop, { type ShopItem } from "@/components/guild/shop/GuildShop";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
-
 export const dynamic = "force-dynamic";
-
 type Props = { params: { code: string } };
-
 export default async function GuildShopPage({ params }: Props) {
   const supabase = await createClient();
   const code = params.code.toUpperCase();
-
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds").select("id, name, code, total_points").eq("code", code).single(),
   ]);
-
   if (!user || !guild) notFound();
-
   const { data: membership } = await supabase
     .from("guild_members")
     .select("role, points")
     .eq("guild_id", guild.id)
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!membership) notFound();
-
-  const [{ data: items }, { data: purchases }, { data: megaphonePurchases }] = await Promise.all([
+  const [{ data: items }, { data: purchases }, { data: megaphonePurchases }, { data: packSetting }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours")
@@ -43,8 +35,12 @@ export default async function GuildShopPage({ params }: Props) {
       .eq("guild_id", guild.id)
       .eq("item_category", "확성기")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "card_pack")
+      .maybeSingle(),
   ]);
-
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
     id: it.id,
     shop_type: it.shop_type,
@@ -55,13 +51,11 @@ export default async function GuildShopPage({ params }: Props) {
     image_url: it.image_url,
     duration_hours: it.duration_hours,
   }));
-
   const durationMap = new Map(
     (items ?? [])
       .filter((it) => it.category === "확성기")
       .map((it) => [it.id, it.duration_hours])
   );
-
   const megaphoneItems: MegaphoneItem[] = (megaphonePurchases ?? []).map((p) => ({
     id: p.id,
     item_name: p.item_name,
@@ -70,7 +64,6 @@ export default async function GuildShopPage({ params }: Props) {
     expires_at: p.expires_at,
     megaphone_message: p.megaphone_message,
   }));
-
   const consumableItemIds = new Set(
     (items ?? []).filter((it) => it.duration_hours !== null).map((it) => it.id)
   );
@@ -81,8 +74,12 @@ export default async function GuildShopPage({ params }: Props) {
         .filter((id) => id && !consumableItemIds.has(id))
     )
   ) as string[];
-
   const isStaff = membership.role === "master" || membership.role === "submaster";
+
+  // 11연 뽑기권 패키지 설정
+  const packRaw = packSetting?.value as { price: number; active: boolean } | null;
+  const cardPackPrice = packRaw?.price ?? 10;
+  const cardPackActive = packRaw?.active ?? false;
 
   return (
     <GuildShop
@@ -96,6 +93,8 @@ export default async function GuildShopPage({ params }: Props) {
       items={shopItems}
       ownedItemIds={ownedItemIds}
       megaphoneItems={megaphoneItems}
+      cardPackPrice={cardPackPrice}
+      cardPackActive={cardPackActive}
     />
   );
 }
