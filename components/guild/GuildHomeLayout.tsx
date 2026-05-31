@@ -49,17 +49,18 @@ export default function GuildHomeLayout({
   if (isGlassDark) {
     textPrimary = "#f1f5f9";
     textSecondary = "#cbd5e1";
-    cardBg = "rgba(20,28,44,0.58)";
+    // blur 없이 반투명만 — 가독성 위해 좀 더 진하게
+    cardBg = "rgba(20,28,44,0.86)";
     cardBorder = "rgba(255,255,255,0.14)";
     dividerColor = "rgba(255,255,255,0.10)";
-    headerBg = "rgba(20,28,44,0.62)";
+    headerBg = "rgba(20,28,44,0.9)";
   } else if (isGlassLight) {
     textPrimary = "#1a2332";
     textSecondary = "#475569";
-    cardBg = "rgba(255,255,255,0.62)";
+    cardBg = "rgba(255,255,255,0.9)";
     cardBorder = "rgba(255,255,255,0.7)";
     dividerColor = "rgba(0,0,0,0.06)";
-    headerBg = "rgba(255,255,255,0.66)";
+    headerBg = "rgba(255,255,255,0.92)";
   } else {
     const isLight = isLightColor(backgroundColor);
     textPrimary = isLight ? "#111827" : "#ffffff";
@@ -99,28 +100,8 @@ export default function GuildHomeLayout({
     ));
   }
 
-  const glassClass = isGlass ? "guild-glass-cards" : "";
-
   return (
-    <div className={"min-h-screen relative " + glassClass} style={hasBg ? undefined : { backgroundColor }}>
-      {/* 글래스 카드 블러 — 위젯 최상위 카드에만. 안쪽 이미지/배너/rounded는 강제 해제 */}
-      {isGlass && (
-        <style>{`
-          .guild-glass-cards .glass-col > .rounded-lg,
-          .guild-glass-cards .glass-col > div > .rounded-lg {
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-          }
-          .guild-glass-cards .glass-col > .rounded-lg .rounded-lg,
-          .guild-glass-cards .glass-col > div > .rounded-lg .rounded-lg,
-          .guild-glass-cards .glass-col img,
-          .guild-glass-cards .glass-col [class*="aspect-"] {
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-          }
-        `}</style>
-      )}
-
+    <div className="min-h-screen relative" style={hasBg ? undefined : { backgroundColor }}>
       {/* 배경 이미지 레이어 */}
       {hasBg && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -134,9 +115,9 @@ export default function GuildHomeLayout({
             className="absolute inset-0"
             style={{
               backgroundColor: isGlassDark
-                ? "rgba(10,15,25,0.30)"
+                ? "rgba(10,15,25,0.45)"
                 : isGlassLight
-                ? "rgba(241,245,249,0.25)"
+                ? "rgba(241,245,249,0.35)"
                 : "rgba(241,245,249,0.82)",
             }}
           />
@@ -160,8 +141,6 @@ export default function GuildHomeLayout({
           style={{
             backgroundColor: headerBg,
             borderColor: cardBorder,
-            backdropFilter: isGlass ? "blur(14px)" : undefined,
-            WebkitBackdropFilter: isGlass ? "blur(14px)" : undefined,
           }}
         >
           <div className="max-w-[1200px] mx-auto px-4">
@@ -227,13 +206,13 @@ export default function GuildHomeLayout({
         </div>
 
         <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col lg:flex-row gap-4 items-start">
-          <div className="glass-col w-full lg:w-[252px] shrink-0 space-y-3">
+          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
             {renderColumn(columns.left)}
           </div>
-          <div className="glass-col w-full flex-1 min-w-0 space-y-3">
+          <div className="w-full flex-1 min-w-0 space-y-3">
             {renderColumn(columns.center)}
           </div>
-          <div className="glass-col w-full lg:w-[252px] shrink-0 space-y-3">
+          <div className="w-full lg:w-[252px] shrink-0 space-y-3">
             {renderColumn(columns.right)}
           </div>
         </div>
