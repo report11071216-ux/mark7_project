@@ -19,16 +19,22 @@ export default async function GuildShopPage({ params }: Props) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!membership) notFound();
-  const [{ data: items }, { data: purchases }, { data: megaphonePurchases }, { data: packSetting }] = await Promise.all([
+  const [{ data: items }, { data: myPurchases }, { data: guildPurchases }, { data: megaphonePurchases }, { data: packSetting }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours")
       .eq("is_active", true)
       .order("price", { ascending: true }),
+    // 내가 산 것 (개인 상품 보유 판정용)
     supabase
       .from("purchases")
       .select("item_id")
-      .or(`buyer_id.eq.${user.id},guild_id.eq.${guild.id}`),
+      .eq("buyer_id", user.id),
+    // 우리 길드가 산 것 (길드 상품 보유 판정용)
+    supabase
+      .from("purchases")
+      .select("item_id")
+      .eq("guild_id", guild.id),
     supabase
       .from("purchases")
       .select("id, item_id, item_name, item_category, activated_at, expires_at, megaphone_message")
@@ -64,19 +70,42 @@ export default async function GuildShopPage({ params }: Props) {
     expires_at: p.expires_at,
     megaphone_message: p.megaphone_message,
   }));
+
+  // 소비성 상품(확성기 등 duration 있는 것)은 보유 판정에서 제외
   const consumableItemIds = new Set(
     (items ?? []).filter((it) => it.duration_hours !== null).map((it) => it.id)
   );
+
+  // 상품별 shop_type 맵
+  const itemTypeMap = new Map((items ?? []).map((it) => [it.id, it.shop_type]));
+
+  // 내가 산 item_id (개인)
+  const myItemIds = new Set(
+    (myPurchases ?? []).map((p) => p.item_id).filter(Boolean) as string[]
+  );
+  // 길드가 산 item_id
+  const guildItemIds = new Set(
+    (guildPurchases ?? []).map((p) => p.item_id).filter(Boolean) as string[]
+  );
+
+  // 보유 판정: 활동샵(개인) 상품은 내 구매로만, 길드샵 상품은 길드 구매로
   const ownedItemIds = Array.from(
     new Set(
-      (purchases ?? [])
-        .map((p) => p.item_id)
-        .filter((id) => id && !consumableItemIds.has(id))
+      (items ?? [])
+        .filter((it) => {
+          if (consumableItemIds.has(it.id)) return false; // 소비성은 항상 재구매 가능
+          if (it.shop_type === "guild") {
+            return guildItemIds.has(it.id);
+          }
+          // activity (개인)
+          return myItemIds.has(it.id);
+        })
+        .map((it) => it.id)
     )
   ) as string[];
+
   const isStaff = membership.role === "master" || membership.role === "submaster";
 
-  // 11연 뽑기권 패키지 설정
   const packRaw = packSetting?.value as { price: number; active: boolean } | null;
   const cardPackPrice = packRaw?.price ?? 10;
   const cardPackActive = packRaw?.active ?? false;
