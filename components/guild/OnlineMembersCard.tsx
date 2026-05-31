@@ -55,6 +55,7 @@ export default function OnlineMembersCard({
                   type="button"
                   onClick={() => setProfileUserId(m.user_id)}
                   className="relative w-full aspect-[16/5] rounded-lg overflow-hidden block hover:ring-2 hover:ring-white/40 transition"
+                  style={{ backdropFilter: "none", WebkitBackdropFilter: "none" }}
                 >
                   <div className="absolute inset-0 bg-zinc-900" />
                   <img src={cardUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -82,7 +83,7 @@ export default function OnlineMembersCard({
                 type="button"
                 onClick={() => setProfileUserId(m.user_id)}
                 className="relative w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition hover:opacity-80"
-                style={{ backgroundColor: primaryColor + "0F" }}
+                style={{ backgroundColor: primaryColor + "0F", backdropFilter: "none", WebkitBackdropFilter: "none" }}
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 ring-2" style={{ borderColor: primaryColor + "33" }}>
                   {avatar
@@ -101,7 +102,7 @@ export default function OnlineMembersCard({
               type="button"
               onClick={() => setExpanded(!expanded)}
               className="w-full py-2 rounded-lg text-xs font-medium transition hover:opacity-80"
-              style={{ backgroundColor: primaryColor + "0F", color: primaryColor }}
+              style={{ backgroundColor: primaryColor + "0F", backdropFilter: "none", WebkitBackdropFilter: "none" }}
             >
               {expanded ? "접기" : `+${remaining}명 더보기`}
             </button>
