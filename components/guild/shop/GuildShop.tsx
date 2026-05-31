@@ -1,8 +1,8 @@
 "use client";
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X, Eye } from "lucide-react";
-import { purchaseItem } from "@/app/guild/[code]/shop/actions";
+import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X, Eye, Sparkles, Ticket } from "lucide-react";
+import { purchaseItem, buyCardPack } from "@/app/guild/[code]/shop/actions";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
@@ -28,11 +28,14 @@ type Props = {
   items: ShopItem[];
   ownedItemIds: string[];
   megaphoneItems: MegaphoneItem[];
+  cardPackPrice: number;
+  cardPackActive: boolean;
 };
 
 export default function GuildShop({
   guildCode, guildId, guildName, guildPoints, myPoints,
   isStaff, items, ownedItemIds, megaphoneItems,
+  cardPackPrice, cardPackActive,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
@@ -40,6 +43,8 @@ export default function GuildShop({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
+  const [packBuying, setPackBuying] = useState(false);
+  const [confirmPack, setConfirmPack] = useState(false);
 
   const activityItems = items.filter((i) => i.shop_type === "activity");
   const guildItems = items.filter((i) => i.shop_type === "guild");
@@ -65,8 +70,6 @@ export default function GuildShop({
   const groupedCats = Object.keys(grouped);
 
   const currentBalance = tab === "activity" ? myPoints : guildPoints;
-
-  // 길드샵은 staff만 구매 가능 (일반 길드원은 구경만)
   const canBuyInCurrentTab = tab === "activity" ? true : isStaff;
 
   const confirmPurchase = () => {
@@ -86,12 +89,30 @@ export default function GuildShop({
     });
   };
 
+  const handleBuyPack = () => {
+    setConfirmPack(false);
+    setPackBuying(true);
+    startTransition(async () => {
+      const result = await buyCardPack(guildCode, guildId);
+      setPackBuying(false);
+      if (result.success) {
+        toast.success("11연 뽑기권 구매 완료! 마이페이지에서 뽑아보세요");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "구매에 실패했습니다");
+      }
+    });
+  };
+
   const accent = tab;
   const accentText = accent === "activity" ? "text-violet-600" : "text-cyan-600";
   const balanceAfter = confirmItem ? currentBalance - confirmItem.price : 0;
 
   const countOf = (cat: string) =>
     cat === "전체" ? currentItems.length : currentItems.filter((i) => i.category === cat).length;
+
+  const canAffordPack = myPoints >= cardPackPrice;
+  const showCardPack = tab === "activity" && cardPackActive;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -146,6 +167,41 @@ export default function GuildShop({
             </span>
           </div>
         </div>
+
+        {/* 11연 뽑기권 패키지 (활동샵 상단) */}
+        {showCardPack && (
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600 p-5 mb-6 relative overflow-hidden">
+            <div className="absolute -right-6 -top-6 opacity-20">
+              <Sparkles className="w-32 h-32 text-white" />
+            </div>
+            <div className="relative flex items-center justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold mb-2">
+                  <Ticket className="w-3 h-3" />
+                  카드 가챠
+                </span>
+                <h3 className="text-lg font-bold text-white">11연 뽑기권 패키지</h3>
+                <p className="text-sm text-white/80 mt-0.5">
+                  뽑기권 11개를 한 번에! 마이페이지에서 11연 뽑기로 카드를 모아보세요
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-2xl font-bold text-white">
+                  {cardPackPrice.toLocaleString()}<span className="text-sm ml-0.5">P</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setConfirmPack(true)}
+                  disabled={packBuying || !canAffordPack}
+                  className="mt-2 px-5 py-2 rounded-lg bg-white text-violet-700 text-sm font-bold hover:bg-white/90 transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {packBuying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {canAffordPack ? "구매하기" : "포인트 부족"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 길드샵 구경 안내 (일반 길드원) */}
         {tab === "guild" && !isStaff && (
@@ -227,7 +283,46 @@ export default function GuildShop({
           </div>
         )}
 
-        {/* 구매 확인 모달 */}
+        {/* 11연 패키지 구매 확인 모달 */}
+        {confirmPack && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900">11연 뽑기권 구매</h3>
+                <button type="button" onClick={() => setConfirmPack(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0">
+                    <Ticket className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">11연 뽑기권 패키지</p>
+                    <p className="text-base font-bold text-violet-600">{cardPackPrice.toLocaleString()}<span className="text-[10px] text-slate-400 ml-0.5">P</span></p>
+                  </div>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1.5 mb-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">내 활동 포인트</span>
+                    <span className="text-slate-900 font-mono">{myPoints.toLocaleString()}P</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">구매 후</span>
+                    <span className="font-mono font-bold text-violet-600">{(myPoints - cardPackPrice).toLocaleString()}P</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setConfirmPack(false)} className="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">취소</button>
+                  <button type="button" onClick={handleBuyPack} className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-500 transition">구매하기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 일반 상품 구매 확인 모달 */}
         {confirmItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
