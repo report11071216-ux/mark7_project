@@ -12,6 +12,43 @@ export async function purchaseItem(
   if (!user) {
     return { success: false, error: "로그인이 필요합니다" };
   }
+
+  // ── 사려는 아이템 정보 ──
+  const { data: targetItem } = await supabase
+    .from("shop_items")
+    .select("shop_type, category")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  // 길드 보관함을 차지하는 건: 길드샵(shop_type='guild') 코스메틱 중 확성기 제외
+  const occupiesVault =
+    targetItem?.shop_type === "guild" && targetItem?.category !== "확성기";
+
+  if (occupiesVault) {
+    // 길드 보관함 슬롯
+    const { data: guild } = await supabase
+      .from("guilds")
+      .select("vault_slots")
+      .eq("id", guildId)
+      .maybeSingle();
+    const slots = guild?.vault_slots ?? 0;
+
+    // 현재 보관 중인 길드 코스메틱 수 (길드샵 + 확성기 제외)
+    const { count: storedCount } = await supabase
+      .from("purchases")
+      .select("id", { count: "exact", head: true })
+      .eq("guild_id", guildId)
+      .eq("shop_type", "guild")
+      .neq("item_category", "확성기");
+
+    if ((storedCount ?? 0) >= slots) {
+      return {
+        success: false,
+        error: `보관함이 가득 찼어요 (${storedCount}/${slots}칸). 성장 페이지에서 보관함 슬롯을 먼저 확장하세요.`,
+      };
+    }
+  }
+
   const { data, error } = await supabase.rpc("purchase_shop_item", {
     p_item_id: itemId,
     p_guild_id: guildId,
