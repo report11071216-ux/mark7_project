@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createShopItem, toggleShopItem, deleteShopItem } from "@/app/admin/shop/actions";
 import { Upload, Loader2, Trash2, Eye, EyeOff, Plus, Image } from "lucide-react";
 import toast from "react-hot-toast";
+import ImageCropModal from "@/components/ImageCropModal";
 
 export type ShopItem = {
   id: string;
@@ -22,6 +23,9 @@ const GUILD_CATEGORIES = ["길드 마크", "길드 프로필카드", "길드 닉
 const ACTIVITY_CATEGORIES = ["개인 프로필카드", "개인 마크", "개인 닉네임 효과"];
 const MEGAPHONE_DURATIONS = [1, 3, 6, 12];
 
+// 어떤 이미지를 자르는 중인지
+type CropTarget = "thumb" | "frame" | null;
+
 export default function ShopItemManager({ items }: { items: ShopItem[] }) {
   const router = useRouter();
 
@@ -37,6 +41,10 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
   const [uploadingFrame, setUploadingFrame] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // 크롭 모달 상태
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<CropTarget>(null);
+
   const categories = shopType === "guild" ? GUILD_CATEGORIES : ACTIVITY_CATEGORIES;
   const isMegaphone = shopType === "guild" && category === "확성기";
   const isProfileCard = category.includes("프로필카드");
@@ -46,28 +54,19 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
     setCategory(type === "guild" ? "길드 마크" : "개인 프로필카드");
   };
 
-  const uploadFile = async (
-    file: File,
+  // Blob을 Storage에 업로드
+  const uploadBlob = async (
+    blob: Blob,
     setUrl: (u: string) => void,
     setBusy: (b: boolean) => void
   ) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("이미지 파일만 업로드할 수 있어요");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("5MB 이하 이미지만 업로드할 수 있어요");
-      return;
-    }
-
     setBusy(true);
     const supabase = createClient();
-    const ext = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
 
     const { error } = await supabase.storage
       .from("shop-items")
-      .upload(fileName, file);
+      .upload(fileName, blob, { contentType: "image/jpeg" });
 
     if (error) {
       toast.error("업로드 실패: " + error.message);
@@ -81,14 +80,40 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
     toast.success("이미지 업로드 완료");
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 파일 선택 → 검증 후 크롭 모달 열기
+  const pickFile = (e: React.ChangeEvent<HTMLInputElement>, target: CropTarget) => {
     const file = e.target.files?.[0];
-    if (file) uploadFile(file, setImageUrl, setUploading);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 업로드할 수 있어요");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("5MB 이하 이미지만 업로드할 수 있어요");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropTarget(target);
+    e.target.value = "";
   };
 
-  const handleFrameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadFile(file, setFrameUrl, setUploadingFrame);
+  // 크롭 완료 → 대상에 맞게 업로드
+  const handleCropped = async (blob: Blob) => {
+    if (cropTarget === "thumb") {
+      await uploadBlob(blob, setImageUrl, setUploading);
+    } else if (cropTarget === "frame") {
+      await uploadBlob(blob, setFrameUrl, setUploadingFrame);
+    }
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropTarget(null);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropTarget(null);
   };
 
   const handleSubmit = async () => {
@@ -148,6 +173,10 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       toast.error(result.error ?? "삭제 실패");
     }
   };
+
+  // 크롭 비율: 프레임=16:6 가로배너, 썸네일=1:1 정사각
+  const cropAspect = cropTarget === "frame" ? 16 / 6 : 1;
+  const cropTitle = cropTarget === "frame" ? "프레임 자르기 (가로 배너)" : "썸네일 자르기 (정사각)";
 
   return (
     <div className="space-y-6">
@@ -253,7 +282,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           {/* 썸네일 이미지 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">
-              상점 썸네일 이미지
+              상점 썸네일 이미지 <span className="text-slate-400 font-normal">(정사각 1:1)</span>
             </label>
             <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-slate-200 text-sm cursor-pointer transition ${
               uploading ? "bg-slate-100 text-slate-400" : "hover:bg-slate-50 text-slate-600"
@@ -263,7 +292,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
               ) : (
                 <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (5MB 이하)"}</>
               )}
-              <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="hidden" />
+              <input type="file" accept="image/*" onChange={(e) => pickFile(e, "thumb")} disabled={uploading} className="hidden" />
             </label>
           </div>
 
@@ -271,7 +300,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           {isProfileCard && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">
-                프레임 이미지 <span className="text-blue-500">(프로필카드 적용용 · 비워두면 썸네일 사용)</span>
+                프레임 이미지 <span className="text-blue-500">(프로필카드 가로 배너 16:6 · 비워두면 썸네일 사용)</span>
               </label>
               <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-blue-200 text-sm cursor-pointer transition ${
                 uploadingFrame ? "bg-slate-100 text-slate-400" : "bg-blue-50/50 hover:bg-blue-50 text-blue-600"
@@ -281,7 +310,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
                 ) : (
                   <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택 (5MB 이하)"}</>
                 )}
-                <input type="file" accept="image/*" onChange={handleFrameChange} disabled={uploadingFrame} className="hidden" />
+                <input type="file" accept="image/*" onChange={(e) => pickFile(e, "frame")} disabled={uploadingFrame} className="hidden" />
               </label>
               {frameUrl && (
                 <div className="mt-2 rounded-lg overflow-hidden ring-1 ring-slate-200">
@@ -421,6 +450,18 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           </div>
         )}
       </div>
+
+      {/* 크롭 모달 */}
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          aspect={cropAspect}
+          title={cropTitle}
+          processing={uploading || uploadingFrame}
+          onCropped={handleCropped}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
