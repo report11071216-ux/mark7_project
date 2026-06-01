@@ -33,7 +33,9 @@ export default async function GuildPostsPage({ params }: Props) {
     .limit(50);
 
   const posts = rawPosts ?? [];
+  const postIds = posts.map((p) => p.id);
 
+  // 작성자 이름
   const authorIds = Array.from(
     new Set(posts.map((p) => p.author_id).filter(Boolean))
   ) as string[];
@@ -49,6 +51,22 @@ export default async function GuildPostsPage({ params }: Props) {
     }
   }
 
+  // 이미지: 글별 대표 썸네일 + 개수
+  let thumbMap: { [key: string]: string } = {};
+  let countMap: { [key: string]: number } = {};
+  if (postIds.length > 0) {
+    const { data: images } = await supabase
+      .from("post_images")
+      .select("post_id, url, sort_order")
+      .in("post_id", postIds)
+      .order("sort_order", { ascending: true });
+
+    for (const img of images ?? []) {
+      countMap[img.post_id] = (countMap[img.post_id] ?? 0) + 1;
+      if (!thumbMap[img.post_id]) thumbMap[img.post_id] = img.url; // 첫 장(sort_order 최소)
+    }
+  }
+
   const guildPosts: GuildPost[] = posts.map((p) => ({
     id: p.id,
     title: p.title,
@@ -58,6 +76,8 @@ export default async function GuildPostsPage({ params }: Props) {
     like_count: p.like_count ?? 0,
     created_at: p.created_at,
     author_name: p.author_id ? authorMap[p.author_id] ?? "Unknown" : "Unknown",
+    thumbnail: thumbMap[p.id] ?? null,
+    image_count: countMap[p.id] ?? 0,
   }));
 
   const isStaff = membership.role === "master" || membership.role === "submaster";
