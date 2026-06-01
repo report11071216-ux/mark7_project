@@ -30,7 +30,7 @@ export default async function GuildPostDetailPage({ params }: Props) {
 
   const { data: post } = await supabase
     .from("posts")
-    .select("id, guild_id, author_id, title, content, view_count, like_count, is_notice, created_at")
+    .select("id, guild_id, author_id, title, content, category, view_count, like_count, is_notice, created_at")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -42,8 +42,8 @@ export default async function GuildPostDetailPage({ params }: Props) {
     .update({ view_count: (post.view_count ?? 0) + 1 })
     .eq("id", post.id);
 
-  // 작성자 이름 + 내가 좋아요 눌렀는지 + 댓글
-  const [authorResult, likeResult, commentsResult] = await Promise.all([
+  // 작성자 이름 + 내가 좋아요 눌렀는지 + 댓글 + 이미지
+  const [authorResult, likeResult, commentsResult, imagesResult] = await Promise.all([
     post.author_id
       ? supabase.from("profiles").select("username").eq("id", post.author_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -58,11 +58,17 @@ export default async function GuildPostDetailPage({ params }: Props) {
       .select("id, content, created_at, author_id")
       .eq("post_id", post.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("post_images")
+      .select("url, sort_order")
+      .eq("post_id", post.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const authorName = authorResult.data?.username ?? "Unknown";
   const alreadyLiked = !!likeResult.data;
   const isAuthor = post.author_id === user.id;
+  const images = (imagesResult.data ?? []).map((img) => img.url);
 
   const rawComments = commentsResult.data ?? [];
 
@@ -142,18 +148,20 @@ export default async function GuildPostDetailPage({ params }: Props) {
   }));
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <GuildPostDetail
         guildCode={guild.code}
         post={{
           id: post.id,
           title: post.title,
           content: post.content ?? "",
+          category: post.category ?? "free",
           view_count: (post.view_count ?? 0) + 1,
           like_count: post.like_count ?? 0,
           is_notice: post.is_notice ?? false,
           created_at: post.created_at,
           author_name: authorName,
+          images,
         }}
         authorColor={authorColor}
         isAuthor={isAuthor}
