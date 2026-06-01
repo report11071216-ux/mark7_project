@@ -22,7 +22,7 @@ export type RecruitGuild = {
 
 const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브"];
 
-function gradeOf(exp: number): { label: string; color: string } {
+function gradeOf(exp: number) {
   if (exp >= 12000) return { label: "그랜드마스터", color: "#dc2626" };
   if (exp >= 6000) return { label: "마스터", color: "#9333ea" };
   if (exp >= 3000) return { label: "다이아몬드", color: "#0891b2" };
