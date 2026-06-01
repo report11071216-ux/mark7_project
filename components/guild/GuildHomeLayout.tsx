@@ -130,7 +130,7 @@ export default function GuildHomeLayout({
           <div className="w-full">
             <div className="max-w-[1200px] mx-auto px-4 pt-4">
               <div className="rounded-2xl overflow-hidden border shadow-sm" style={{ borderColor: cardBorder }}>
-                <img src={bannerUrl} alt={`${guild.name} 배너`} className="w-full aspect-[16/5] object-cover" />
+                <img src={bannerUrl} alt={`${guild.name} 배너`} className="w-full aspect-[16/5] max-h-[220px] object-cover" />
               </div>
             </div>
           </div>
