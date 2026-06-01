@@ -18,6 +18,13 @@ export const BOARD_CATEGORIES: CategoryMeta[] = [
 
 export const ALLOWED_CATEGORIES = ["notice", "free", "flex", "custom", "tip"];
 
+// 갤러리(썸네일 그리드)로 보여줄 분류
+export const GALLERY_CATEGORIES = ["flex", "custom"];
+
+export function isGalleryCategory(key: string | null | undefined) {
+  return GALLERY_CATEGORIES.includes(key ?? "");
+}
+
 export function getCategoryMeta(key: string | null | undefined): CategoryMeta {
   const found = BOARD_CATEGORIES.find((c) => c.key === key);
   return found ?? BOARD_CATEGORIES[1]; // 기본: 자유
