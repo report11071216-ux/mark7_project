@@ -73,6 +73,67 @@ export async function createRaidEntry(guildCode: string, input: NewRaidEntryInpu
   return { success: true, raidId: inserted.id };
 }
 
+// ── 레이드 도감 수정 ──
+type UpdateRaidEntryInput = {
+  raidId: string;
+  gold_normal: number;
+  gold_hard: number;
+  gold_nightmare: number;
+  rec_item_level: number | null;
+  rec_combat_power: number | null;
+  reward_materials: string;
+};
+
+export async function updateRaidEntry(guildCode: string, input: UpdateRaidEntryInput) {
+  const supabase = await createClient();
+  const code = guildCode.toUpperCase();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  const { data: guild } = await supabase
+    .from("guilds")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
+  if (!guild) {
+    return { success: false, error: "길드를 찾을 수 없습니다" };
+  }
+
+  const { data: membership } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guild.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isStaff = membership?.role === "master" || membership?.role === "submaster";
+  if (!isStaff) {
+    return { success: false, error: "마스터·부마스터만 수정할 수 있습니다" };
+  }
+
+  const { error } = await supabase
+    .from("raids")
+    .update({
+      gold_normal: input.gold_normal,
+      gold_hard: input.gold_hard,
+      gold_nightmare: input.gold_nightmare,
+      rec_item_level: input.rec_item_level,
+      rec_combat_power: input.rec_combat_power,
+      reward_materials: input.reward_materials.trim(),
+    })
+    .eq("id", input.raidId)
+    .eq("guild_id", guild.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath(`/guild/${code}`);
+  return { success: true };
+}
+
 // ── 레이드 도감 삭제 ──
 export async function deleteRaidEntry(guildCode: string, raidId: string) {
   const supabase = await createClient();
@@ -156,7 +217,6 @@ export async function getRaidDetail(guildCode: string, raidId: string) {
     return { success: false, error: "길드를 찾을 수 없습니다" } as const;
   }
 
-  // 길드원 검증
   const { data: membership } = await supabase
     .from("guild_members")
     .select("role")
@@ -183,7 +243,6 @@ export async function getRaidDetail(guildCode: string, raidId: string) {
     .eq("guild_id", guild.id)
     .eq("raid_id", raidId);
 
-  // 작성자 이름
   const editorIds = Array.from(
     new Set((guidesRaw ?? []).map((g) => g.updated_by).filter(Boolean))
   ) as string[];
@@ -215,7 +274,7 @@ export async function getRaidDetail(guildCode: string, raidId: string) {
 // ── (3) 공략 저장 (길드원 누구나, upsert) ──
 type SaveGuideInput = {
   raidId: string;
-  guideType: string; // 'leader' | 'normal'
+  guideType: string;
   content: string;
   imageUrls: string[];
 };
@@ -251,7 +310,6 @@ export async function saveRaidGuide(guildCode: string, input: SaveGuideInput) {
   const type = input.guideType === "leader" ? "leader" : "normal";
   const urls = (input.imageUrls ?? []).filter(Boolean).slice(0, 10);
 
-  // upsert: raid_id + guild_id + guide_type 유니크
   const { error } = await supabase
     .from("raid_guides")
     .upsert(
