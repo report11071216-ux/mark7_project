@@ -13,7 +13,7 @@ type Props = {
   totalExp: number;
   maxMembers: number;
   vaultSlots: number;
-  rank?: number | null;   // 전체 랭킹 순위 (옵션)
+  rank?: number | null;
   isStaff: boolean;
 };
 
@@ -64,9 +64,14 @@ export default function GuildGrowthPanel({
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#a78bfa", color: "#1a1530" }}>
                 {currentIndex + 1}등급
               </span>
+              {rank ? (
+                <span className="text-[11px] font-mono ml-auto" style={{ color: "#8b80b8" }}>
+                  전체 {rank}위
+                </span>
+              ) : null}
             </div>
-            <p className="text-[13px] mt-1" style={{ color: "#b8aee0" }}>
-              {rank ? <>전체 길드 중 <span className="font-bold" style={{ color: "#67e8f9" }}>{rank}위</span></> : <>누적 경험치 {totalExp.toLocaleString()} XP</>}
+            <p className="text-[12px] mt-1 font-mono" style={{ color: "#b8aee0" }}>
+              누적 {totalExp.toLocaleString()} XP
             </p>
             {/* 진행바 */}
             <div className="mt-2.5">
