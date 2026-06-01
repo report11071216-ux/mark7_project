@@ -13,7 +13,7 @@ export default async function GuildInventoryPage({ params }: Props) {
   const code = params.code.toUpperCase();
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("guilds").select("id, name, code").eq("code", code).single(),
+    supabase.from("guilds").select("id, name, code, vault_slots").eq("code", code).single(),
   ]);
   if (!user || !guild) notFound();
   const { data: membership } = await supabase
@@ -122,6 +122,10 @@ export default async function GuildInventoryPage({ params }: Props) {
     }
   }
 
+  // ── 보관함 점유 칸 수: 길드샵 코스메틱 (확성기 제외) ──
+  const usedSlots = rawPurchases.filter((p) => p.item_category !== "확성기").length;
+  const vaultSlots = guild.vault_slots ?? 0;
+
   const isStaff = membership.role === "master" || membership.role === "submaster";
   return (
     <GuildInventory
@@ -134,6 +138,8 @@ export default async function GuildInventoryPage({ params }: Props) {
       stickerPacks={stickerPacks}
       megaphoneItems={megaphoneItems}
       backgroundItems={backgroundItems}
+      usedSlots={usedSlots}
+      vaultSlots={vaultSlots}
     />
   );
 }
