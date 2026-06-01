@@ -34,6 +34,8 @@ function gradeOf(exp: number) {
 }
 
 function DetailModal({ guild, onClose }: { guild: RecruitGuild; onClose: () => void }) {
+  return <div onClick={onClose}>{guild.name}</div>;
+}
   const grade = gradeOf(guild.totalExp);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
