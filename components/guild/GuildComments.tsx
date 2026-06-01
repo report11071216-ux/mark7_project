@@ -18,6 +18,7 @@ export type GuildComment = {
   author_mark: string | null;
   author_color: string | null;
 };
+
 type Props = {
   guildCode: string;
   postId: string;
@@ -62,18 +63,18 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
   };
 
   return (
-    <div className="mt-4 rounded-xl bg-card/60 ring-1 ring-border overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-        <MessageSquare className="w-4 h-4 text-violet-300" />
-        <h2 className="text-sm font-bold text-white">
-          댓글 <span className="text-violet-300">{comments.length}</span>
+    <div className="mt-4 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
+        <MessageSquare className="w-4 h-4 text-violet-500" />
+        <h2 className="text-sm font-bold text-slate-900">
+          댓글 <span className="text-violet-500">{comments.length}</span>
         </h2>
       </div>
 
       {/* 댓글 목록 */}
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-slate-100">
         {comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
+          <p className="text-sm text-slate-400 text-center py-8">
             아직 댓글이 없어요. 첫 댓글을 남겨보세요
           </p>
         ) : (
@@ -84,27 +85,27 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
                 <button
                   type="button"
                   onClick={() => setProfileUserId(c.author_id)}
-                  className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-violet-500/20 flex items-center justify-center hover:ring-2 hover:ring-violet-400 transition"
+                  className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-violet-100 flex items-center justify-center hover:ring-2 hover:ring-violet-300 transition"
                 >
                   {avatar ? (
                     <img src={avatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-violet-300">
+                    <span className="text-xs font-bold text-violet-600">
                       {(c.author_name ?? "?").charAt(0).toUpperCase()}
                     </span>
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                   <button
+                    <button
                       type="button"
                       onClick={() => setProfileUserId(c.author_id)}
                       className="text-sm font-bold hover:opacity-80 transition"
-                      style={{ color: c.author_color ?? "#ffffff" }}
+                      style={{ color: c.author_color ?? "#0f172a" }}
                     >
                       {c.author_name}
                     </button>
-                    <span className="text-[10px] font-mono text-muted-foreground">
+                    <span className="text-[10px] font-mono text-slate-400">
                       {getRelativeTime(c.created_at)}
                     </span>
                     {c.author_id === currentUserId && (
@@ -112,7 +113,7 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
                         type="button"
                         onClick={() => handleDelete(c.id)}
                         disabled={isPending}
-                        className="ml-auto p-1 rounded hover:bg-rose-500/10 text-muted-foreground hover:text-rose-300 transition"
+                        className="ml-auto p-1 rounded hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition"
                       >
                         {deletingId === c.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -122,7 +123,7 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
                       </button>
                     )}
                   </div>
-                  <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed mt-0.5">
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed mt-0.5">
                     {c.content}
                   </p>
                 </div>
@@ -133,7 +134,7 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
       </div>
 
       {/* 작성 폼 */}
-      <div className="border-t border-border p-4">
+      <div className="border-t border-slate-100 p-4">
         <div className="flex gap-2">
           <textarea
             value={text}
@@ -141,7 +142,7 @@ export default function GuildComments({ guildCode, postId, currentUserId, commen
             placeholder="댓글을 입력하세요"
             rows={2}
             maxLength={1000}
-            className="flex-1 px-3 py-2 rounded-lg bg-background ring-1 ring-border text-sm text-white placeholder:text-muted-foreground focus:ring-2 focus:ring-violet-500 outline-none resize-none leading-relaxed"
+            className="flex-1 px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none resize-none leading-relaxed"
           />
           <button
             type="button"
