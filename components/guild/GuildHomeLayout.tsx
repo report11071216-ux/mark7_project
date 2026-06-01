@@ -84,6 +84,7 @@ export default function GuildHomeLayout({
     { label: "홈", href: `/guild/${guildCode}` },
     { label: "게시판", href: `/guild/${guildCode}/posts` },
     { label: "멤버", href: `/guild/${guildCode}/members` },
+    { label: "성장", href: `/guild/${guildCode}/growth` },
     { label: "랭킹", href: null },
     { label: "레이드", href: `/guild/${guildCode}/raids` },
   ];
@@ -171,13 +172,13 @@ export default function GuildHomeLayout({
               </div>
             </div>
 
-            <div className="flex" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
+            <div className="flex overflow-x-auto" style={{ borderTopColor: cardBorder, borderTopWidth: 1 }}>
               {tabs.map((tab, i) =>
                 tab.href ? (
                   <Link
                     key={tab.label}
                     href={tab.href}
-                    className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors"
+                    className="px-5 py-2.5 text-sm font-medium cursor-pointer border-b-2 transition-colors whitespace-nowrap"
                     style={{
                       borderBottomColor: i === 0 ? primaryColor : "transparent",
                       color: i === 0 ? primaryColor : textSecondary,
@@ -188,7 +189,7 @@ export default function GuildHomeLayout({
                 ) : (
                   <div
                     key={tab.label}
-                    className="px-5 py-2.5 text-sm font-medium border-b-2 cursor-default"
+                    className="px-5 py-2.5 text-sm font-medium border-b-2 cursor-default whitespace-nowrap"
                     style={{ borderBottomColor: "transparent", color: textSecondary, opacity: 0.4 }}
                   >
                     {tab.label}
