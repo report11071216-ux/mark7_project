@@ -320,7 +320,7 @@ export default async function PlazaPage() {
             {shopItems.length > 0 && (
               <div>
                 <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em] mb-2">POINT SHOP</p>
-                <div className="space-y-2.5">
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5">
                   {shopItems.map((item) => (
                     <Link
                       key={item.id}
