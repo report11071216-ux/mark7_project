@@ -65,7 +65,7 @@ export default function RecruitEditor({ guildCode, initial }: Props) {
             {/* 헤더 */}
             <div className="flex items-center gap-3 p-5 border-b border-slate-100 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
-                <Speakerphone className="w-5 h-5 text-violet-600" />
+                <Megaphone className="w-5 h-5 text-violet-600" />
               </div>
               <div className="flex-1">
                 <p className="text-base font-bold text-slate-900">모집 공고 작성</p>
