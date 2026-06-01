@@ -1,9 +1,11 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Calendar, Coins, Check, Loader2, Smile, Trash2, X, ImageIcon } from "lucide-react";
+import { Package, Calendar, Coins, Check, Loader2, Smile, Trash2, X, ImageIcon, ArrowUp, Box } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
 import { equipGuildMark, toggleStickerPack, deleteGuildPurchase, toggleGuildBackground } from "@/app/guild/[code]/shop/actions";
+import { buyGuildCapacity } from "@/app/guild/[code]/admin/growth-actions";
+import { GUILD_COSTS } from "@/lib/guild-grade";
 import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
@@ -44,12 +46,14 @@ type Props = {
   stickerPacks: StickerPack[];
   megaphoneItems: MegaphoneItem[];
   backgroundItems: BackgroundItem[];
+  usedSlots: number;
+  vaultSlots: number;
 };
 
 type TabKey = "all" | "background" | "sticker" | "cosmetic" | "megaphone";
 
 export default function GuildInventory({
-  guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems,
+  guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems, usedSlots, vaultSlots,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -57,6 +61,7 @@ export default function GuildInventory({
   const [bgPending, setBgPending] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
+  const [slotPending, setSlotPending] = useState(false);
   const [tab, setTab] = useState<TabKey>("all");
 
   const cosmetics = items.filter(
@@ -77,6 +82,24 @@ export default function GuildInventory({
   const showSticker = tab === "all" || tab === "sticker";
   const showCosmetic = tab === "all" || tab === "cosmetic";
   const showMegaphone = tab === "all" || tab === "megaphone";
+
+  const slotPercent = vaultSlots > 0 ? Math.min(100, Math.round((usedSlots / vaultSlots) * 100)) : 0;
+  const isFull = usedSlots >= vaultSlots;
+
+  const handleBuySlot = () => {
+    if (slotPending || !isStaff) return;
+    setSlotPending(true);
+    startTransition(async () => {
+      const result = await buyGuildCapacity(guildCode, "vault");
+      setSlotPending(false);
+      if (result.success) {
+        toast.success("보관함 슬롯이 1칸 늘었어요!");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "확장에 실패했어요");
+      }
+    });
+  };
 
   const handleEquipMark = (item: InventoryItem, isEquipped: boolean) => {
     startTransition(async () => {
@@ -128,7 +151,7 @@ export default function GuildInventory({
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-5">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
             <Package className="w-5 h-5 text-white" />
           </div>
@@ -136,6 +159,44 @@ export default function GuildInventory({
             <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">GUILD STORAGE</p>
             <h1 className="text-xl font-bold text-slate-900 leading-tight">길드 보관함</h1>
           </div>
+        </div>
+
+        {/* 보관함 슬롯 현황 */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#E1F5EE" }}>
+                <Box className="w-6 h-6" style={{ color: "#0F6E56" }} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">보관함 슬롯</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  <span className="font-bold" style={{ color: isFull ? "#dc2626" : "#0F6E56" }}>{usedSlots}</span>
+                  {" / "}{vaultSlots} 칸 사용 중
+                </p>
+              </div>
+            </div>
+            {isStaff && (
+              <button
+                type="button"
+                onClick={handleBuySlot}
+                disabled={slotPending}
+                className="h-9 px-4 rounded-[10px] text-white text-xs font-bold flex items-center gap-1.5 shrink-0 disabled:opacity-60 transition"
+                style={{ backgroundColor: "#0F6E56" }}
+              >
+                {slotPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
+                슬롯 늘리기 {GUILD_COSTS.vault}P
+              </button>
+            )}
+          </div>
+          <div className="mt-3 h-[7px] rounded-full overflow-hidden bg-slate-100">
+            <div className="h-full rounded-full transition-all" style={{ width: `${slotPercent}%`, backgroundColor: isFull ? "#dc2626" : "#0F6E56" }} />
+          </div>
+          {isFull && (
+            <p className="text-[11px] text-rose-500 mt-2">
+              보관함이 가득 찼어요. 새 코스메틱을 사려면 슬롯을 먼저 늘려야 해요. (확성기는 제외)
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white ring-1 ring-slate-200 mb-6">
