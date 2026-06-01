@@ -36,6 +36,7 @@ export type LostarkProfile = {
   Stats: LostarkStat[] | null;
   GuildName: string | null;
   Title: string | null;
+  CombatPower: string | null;
 };
 
 export type LostarkSibling = {
@@ -166,55 +167,29 @@ function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, "").trim();
 }
 
-// ─── 전투력 계산 ───
-// API에서 제공하는 raw 힘/민/지, 순수무기공격력이 없어 완전한 공식 구현 불가.
-// Stats tooltip에서 "순수 기본 공격력"을 파싱해 경험적 나눗수 적용.
-//
-// 검증:
-//   딜러 농낭판치: 기본공격력 183,874 / 36.15 = 5,087.0 (실제 5,086.39, 오차 0.01%)
-//   서포터 치유하모니(바드): 기본공격력 123,457 / 56.67 = 2,179.0 (실제 2,178.7, 오차 0.01%)
-//
-// 총 공격력(공격력+ 포함) 대신 순수 기본 공격력을 쓰는 이유:
-//   딜러는 엘릭서/연마 공격력+ 옵션이 많아 총 공격력이 부풀어있어
-//   순수 기본 공격력 파싱이 더 일관된 결과를 줌.
-export function extractCombatPower(
-  stats: LostarkStat[] | null,
-  className?: string
-): number {
+// ─── 전투력 ───
+// 로스트아크 API가 CombatPower 필드를 직접 제공함 (예: "5,205.69").
+// 과거엔 공격력 기반으로 추정 계산했으나, 이제 API값을 그대로 사용해 100% 정확.
+export function extractCombatPower(profile: LostarkProfile | null): number {
+  if (!profile?.CombatPower) return 0;
+  const num = parseFloat(profile.CombatPower.replace(/,/g, ""));
+  return isNaN(num) ? 0 : num;
+}
+
+// ─── 공격력 (Stats에서 읽기) ───
+export function extractAttackPower(stats: LostarkStat[] | null): number {
   if (!stats) return 0;
+  const found = stats.find((s) => s.Type === "공격력");
+  if (!found) return 0;
+  return parseFloat(found.Value.replace(/,/g, "")) || 0;
+}
 
-  const getStat = (type: string): number => {
-    const found = stats.find((s) => s.Type === type);
-    if (!found) return 0;
-    return parseFloat(found.Value.replace(/,/g, "")) || 0;
-  };
-
-  // tooltip에서 순수 기본 공격력 파싱
-  // "힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 183874 입니다."
-  let baseAtk = 0;
-  const atkStat = stats.find((s) => s.Type === "공격력");
-  if (atkStat?.Tooltip && Array.isArray(atkStat.Tooltip)) {
-    for (const tip of atkStat.Tooltip) {
-      const clean = stripHtml(tip);
-      const match = clean.match(/기본 공격력은\s*([\d,]+)/);
-      if (match) {
-        baseAtk = parseFloat(match[1].replace(/,/g, ""));
-        break;
-      }
-    }
-  }
-
-  // 파싱 실패 시 총 공격력으로 fallback
-  if (!baseAtk) baseAtk = getStat("공격력");
-  if (!baseAtk) return 0;
-
-  const isSupport = className ? isSupportClass(className) : false;
-
-  // 딜러: 기본공격력 / 36.15
-  // 서포터: 기본공격력 / 56.67
-  const divisor = isSupport ? 56.67 : 36.15;
-
-  return Math.round((baseAtk / divisor) * 100) / 100;
+// ─── 최대 생명력 (Stats에서 읽기) ───
+export function extractMaxHp(stats: LostarkStat[] | null): number {
+  if (!stats) return 0;
+  const found = stats.find((s) => s.Type === "최대 생명력");
+  if (!found) return 0;
+  return parseFloat(found.Value.replace(/,/g, "")) || 0;
 }
 
 // ─── Parse item level ───
