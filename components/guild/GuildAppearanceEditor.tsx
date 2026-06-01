@@ -5,6 +5,7 @@ import { saveGuildAppearance, uploadGuildBanner } from "@/app/guild/[code]/admin
 import { Palette, Save, Loader2, Check, ArrowLeft, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import ImageCropModal from "@/components/ImageCropModal";
 
 const ACCENT_PRESETS = [
   { label: "바이올렛", value: "#7c3aed" },
@@ -34,7 +35,9 @@ export default function GuildAppearanceEditor({
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // 배경은 라이트 고정. 기존 값이 라이트 계열이면 유지, 아니면 기본 라이트로.
+  // 크롭 모달 상태
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
   const bgToSave =
     initialBg && (initialBg.toLowerCase() === "#ffffff" || initialBg.toLowerCase() === "#f8fafc")
       ? initialBg
@@ -56,7 +59,8 @@ export default function GuildAppearanceEditor({
     });
   }
 
-  async function pickBanner(e: React.ChangeEvent<HTMLInputElement>) {
+  // 파일 선택 → 크롭 모달 열기 (바로 업로드 X)
+  function pickBanner(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) {
@@ -67,18 +71,31 @@ export default function GuildAppearanceEditor({
       toast.error("이미지는 5MB 이하만 가능해요.");
       return;
     }
+    const url = URL.createObjectURL(f);
+    setCropSrc(url);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  // 크롭 완료 → 잘린 Blob 업로드
+  async function handleCropped(blob: Blob) {
     setUploading(true);
     const fd = new FormData();
-    fd.append("image", f);
+    fd.append("image", blob, "banner.jpg");
     const res = await uploadGuildBanner(guildId, fd);
     setUploading(false);
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
     if (res.ok) {
       setBanner(res.url);
       toast.success("배너를 올렸어요. 저장을 눌러 적용하세요.");
     } else {
       toast.error(res.error);
     }
-    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleCropCancel() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   }
 
   return (
@@ -232,7 +249,7 @@ export default function GuildAppearanceEditor({
               )}
             </button>
           )}
-          <p className="text-[11px] text-slate-400 mt-2">길드 홈 상단 배너 · 권장 가로 길게 · 최대 5MB</p>
+          <p className="text-[11px] text-slate-400 mt-2">길드 홈 상단 배너 · 16:5 비율로 잘려요 · 최대 5MB</p>
         </div>
 
         {/* 저장 */}
@@ -247,6 +264,18 @@ export default function GuildAppearanceEditor({
           </button>
         </div>
       </div>
+
+      {/* 크롭 모달 */}
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          aspect={16 / 5}
+          title="배너 자르기"
+          processing={uploading}
+          onCropped={handleCropped}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
