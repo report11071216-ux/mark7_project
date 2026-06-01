@@ -80,7 +80,7 @@ export default async function GuildAdminPage({
       <div className="mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-            <Speakerphone className="w-5 h-5 text-violet-600" />
+            <Megaphone className="w-5 h-5 text-violet-600" />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-slate-900">길드원 모집</h2>
