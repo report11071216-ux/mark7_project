@@ -5,10 +5,6 @@
       "schedule": "0 21 * * 2"
     },
     {
-      "path": "/api/cron/guild-points",
-      "schedule": "0 21 * * *"
-    },
-    {
       "path": "/api/cron/weekly-rewards",
       "schedule": "0 21 * * 2"
     }
