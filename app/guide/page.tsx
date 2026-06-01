@@ -11,7 +11,7 @@ export const metadata = {
 function Section({
   icon: Icon, color, bg, title, children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string; bg: string; title: string; children: React.ReactNode;
 }) {
   return (
