@@ -5,7 +5,7 @@ import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
 import WebhookSettings from "@/components/guild/WebhookSettings";
 import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import RecruitEditor from "@/components/guild/RecruitEditor";
-import { Speakerphone } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
 
 export default async function GuildAdminPage({
