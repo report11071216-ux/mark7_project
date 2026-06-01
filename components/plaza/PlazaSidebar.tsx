@@ -1,12 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, MessageSquare, ShoppingBag, Users, User } from "lucide-react";
-
+import { Home, Trophy, MessageSquare, ShoppingBag, Users, User, BookOpen } from "lucide-react";
 type Props = {
   shopHref: string;
 };
-
 type NavItem = {
   label: string;
   href: string;
@@ -14,7 +12,6 @@ type NavItem = {
   exact: boolean;
   matchKey?: string;
 };
-
 export default function PlazaSidebar({ shopHref }: Props) {
   const pathname = usePathname();
   const items: NavItem[] = [
@@ -23,15 +20,14 @@ export default function PlazaSidebar({ shopHref }: Props) {
     { label: "게시판", href: "/plaza/board", icon: MessageSquare, exact: false },
     { label: "상점", href: shopHref, icon: ShoppingBag, exact: false, matchKey: "/shop" },
     { label: "모집 길드", href: "/plaza/recruiting", icon: Users, exact: false },
+    { label: "도움말", href: "/guide", icon: BookOpen, exact: false },
     { label: "마이룸", href: "/mypage", icon: User, exact: false },
   ];
-
   function isActive(item: NavItem) {
     if (item.exact) return pathname === item.href;
     if (item.matchKey) return pathname.includes(item.matchKey);
     return pathname.startsWith(item.href);
   }
-
   return (
     <nav className="flex gap-1 px-2 overflow-x-auto border-t border-slate-100">
       {items.map((item) => {
