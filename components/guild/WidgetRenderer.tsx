@@ -11,6 +11,7 @@ import RecentMembersCard from "@/components/guild/RecentMembersCard";
 import UpcomingRaidsWidget from "@/components/guild/UpcomingRaidsWidget";
 import RaidMonthWidget from "@/components/guild/RaidMonthWidget";
 import RaidActivityWidget from "@/components/guild/RaidActivityWidget";
+import RaidStatusGalleryWidget from "@/components/guild/RaidStatusGalleryWidget";
 
 const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
@@ -197,37 +198,16 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
 
   if (widgetId === "raidStatus") {
     return (
-      <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
-        <div className="flex items-center justify-between px-3 py-2.5 border-b" style={{ borderColor: cardBorder }}>
-          <div className="flex items-center gap-1.5">
-            <Swords className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-            <h2 className="text-xs font-bold" style={{ color: textPrimary }}>레이드</h2>
-          </div>
-          <Link href={`/guild/${guildCode}/raids`} className="text-[10px] hover:underline" style={{ color: primaryColor }}>
-            전체 →
-          </Link>
-        </div>
-        {data.raids.length === 0 ? (
-          <p className="text-xs text-center py-6" style={{ color: textSecondary }}>등록된 레이드가 없어요</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2 p-2.5">
-            {data.raids.slice(0, 6).map((r) => (
-              <Link key={r.id} href={`/guild/${guildCode}/raids`} className="group">
-                <div className="aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: dividerColor }}>
-                  {r.image_url ? (
-                    <img src={r.image_url} alt={r.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Swords className="w-4 h-4" style={{ color: textSecondary }} />
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] font-medium truncate mt-1" style={{ color: textPrimary }}>{r.title}</p>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <RaidStatusGalleryWidget
+        raids={data.raids}
+        guildCode={guildCode}
+        textPrimary={textPrimary}
+        textSecondary={textSecondary}
+        cardBg={cardBg}
+        cardBorder={cardBorder}
+        dividerColor={dividerColor}
+        primaryColor={primaryColor}
+      />
     );
   }
 
