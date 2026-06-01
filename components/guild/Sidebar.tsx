@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, ClipboardList, CalendarDays, Users, MessageCircle,
-  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package,
+  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useState } from "react";
@@ -76,6 +76,7 @@ export function Sidebar({
     { icon: ClipboardList, label: "게시판", href: `${baseUrl}/posts` },
     { icon: CalendarDays, label: "레이드", href: `${baseUrl}/raids` },
     { icon: Users, label: "멤버", href: `${baseUrl}/members`, badge: memberCount },
+    { icon: Sprout, label: "성장", href: `${baseUrl}/growth` },
     { icon: MessageCircle, label: "채팅", href: `${baseUrl}/chat` },
     { icon: ShoppingBag, label: "상점", href: `${baseUrl}/shop` },
     { icon: Package, label: "길드 보관함", href: `${baseUrl}/inventory` },
@@ -243,12 +244,12 @@ export function Sidebar({
         </button>
       </header>
 
-      {/* ── 모바일 하단 탭 ── */}
+      {/* ── 모바일 하단 탭 (주요 5개만) ── */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center border-t"
         style={{ backgroundColor: sidebarBg, borderColor: borderCol }}
       >
-        {menu.map((item) => {
+        {menu.slice(0, 5).map((item) => {
           const isActive = pathname === item.href || (item.href !== baseUrl && pathname.startsWith(item.href));
           return (
             <Link
