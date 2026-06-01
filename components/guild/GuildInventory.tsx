@@ -1,12 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Calendar, Coins, Check, Loader2, Smile, Trash2, X, ImageIcon, ArrowUp, Box } from "lucide-react";
+import { Package, Coins, Check, Loader2, Smile, Trash2, X, ArrowUp, Box, Megaphone, ImageIcon } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
-import { equipGuildMark, toggleStickerPack, deleteGuildPurchase, toggleGuildBackground } from "@/app/guild/[code]/shop/actions";
+import { equipGuildMark, toggleStickerPack, deleteGuildPurchase, toggleGuildBackground, activateMegaphone } from "@/app/guild/[code]/shop/actions";
 import { buyGuildCapacity } from "@/app/guild/[code]/admin/growth-actions";
 import { GUILD_COSTS } from "@/lib/guild-grade";
-import MegaphoneInventory, { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
+import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 import toast from "react-hot-toast";
 
 export type InventoryItem = {
@@ -52,6 +52,12 @@ type Props = {
 
 type TabKey = "all" | "background" | "sticker" | "cosmetic" | "megaphone";
 
+function megaStatus(item: MegaphoneItem): "ready" | "active" | "expired" {
+  if (!item.activated_at) return "ready";
+  if (item.expires_at && new Date(item.expires_at).getTime() > Date.now()) return "active";
+  return "expired";
+}
+
 export default function GuildInventory({
   guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems, usedSlots, vaultSlots,
 }: Props) {
@@ -63,6 +69,11 @@ export default function GuildInventory({
   const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
   const [slotPending, setSlotPending] = useState(false);
   const [tab, setTab] = useState<TabKey>("all");
+
+  // 확성기 모달
+  const [megaModalId, setMegaModalId] = useState<string | null>(null);
+  const [megaMessage, setMegaMessage] = useState("");
+  const [megaPending, setMegaPending] = useState(false);
 
   const cosmetics = items.filter(
     (i) => i.item_category !== "확성기" && i.item_category !== "이모티콘팩" && i.item_category !== "길드배경"
@@ -92,22 +103,16 @@ export default function GuildInventory({
     startTransition(async () => {
       const result = await buyGuildCapacity(guildCode, "vault");
       setSlotPending(false);
-      if (result.success) {
-        toast.success("보관함 슬롯이 1칸 늘었어요!");
-        router.refresh();
-      } else {
-        toast.error(result.error ?? "확장에 실패했어요");
-      }
+      if (result.success) { toast.success("보관함 슬롯이 1칸 늘었어요!"); router.refresh(); }
+      else { toast.error(result.error ?? "확장에 실패했어요"); }
     });
   };
 
   const handleEquipMark = (item: InventoryItem, isEquipped: boolean) => {
     startTransition(async () => {
       const result = await equipGuildMark(guildCode, isEquipped ? null : item.id, guildId);
-      if (result.success) {
-        toast.success(isEquipped ? "장착 해제됨" : `'${item.item_name}' 장착 완료!`);
-        router.refresh();
-      } else { toast.error(result.error ?? "장착에 실패했습니다"); }
+      if (result.success) { toast.success(isEquipped ? "장착 해제됨" : `'${item.item_name}' 장착 완료!`); router.refresh(); }
+      else { toast.error(result.error ?? "장착에 실패했습니다"); }
     });
   };
 
@@ -116,10 +121,8 @@ export default function GuildInventory({
     setPackPending(pack.shop_item_id);
     const result = await toggleStickerPack(guildCode, guildId, pack.shop_item_id);
     setPackPending(null);
-    if (result.success) {
-      toast.success(pack.equipped ? "장착 해제됨" : `'${pack.name}' 장착 완료!`);
-      router.refresh();
-    } else { toast.error(result.error ?? "장착에 실패했습니다"); }
+    if (result.success) { toast.success(pack.equipped ? "장착 해제됨" : `'${pack.name}' 장착 완료!`); router.refresh(); }
+    else { toast.error(result.error ?? "장착에 실패했습니다"); }
   };
 
   const handleToggleBg = async (bg: BackgroundItem) => {
@@ -127,10 +130,8 @@ export default function GuildInventory({
     setBgPending(bg.image_url);
     const result = await toggleGuildBackground(guildCode, guildId, bg.image_url);
     setBgPending(null);
-    if (result.success) {
-      toast.success(bg.equipped ? "배경 해제됨" : `'${bg.name}' 배경 적용 완료!`);
-      router.refresh();
-    } else { toast.error(result.error ?? "적용에 실패했습니다"); }
+    if (result.success) { toast.success(bg.equipped ? "배경 해제됨" : `'${bg.name}' 배경 적용 완료!`); router.refresh(); }
+    else { toast.error(result.error ?? "적용에 실패했습니다"); }
   };
 
   const handleDelete = async () => {
@@ -140,13 +141,39 @@ export default function GuildInventory({
     const result = await deleteGuildPurchase(guildCode, guildId, item.id);
     setDeletePending(null);
     setConfirmDelete(null);
-    if (result.success) {
-      toast.success("삭제되었습니다");
-      router.refresh();
-    } else { toast.error(result.error ?? "삭제에 실패했습니다"); }
+    if (result.success) { toast.success("삭제되었습니다"); router.refresh(); }
+    else { toast.error(result.error ?? "삭제에 실패했습니다"); }
+  };
+
+  const handleDeleteMega = async (item: MegaphoneItem) => {
+    if (deletePending) return;
+    setDeletePending(item.id);
+    const result = await deleteGuildPurchase(guildCode, guildId, item.id);
+    setDeletePending(null);
+    if (result.success) { toast.success("삭제되었습니다"); router.refresh(); }
+    else { toast.error(result.error ?? "삭제에 실패했습니다"); }
+  };
+
+  const handleActivateMega = () => {
+    if (!megaModalId) return;
+    if (!megaMessage.trim()) { toast.error("확성기 문구를 입력하세요"); return; }
+    setMegaPending(true);
+    startTransition(async () => {
+      const result = await activateMegaphone(guildCode, megaModalId, megaMessage.trim());
+      setMegaPending(false);
+      if (result.success) { toast.success("확성기가 광장에 노출됩니다!"); setMegaModalId(null); setMegaMessage(""); router.refresh(); }
+      else { toast.error(result.error ?? "사용에 실패했습니다"); }
+    });
   };
 
   const totalCount = bgCount + stickerPacks.length + cosmetics.length + megaCount;
+
+  // 공통 정사각 카드 그리드
+  const gridClass = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
+  // 분류 뱃지
+  const badge = (label: string, color: string, bg: string) => (
+    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ color, backgroundColor: bg }}>{label}</span>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -177,13 +204,9 @@ export default function GuildInventory({
               </div>
             </div>
             {isStaff && (
-              <button
-                type="button"
-                onClick={handleBuySlot}
-                disabled={slotPending}
+              <button type="button" onClick={handleBuySlot} disabled={slotPending}
                 className="h-9 px-4 rounded-[10px] text-white text-xs font-bold flex items-center gap-1.5 shrink-0 disabled:opacity-60 transition"
-                style={{ backgroundColor: "#0F6E56" }}
-              >
+                style={{ backgroundColor: "#0F6E56" }}>
                 {slotPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
                 슬롯 늘리기 {GUILD_COSTS.vault}P
               </button>
@@ -227,146 +250,133 @@ export default function GuildInventory({
             <p className="text-xs text-slate-400 mt-1">상점에서 길드 포인트로 아이템을 구매해보세요</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className={gridClass}>
             {/* 길드 배경 */}
-            {showBg && bgCount > 0 && (
-              <div>
-                {tab === "all" && (
-                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-violet-500" />길드 배경
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {backgroundItems.map((bg) => (
-                    <div key={bg.purchase_id}
-                      className={"rounded-xl border overflow-hidden transition " + (bg.equipped ? "border-cyan-400 ring-2 ring-cyan-200" : "border-slate-200 shadow-sm")}>
-                      <div className="relative aspect-video bg-slate-100">
-                        <img src={bg.image_url} alt={bg.name} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-slate-900/20" />
-                        {bg.equipped && (
-                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center gap-1">
-                            <Check className="w-3 h-3" />적용중
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3 bg-white">
-                        <p className="text-sm font-bold text-slate-900 truncate mb-2">{bg.name}</p>
-                        <button type="button" onClick={() => handleToggleBg(bg)} disabled={bgPending === bg.image_url || !isStaff}
-                          className={"w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (bg.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                          {bgPending === bg.image_url ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : bg.equipped ? <><Check className="w-3.5 h-3.5" />적용중 (해제)</>
-                            : isStaff ? "길드 홈에 적용" : "마스터·부마스터만"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+            {showBg && backgroundItems.map((bg) => (
+              <div key={bg.purchase_id}
+                className={"rounded-xl border overflow-hidden transition flex flex-col " + (bg.equipped ? "border-cyan-400 ring-2 ring-cyan-200" : "border-slate-200 shadow-sm bg-white")}>
+                <div className="relative aspect-square bg-slate-100">
+                  <img src={bg.image_url} alt={bg.name} className="w-full h-full object-cover" />
+                  <span className="absolute top-2 left-2">{badge("배경", "#185FA5", "#E6F1FB")}</span>
+                  {bg.equipped && (
+                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center gap-1">
+                      <Check className="w-3 h-3" />적용
+                    </span>
+                  )}
+                </div>
+                <div className="p-2.5 bg-white flex flex-col flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate mb-2">{bg.name}</p>
+                  <button type="button" onClick={() => handleToggleBg(bg)} disabled={bgPending === bg.image_url || !isStaff}
+                    className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (bg.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                    {bgPending === bg.image_url ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : bg.equipped ? <><Check className="w-3.5 h-3.5" />해제</>
+                      : isStaff ? "적용" : "운영진만"}
+                  </button>
                 </div>
               </div>
-            )}
+            ))}
 
             {/* 이모티콘팩 */}
-            {showSticker && stickerPacks.length > 0 && (
-              <div>
-                {tab === "all" && (
-                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-cyan-500" />이모티콘팩
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {stickerPacks.map((pack) => (
-                    <div key={pack.shop_item_id}
-                      className={"rounded-xl border p-3.5 transition " + (pack.equipped ? "bg-cyan-50 border-cyan-300" : "bg-white border-slate-200 shadow-sm")}>
-                      <div className="flex items-center gap-2 mb-2.5">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
-                          {pack.cover_url ? <img src={pack.cover_url} alt={pack.name} className="w-full h-full object-cover" /> : <Smile className="w-5 h-5 text-slate-300" />}
-                        </div>
-                        <p className="text-sm font-bold text-slate-900 min-w-0 truncate">{pack.name}</p>
-                      </div>
-                      <div className="flex gap-1.5 mb-3">
-                        {pack.stickers.map((url, i) => (
-                          <div key={i} className="w-11 h-11 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center">
-                            <img src={url} alt={`이모티콘 ${i + 1}`} className="max-w-full max-h-full object-contain" />
-                          </div>
-                        ))}
-                      </div>
-                      <button type="button" onClick={() => handleTogglePack(pack)} disabled={packPending === pack.shop_item_id || !isStaff}
-                        className={"w-full h-9 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (pack.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                        {packPending === pack.shop_item_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : pack.equipped ? <><Check className="w-3.5 h-3.5" />장착중 (채팅에서 사용 가능)</>
-                          : isStaff ? "채팅에 장착" : "마스터·부마스터만"}
-                      </button>
-                    </div>
-                  ))}
+            {showSticker && stickerPacks.map((pack) => (
+              <div key={pack.shop_item_id}
+                className={"rounded-xl border overflow-hidden transition flex flex-col " + (pack.equipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
+                <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
+                  {pack.cover_url ? <img src={pack.cover_url} alt={pack.name} className="w-full h-full object-cover" /> : <Smile className="w-8 h-8 text-slate-300" />}
+                  <span className="absolute top-2 left-2">{badge("이모티콘", "#0F6E56", "#E1F5EE")}</span>
+                </div>
+                <div className="p-2.5 flex flex-col flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate mb-2">{pack.name}</p>
+                  <button type="button" onClick={() => handleTogglePack(pack)} disabled={packPending === pack.shop_item_id || !isStaff}
+                    className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (pack.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                    {packPending === pack.shop_item_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : pack.equipped ? <><Check className="w-3.5 h-3.5" />장착중</>
+                      : isStaff ? "채팅에 장착" : "운영진만"}
+                  </button>
                 </div>
               </div>
-            )}
+            ))}
 
             {/* 코스메틱 */}
-            {showCosmetic && cosmetics.length > 0 && (
-              <div>
-                {tab === "all" && (
-                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-violet-500" />코스메틱
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {cosmetics.map((item) => {
-                    const isMark = item.item_category.includes("마크");
-                    const isEquipped = equippedMarkId === item.id;
-                    return (
-                      <div key={item.id}
-                        className={"group relative rounded-xl border p-3.5 transition " + (isEquipped ? "bg-cyan-50 border-cyan-300" : "bg-white border-slate-200 shadow-sm")}>
-                        {isStaff && (
-                          <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
-                            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50"
-                            aria-label="삭제" title="삭제">
-                            {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          </button>
-                        )}
-                        <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 mb-2.5 flex items-center justify-center">
-                          {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-contain" /> : <Package className="w-7 h-7 text-slate-300" />}
-                        </div>
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700">{item.item_category}</span>
-                          <span className="text-[11px] text-slate-400 flex items-center gap-0.5 shrink-0"><Coins className="w-3 h-3" />{item.price_paid.toLocaleString()}P</span>
-                        </div>
-                        <p className="text-sm font-bold text-slate-900">{item.item_name}</p>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-0.5 mt-1"><Calendar className="w-3 h-3" />{getRelativeTime(item.created_at)} 구매</p>
-                        {isMark && (
-                          <button type="button" onClick={() => handleEquipMark(item, isEquipped)} disabled={isPending || !isStaff}
-                            className={"mt-2.5 w-full h-8 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (isEquipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEquipped ? <><Check className="w-3.5 h-3.5" />장착중</> : isStaff ? "길드 로고로 장착" : "마스터·부마스터만"}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+            {showCosmetic && cosmetics.map((item) => {
+              const isMark = item.item_category.includes("마크");
+              const isEquipped = equippedMarkId === item.id;
+              return (
+                <div key={item.id}
+                  className={"group relative rounded-xl border overflow-hidden transition flex flex-col " + (isEquipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
+                  <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
+                    {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-300" />}
+                    <span className="absolute top-2 left-2">{badge(item.item_category, "#534AB7", "#EEEDFE")}</span>
+                    {isStaff && (
+                      <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
+                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50"
+                        aria-label="삭제" title="삭제">
+                        {deletePending === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-2.5 flex flex-col flex-1">
+                    <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
+                    <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5"><Coins className="w-2.5 h-2.5" />{item.price_paid.toLocaleString()}P</p>
+                    {isMark && (
+                      <button type="button" onClick={() => handleEquipMark(item, isEquipped)} disabled={isPending || !isStaff}
+                        className={"mt-2 w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (isEquipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                        {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEquipped ? <><Check className="w-3.5 h-3.5" />장착중</> : isStaff ? "로고 장착" : "운영진만"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
 
             {/* 확성기 */}
-            {showMegaphone && megaCount > 0 && (
-              <div>
-                {tab === "all" && (
-                  <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 rounded-full bg-cyan-500" />확성기
-                  </h2>
-                )}
-                <MegaphoneInventory
-                  guildCode={guildCode}
-                  guildId={guildId}
-                  items={megaphoneItems}
-                  canUse={isStaff}
-                />
-              </div>
-            )}
+            {showMegaphone && megaphoneItems.map((item) => {
+              const status = megaStatus(item);
+              return (
+                <div key={item.id}
+                  className="relative rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden flex flex-col">
+                  <div className="relative aspect-square bg-cyan-50 flex flex-col items-center justify-center gap-2 p-3">
+                    <span className="absolute top-2 left-2">{badge("확성기", "#0E7490", "#CFFAFE")}</span>
+                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                      <Megaphone className="w-6 h-6 text-cyan-600" />
+                    </div>
+                    {status === "active" && (
+                      <span className="text-[10px] font-bold text-cyan-700">광장 노출중</span>
+                    )}
+                    {status === "expired" && (
+                      <span className="text-[10px] text-slate-400">사용 완료</span>
+                    )}
+                    {status === "ready" && (
+                      <span className="text-[10px] text-slate-500">미사용</span>
+                    )}
+                  </div>
+                  <div className="p-2.5 flex flex-col flex-1">
+                    <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
+                    {status === "ready" && (
+                      <button type="button" onClick={() => { setMegaModalId(item.id); setMegaMessage(""); }} disabled={!isStaff}
+                        className="mt-2 w-full h-8 rounded-lg bg-cyan-600 text-white text-[11px] font-bold hover:bg-cyan-500 disabled:opacity-50 transition">
+                        {isStaff ? "사용하기" : "운영진만"}
+                      </button>
+                    )}
+                    {status === "active" && (
+                      <p className="text-[10px] text-slate-500 truncate mt-1">{item.megaphone_message}</p>
+                    )}
+                    {status === "expired" && isStaff && (
+                      <button type="button" onClick={() => handleDeleteMega(item)} disabled={deletePending === item.id}
+                        className="mt-2 w-full h-8 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50 transition flex items-center justify-center gap-1">
+                        {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3 h-3" />삭제</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
 
+            {/* 분류 탭에서 비어있을 때 */}
             {((tab === "background" && bgCount === 0) ||
               (tab === "sticker" && stickerPacks.length === 0) ||
               (tab === "cosmetic" && cosmetics.length === 0) ||
               (tab === "megaphone" && megaCount === 0)) && (
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+              <div className="col-span-full rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
                 <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                 <p className="text-sm text-slate-600">이 분류에 아이템이 없어요</p>
               </div>
@@ -375,6 +385,7 @@ export default function GuildInventory({
         )}
       </div>
 
+      {/* 코스메틱 삭제 확인 모달 */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmDelete(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
@@ -391,6 +402,34 @@ export default function GuildInventory({
               <button type="button" onClick={handleDelete} disabled={deletePending !== null}
                 className="flex-1 h-10 rounded-lg bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 disabled:opacity-50 flex items-center justify-center gap-1">
                 {deletePending !== null ? <Loader2 className="w-4 h-4 animate-spin" /> : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 확성기 사용 모달 */}
+      {megaModalId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-cyan-600" />확성기 문구 작성
+              </h3>
+              <button type="button" onClick={() => setMegaModalId(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-xs text-slate-500 mb-2">광장 상단에 흐를 문구예요. 사용하면 바로 노출이 시작됩니다.</p>
+            <textarea value={megaMessage} onChange={(e) => setMegaMessage(e.target.value.slice(0, 100))}
+              placeholder="예: 카제로스 서버 쁘밍 길드 신규 길드원 모집! 디스코드로 문의주세요" rows={3}
+              className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-none" />
+            <div className="flex items-center justify-between mt-1.5 mb-4">
+              <span className="text-[11px] text-slate-400">{megaMessage.length}/100</span>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setMegaModalId(null)} className="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">취소</button>
+              <button type="button" onClick={handleActivateMega} disabled={megaPending}
+                className="flex-1 h-10 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-500 disabled:opacity-60 transition flex items-center justify-center gap-1.5">
+                {megaPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}사용하기
               </button>
             </div>
           </div>
