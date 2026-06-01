@@ -21,6 +21,9 @@ const DIFF = [
   { key: "gold_nightmare", label: "나메", dot: "#8b5cf6", text: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
 ] as const;
 
+// Pretendard 굵게 + 살짝 음수 자간 — 숫자 전용 스타일
+const NUM = "font-bold tracking-[-0.01em]";
+
 export default function RaidDetailModal({ guildCode, raidId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [raid, setRaid] = useState<RaidDetail | null>(null);
@@ -62,6 +65,7 @@ export default function RaidDetailModal({ guildCode, raidId, onClose }: Props) {
   };
 
   const hasGuide = !!(currentGuide && (currentGuide.content || currentGuide.image_urls.length > 0));
+  const tabLabel = tab === "leader" ? "공대장" : "공대원";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" onClick={onClose}>
@@ -135,7 +139,7 @@ export default function RaidDetailModal({ guildCode, raidId, onClose }: Props) {
                           <div key={d.key} className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${d.bg} ${d.border}`}>
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.dot }} />
                             <span className={`text-xs font-bold ${d.text}`}>{d.label}</span>
-                            <span className="text-sm font-bold text-slate-900 font-mono">{formatNumber(val)}<span className="text-[10px] text-slate-400 ml-0.5">G</span></span>
+                            <span className={`text-base text-slate-900 ${NUM}`}>{formatNumber(val)}<span className="text-[10px] text-slate-400 ml-0.5 font-medium">G</span></span>
                           </div>
                         );
                       })}
@@ -155,8 +159,8 @@ export default function RaidDetailModal({ guildCode, raidId, onClose }: Props) {
                   {/* 공략 탭 */}
                   <div>
                     <div className="flex gap-1 p-1 rounded-2xl bg-slate-100 mb-3">
-                      <TabButton active={tab === "leader"} onClick={() => { setTab("leader"); setEditingGuide(false); }} icon={<Crown className="w-3.5 h-3.5" />} label="공대장용" />
-                      <TabButton active={tab === "normal"} onClick={() => { setTab("normal"); setEditingGuide(false); }} icon={<Users className="w-3.5 h-3.5" />} label="일반용" />
+                      <TabButton active={tab === "leader"} onClick={() => { setTab("leader"); setEditingGuide(false); }} icon={<Crown className="w-3.5 h-3.5" />} label="공대장" />
+                      <TabButton active={tab === "normal"} onClick={() => { setTab("normal"); setEditingGuide(false); }} icon={<Users className="w-3.5 h-3.5" />} label="공대원" />
                     </div>
 
                     {editingGuide ? (
@@ -186,7 +190,7 @@ export default function RaidDetailModal({ guildCode, raidId, onClose }: Props) {
                           </div>
                         ) : (
                           <div className="text-center py-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200">
-                            <p className="text-sm text-slate-500">{tab === "leader" ? "공대장용" : "일반용"} 공략이 아직 없어요</p>
+                            <p className="text-sm text-slate-500">{tabLabel} 공략이 아직 없어요</p>
                             <p className="text-xs text-slate-400 mt-1">길드원 누구나 작성할 수 있어요</p>
                           </div>
                         )}
@@ -223,7 +227,7 @@ function SpecBox({
         {icon}
         <span className="text-[10px] font-bold">{label}</span>
       </div>
-      <p className={`font-bold text-slate-900 ${small ? "text-[11px] leading-snug break-words" : "text-base font-mono"}`}>{value}</p>
+      <p className={`text-slate-900 ${small ? "text-[11px] font-bold leading-snug break-words" : "text-base font-bold tracking-[-0.01em]"}`}>{value}</p>
     </div>
   );
 }
