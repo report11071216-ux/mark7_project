@@ -22,7 +22,11 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              // 브라우저를 닫아도 유지되도록 영속 쿠키로 (30일)
+              maxAge: options?.maxAge ?? 60 * 60 * 24 * 30,
+            })
           );
         },
       },
@@ -30,6 +34,5 @@ export async function updateSession(request: NextRequest) {
   );
 
   await supabase.auth.getUser();
-
   return supabaseResponse;
 }
