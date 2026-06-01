@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Pin, Eye, Heart, Trash2, Loader2 } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
+import { getCategoryMeta } from "@/lib/guild-board";
 import { toggleGuildPostLike, deleteGuildPost } from "@/app/guild/[code]/posts/actions";
 import toast from "react-hot-toast";
 
@@ -12,6 +13,7 @@ type Post = {
   id: string;
   title: string;
   content: string;
+  category: string;
   view_count: number;
   like_count: number;
   is_notice: boolean;
@@ -33,6 +35,8 @@ export default function GuildPostDetail({ guildCode, post, authorColor, isAuthor
   const [liked, setLiked] = useState(alreadyLiked);
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const meta = getCategoryMeta(post.category);
 
   const handleLike = () => {
     if (isPending) return;
@@ -94,12 +98,12 @@ export default function GuildPostDetail({ guildCode, post, authorColor, isAuthor
       {/* 본문 카드 */}
       <article className="rounded-xl bg-card/60 ring-1 ring-border overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          {post.is_notice && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 mb-2">
-              <Pin className="w-2.5 h-2.5" />
-              공지
-            </span>
-          )}
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold mb-2 ${meta.badgeClass}`}
+          >
+            {post.is_notice && <Pin className="w-2.5 h-2.5" />}
+            {meta.label}
+          </span>
           <h1 className="text-lg font-bold text-white leading-snug">{post.title}</h1>
           <div className="flex items-center gap-3 mt-2 text-[11px] font-mono text-muted-foreground">
             <span style={authorColor ? { color: authorColor } : undefined} className={authorColor ? "font-bold" : ""}>{post.author_name}</span>
