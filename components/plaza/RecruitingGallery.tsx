@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Shield, Users, Diamond, X, Eye, UserPlus, MessageSquare, Sparkles } from "lucide-react";
+import { Shield, Users, Diamond, X, Eye, UserPlus, MessageSquare } from "lucide-react";
 
 export type RecruitGuild = {
   id: string;
@@ -33,6 +33,102 @@ function gradeOf(exp: number): { label: string; color: string } {
   return { label: "브론즈", color: "#b45309" };
 }
 
+function DetailModal({ guild, onClose }: { guild: RecruitGuild; onClose: () => void }) {
+  const grade = gradeOf(guild.totalExp);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
+        <div className="relative h-24 bg-slate-900 flex items-end p-4 shrink-0">
+          <button onClick={onClose} className="absolute top-3 right-3 text-white/70 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-xl bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-violet-400/40">
+              {guild.logoUrl ? (
+                <img src={guild.logoUrl} alt={guild.name} className="w-full h-full object-cover" />
+              ) : (
+                <Shield className="w-7 h-7 text-violet-300" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-bold text-white">{guild.name}</p>
+                {guild.server ? (
+                  <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.5 rounded">{guild.server}</span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Diamond className="w-3.5 h-3.5" style={{ color: grade.color }} />
+                <span className="text-xs font-bold" style={{ color: grade.color }}>{grade.label} 길드</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4 overflow-y-auto">
+          {guild.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {guild.tags.map((t) => (
+                <span key={t} className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">{t}</span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <p className="text-[11px] text-slate-500">인원</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{guild.memberCount}<span className="text-xs text-slate-400">/{guild.maxMembers}</span></p>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <p className="text-[11px] text-slate-500">등급</p>
+              <p className="text-sm font-bold mt-0.5" style={{ color: grade.color }}>{grade.label}</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <p className="text-[11px] text-slate-500">랭킹</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{guild.rank > 0 ? `#${guild.rank}` : "-"}</p>
+            </div>
+          </div>
+
+          {guild.recruitMessage ? (
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">모집 안내</p>
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{guild.recruitMessage}</p>
+            </div>
+          ) : null}
+
+          {guild.discordUrl ? (
+            
+              href={guild.discordUrl.startsWith("http") ? guild.discordUrl : `https://${guild.discordUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 h-9 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-bold hover:bg-indigo-100 transition"
+            >
+              <MessageSquare className="w-4 h-4" /> 디스코드 참여하기
+            </a>
+          ) : null}
+        </div>
+
+        <div className="flex gap-2 p-4 border-t border-slate-100 shrink-0">
+          <Link
+            href={`/guild/${guild.code}`}
+            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition"
+          >
+            <Eye className="w-4 h-4" /> 둘러보기
+          </Link>
+          <button
+            type="button"
+            disabled
+            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg bg-violet-600 text-white text-sm font-bold opacity-50 cursor-not-allowed"
+          >
+            <UserPlus className="w-4 h-4" /> 가입 신청
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }) {
   const [serverFilter, setServerFilter] = useState("전체");
   const [sort, setSort] = useState<"activity" | "recent" | "members">("activity");
@@ -49,13 +145,11 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
     } else if (sort === "activity") {
       sorted.sort((a, b) => b.totalExp - a.totalExp);
     }
-    // recent는 서버에서 이미 recruit_updated_at 순으로 옴
     return sorted;
   }, [guilds, serverFilter, sort]);
 
   return (
     <div className="space-y-4">
-      {/* 필터 바 */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex gap-1.5 flex-wrap flex-1">
           {SERVERS.map((s) => (
@@ -74,7 +168,7 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
         </div>
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value as any)}
+          onChange={(e) => setSort(e.target.value as "activity" | "recent" | "members")}
           className="h-8 px-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white"
         >
           <option value="activity">활동성순</option>
@@ -83,7 +177,6 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
         </select>
       </div>
 
-      {/* 카드 그리드 */}
       {filtered.length === 0 ? (
         <div className="py-20 text-center">
           <Users className="w-8 h-8 text-slate-300 mx-auto mb-3" />
@@ -110,14 +203,12 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[15px] font-bold text-slate-900 truncate">{g.name}</p>
-                    </div>
-                    {g.server && (
+                    <p className="text-[15px] font-bold text-slate-900 truncate">{g.name}</p>
+                    {g.server ? (
                       <span className="inline-block text-[10px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded mt-0.5">
                         {g.server}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -144,112 +235,9 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
         </div>
       )}
 
-      {/* 상세 모달 */}
-      {selected && (
+      {selected ? (
         <DetailModal guild={selected} onClose={() => setSelected(null)} />
-      )}
-    </div>
-  );
-}
-
-function DetailModal({ guild, onClose }: { guild: RecruitGuild; onClose: () => void }) {
-  const grade = gradeOf(guild.totalExp);
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
-        {/* 헤더 (다크 배너) */}
-        <div className="relative h-24 bg-slate-900 flex items-end p-4 shrink-0">
-          <button onClick={onClose} className="absolute top-3 right-3 text-white/70 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-violet-400/40">
-              {guild.logoUrl ? (
-                <img src={guild.logoUrl} alt={guild.name} className="w-full h-full object-cover" />
-              ) : (
-                <Shield className="w-7 h-7 text-violet-300" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-bold text-white">{guild.name}</p>
-                {guild.server && (
-                  <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.5 rounded">{guild.server}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <Diamond className="w-3.5 h-3.5" style={{ color: grade.color }} />
-                <span className="text-xs font-bold" style={{ color: grade.color }}>{grade.label} 길드</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-5 space-y-4 overflow-y-auto">
-          {/* 태그 */}
-          {guild.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {guild.tags.map((t) => (
-                <span key={t} className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">{t}</span>
-              ))}
-            </div>
-          )}
-
-          {/* 스탯 3 */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-slate-50 rounded-lg p-3 text-center">
-              <p className="text-[11px] text-slate-500">인원</p>
-              <p className="text-base font-bold text-slate-900 mt-0.5">{guild.memberCount}<span className="text-xs text-slate-400">/{guild.maxMembers}</span></p>
-            </div>
-            <div className="bg-slate-50 rounded-lg p-3 text-center">
-              <p className="text-[11px] text-slate-500">등급</p>
-              <p className="text-sm font-bold mt-0.5" style={{ color: grade.color }}>{grade.label}</p>
-            </div>
-            <div className="bg-slate-50 rounded-lg p-3 text-center">
-              <p className="text-[11px] text-slate-500">랭킹</p>
-              <p className="text-base font-bold text-slate-900 mt-0.5">{guild.rank > 0 ? `#${guild.rank}` : "-"}</p>
-            </div>
-          </div>
-
-          {/* 모집 안내 */}
-          {guild.recruitMessage && (
-            <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">모집 안내</p>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{guild.recruitMessage}</p>
-            </div>
-          )}
-
-          {/* 디스코드 */}
-          {guild.discordUrl && (
-            
-              href={guild.discordUrl.startsWith("http") ? guild.discordUrl : `https://${guild.discordUrl}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 h-9 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-bold hover:bg-indigo-100 transition"
-            >
-              <MessageSquare className="w-4 h-4" /> 디스코드 참여하기
-            </a>
-          )}
-        </div>
-
-        {/* 액션 */}
-        <div className="flex gap-2 p-4 border-t border-slate-100 shrink-0">
-          <Link
-            href={`/guild/${guild.code}`}
-            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition"
-          >
-            <Eye className="w-4 h-4" /> 둘러보기
-          </Link>
-          <button
-            type="button"
-            disabled
-            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg bg-violet-600 text-white text-sm font-bold opacity-50 cursor-not-allowed"
-          >
-            <UserPlus className="w-4 h-4" /> 가입 신청
-          </button>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }
