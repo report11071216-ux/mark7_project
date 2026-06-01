@@ -92,10 +92,10 @@ export async function checkAttendance(guildCode: string) {
     .update({ points: (member.points ?? 0) + totalPoints })
     .eq("id", member.id);
 
-  // ── 길드 포인트 적립 (출석 1회당 길드 +1, RPC로 안전하게) ──
+ // ── 길드 포인트 적립 (출석 + 카드 보너스만큼 길드에도 적립) ──
   await supabase.rpc("increment_guild_points", {
     p_guild_id: guild.id,
-    p_amount: ATTENDANCE_POINTS,
+    p_amount: totalPoints,
   });
 
   // ── 카드 뽑기: 등급 뽑고 → 그 등급 활성 카드 중 랜덤 1장 ──
