@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Coins, Check, Loader2, Smile, Trash2, X, ArrowUp, Box, Megaphone, ImageIcon } from "lucide-react";
+import { Package, Coins, Check, Loader2, Smile, Trash2, X, ArrowUp, Box, Megaphone, Plus } from "lucide-react";
 import { getRelativeTime } from "@/lib/utils";
 import { equipGuildMark, toggleStickerPack, deleteGuildPurchase, toggleGuildBackground, activateMegaphone } from "@/app/guild/[code]/shop/actions";
 import { buyGuildCapacity } from "@/app/guild/[code]/admin/growth-actions";
@@ -70,7 +70,6 @@ export default function GuildInventory({
   const [slotPending, setSlotPending] = useState(false);
   const [tab, setTab] = useState<TabKey>("all");
 
-  // 확성기 모달
   const [megaModalId, setMegaModalId] = useState<string | null>(null);
   const [megaMessage, setMegaMessage] = useState("");
   const [megaPending, setMegaPending] = useState(false);
@@ -96,6 +95,10 @@ export default function GuildInventory({
 
   const slotPercent = vaultSlots > 0 ? Math.min(100, Math.round((usedSlots / vaultSlots) * 100)) : 0;
   const isFull = usedSlots >= vaultSlots;
+
+  // 전체 탭에서 보여줄 빈 칸 개수 (슬롯 - 사용, 확성기 제외)
+  const emptyCount = tab === "all" ? Math.max(0, vaultSlots - usedSlots) : 0;
+  const emptySlots = Array.from({ length: emptyCount });
 
   const handleBuySlot = () => {
     if (slotPending || !isStaff) return;
@@ -168,9 +171,7 @@ export default function GuildInventory({
 
   const totalCount = bgCount + stickerPacks.length + cosmetics.length + megaCount;
 
-  // 공통 정사각 카드 그리드
   const gridClass = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
-  // 분류 뱃지
   const badge = (label: string, color: string, bg: string) => (
     <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ color, backgroundColor: bg }}>{label}</span>
   );
@@ -243,146 +244,148 @@ export default function GuildInventory({
           </div>
         )}
 
-        {totalCount === 0 ? (
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
-            <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-600">아직 구매한 길드 아이템이 없어요</p>
-            <p className="text-xs text-slate-400 mt-1">상점에서 길드 포인트로 아이템을 구매해보세요</p>
-          </div>
-        ) : (
-          <div className={gridClass}>
-            {/* 길드 배경 */}
-            {showBg && backgroundItems.map((bg) => (
-              <div key={bg.purchase_id}
-                className={"rounded-xl border overflow-hidden transition flex flex-col " + (bg.equipped ? "border-cyan-400 ring-2 ring-cyan-200" : "border-slate-200 shadow-sm bg-white")}>
-                <div className="relative aspect-square bg-slate-100">
-                  <img src={bg.image_url} alt={bg.name} className="w-full h-full object-cover" />
-                  <span className="absolute top-2 left-2">{badge("배경", "#185FA5", "#E6F1FB")}</span>
-                  {bg.equipped && (
-                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center gap-1">
-                      <Check className="w-3 h-3" />적용
-                    </span>
+        <div className={gridClass}>
+          {/* 길드 배경 */}
+          {showBg && backgroundItems.map((bg) => (
+            <div key={bg.purchase_id}
+              className={"rounded-xl border overflow-hidden transition flex flex-col " + (bg.equipped ? "border-cyan-400 ring-2 ring-cyan-200" : "border-slate-200 shadow-sm bg-white")}>
+              <div className="relative aspect-square bg-slate-100">
+                <img src={bg.image_url} alt={bg.name} className="w-full h-full object-cover" />
+                <span className="absolute top-2 left-2">{badge("배경", "#185FA5", "#E6F1FB")}</span>
+                {bg.equipped && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3" />적용
+                  </span>
+                )}
+              </div>
+              <div className="p-2.5 bg-white flex flex-col flex-1">
+                <p className="text-xs font-bold text-slate-900 truncate mb-2">{bg.name}</p>
+                <button type="button" onClick={() => handleToggleBg(bg)} disabled={bgPending === bg.image_url || !isStaff}
+                  className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (bg.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                  {bgPending === bg.image_url ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : bg.equipped ? <><Check className="w-3.5 h-3.5" />해제</>
+                    : isStaff ? "적용" : "운영진만"}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* 이모티콘팩 */}
+          {showSticker && stickerPacks.map((pack) => (
+            <div key={pack.shop_item_id}
+              className={"rounded-xl border overflow-hidden transition flex flex-col " + (pack.equipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
+              <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
+                {pack.cover_url ? <img src={pack.cover_url} alt={pack.name} className="w-full h-full object-cover" /> : <Smile className="w-8 h-8 text-slate-300" />}
+                <span className="absolute top-2 left-2">{badge("이모티콘", "#0F6E56", "#E1F5EE")}</span>
+              </div>
+              <div className="p-2.5 flex flex-col flex-1">
+                <p className="text-xs font-bold text-slate-900 truncate mb-2">{pack.name}</p>
+                <button type="button" onClick={() => handleTogglePack(pack)} disabled={packPending === pack.shop_item_id || !isStaff}
+                  className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (pack.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                  {packPending === pack.shop_item_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : pack.equipped ? <><Check className="w-3.5 h-3.5" />장착중</>
+                    : isStaff ? "채팅에 장착" : "운영진만"}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* 코스메틱 */}
+          {showCosmetic && cosmetics.map((item) => {
+            const isMark = item.item_category.includes("마크");
+            const isEquipped = equippedMarkId === item.id;
+            return (
+              <div key={item.id}
+                className={"group relative rounded-xl border overflow-hidden transition flex flex-col " + (isEquipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
+                <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
+                  {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-300" />}
+                  <span className="absolute top-2 left-2">{badge(item.item_category, "#534AB7", "#EEEDFE")}</span>
+                  {isStaff && (
+                    <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
+                      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50"
+                      aria-label="삭제" title="삭제">
+                      {deletePending === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </button>
                   )}
                 </div>
-                <div className="p-2.5 bg-white flex flex-col flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate mb-2">{bg.name}</p>
-                  <button type="button" onClick={() => handleToggleBg(bg)} disabled={bgPending === bg.image_url || !isStaff}
-                    className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (bg.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                    {bgPending === bg.image_url ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : bg.equipped ? <><Check className="w-3.5 h-3.5" />해제</>
-                      : isStaff ? "적용" : "운영진만"}
-                  </button>
+                <div className="p-2.5 flex flex-col flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
+                  <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5"><Coins className="w-2.5 h-2.5" />{item.price_paid.toLocaleString()}P</p>
+                  {isMark && (
+                    <button type="button" onClick={() => handleEquipMark(item, isEquipped)} disabled={isPending || !isStaff}
+                      className={"mt-2 w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (isEquipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
+                      {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEquipped ? <><Check className="w-3.5 h-3.5" />장착중</> : isStaff ? "로고 장착" : "운영진만"}
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+            );
+          })}
 
-            {/* 이모티콘팩 */}
-            {showSticker && stickerPacks.map((pack) => (
-              <div key={pack.shop_item_id}
-                className={"rounded-xl border overflow-hidden transition flex flex-col " + (pack.equipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
-                <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
-                  {pack.cover_url ? <img src={pack.cover_url} alt={pack.name} className="w-full h-full object-cover" /> : <Smile className="w-8 h-8 text-slate-300" />}
-                  <span className="absolute top-2 left-2">{badge("이모티콘", "#0F6E56", "#E1F5EE")}</span>
+          {/* 확성기 */}
+          {showMegaphone && megaphoneItems.map((item) => {
+            const status = megaStatus(item);
+            return (
+              <div key={item.id}
+                className="relative rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden flex flex-col">
+                <div className="relative aspect-square bg-cyan-50 flex flex-col items-center justify-center gap-2 p-3">
+                  <span className="absolute top-2 left-2">{badge("확성기", "#0E7490", "#CFFAFE")}</span>
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <Megaphone className="w-6 h-6 text-cyan-600" />
+                  </div>
+                  {status === "active" && <span className="text-[10px] font-bold text-cyan-700">광장 노출중</span>}
+                  {status === "expired" && <span className="text-[10px] text-slate-400">사용 완료</span>}
+                  {status === "ready" && <span className="text-[10px] text-slate-500">미사용</span>}
                 </div>
                 <div className="p-2.5 flex flex-col flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate mb-2">{pack.name}</p>
-                  <button type="button" onClick={() => handleTogglePack(pack)} disabled={packPending === pack.shop_item_id || !isStaff}
-                    className={"mt-auto w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (pack.equipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                    {packPending === pack.shop_item_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : pack.equipped ? <><Check className="w-3.5 h-3.5" />장착중</>
-                      : isStaff ? "채팅에 장착" : "운영진만"}
-                  </button>
+                  <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
+                  {status === "ready" && (
+                    <button type="button" onClick={() => { setMegaModalId(item.id); setMegaMessage(""); }} disabled={!isStaff}
+                      className="mt-2 w-full h-8 rounded-lg bg-cyan-600 text-white text-[11px] font-bold hover:bg-cyan-500 disabled:opacity-50 transition">
+                      {isStaff ? "사용하기" : "운영진만"}
+                    </button>
+                  )}
+                  {status === "active" && <p className="text-[10px] text-slate-500 truncate mt-1">{item.megaphone_message}</p>}
+                  {status === "expired" && isStaff && (
+                    <button type="button" onClick={() => handleDeleteMega(item)} disabled={deletePending === item.id}
+                      className="mt-2 w-full h-8 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50 transition flex items-center justify-center gap-1">
+                      {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3 h-3" />삭제</>}
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+            );
+          })}
 
-            {/* 코스메틱 */}
-            {showCosmetic && cosmetics.map((item) => {
-              const isMark = item.item_category.includes("마크");
-              const isEquipped = equippedMarkId === item.id;
-              return (
-                <div key={item.id}
-                  className={"group relative rounded-xl border overflow-hidden transition flex flex-col " + (isEquipped ? "border-cyan-300 ring-2 ring-cyan-200 bg-cyan-50" : "border-slate-200 shadow-sm bg-white")}>
-                  <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
-                    {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-300" />}
-                    <span className="absolute top-2 left-2">{badge(item.item_category, "#534AB7", "#EEEDFE")}</span>
-                    {isStaff && (
-                      <button type="button" onClick={() => setConfirmDelete(item)} disabled={deletePending === item.id}
-                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50"
-                        aria-label="삭제" title="삭제">
-                        {deletePending === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-2.5 flex flex-col flex-1">
-                    <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5"><Coins className="w-2.5 h-2.5" />{item.price_paid.toLocaleString()}P</p>
-                    {isMark && (
-                      <button type="button" onClick={() => handleEquipMark(item, isEquipped)} disabled={isPending || !isStaff}
-                        className={"mt-2 w-full h-8 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed " + (isEquipped ? "bg-cyan-600 text-white hover:bg-cyan-500" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>
-                        {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEquipped ? <><Check className="w-3.5 h-3.5" />장착중</> : isStaff ? "로고 장착" : "운영진만"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          {/* 빈 칸 (전체 탭에서만) */}
+          {emptySlots.map((_, i) => (
+            <div key={`empty-${i}`}
+              className="rounded-xl border-[1.5px] border-dashed border-slate-200 bg-slate-50/60 flex flex-col items-center justify-center aspect-square">
+              <Plus className="w-5 h-5 text-slate-300" />
+              <span className="text-[10px] text-slate-300 mt-1">빈 칸</span>
+            </div>
+          ))}
 
-            {/* 확성기 */}
-            {showMegaphone && megaphoneItems.map((item) => {
-              const status = megaStatus(item);
-              return (
-                <div key={item.id}
-                  className="relative rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden flex flex-col">
-                  <div className="relative aspect-square bg-cyan-50 flex flex-col items-center justify-center gap-2 p-3">
-                    <span className="absolute top-2 left-2">{badge("확성기", "#0E7490", "#CFFAFE")}</span>
-                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                      <Megaphone className="w-6 h-6 text-cyan-600" />
-                    </div>
-                    {status === "active" && (
-                      <span className="text-[10px] font-bold text-cyan-700">광장 노출중</span>
-                    )}
-                    {status === "expired" && (
-                      <span className="text-[10px] text-slate-400">사용 완료</span>
-                    )}
-                    {status === "ready" && (
-                      <span className="text-[10px] text-slate-500">미사용</span>
-                    )}
-                  </div>
-                  <div className="p-2.5 flex flex-col flex-1">
-                    <p className="text-xs font-bold text-slate-900 truncate">{item.item_name}</p>
-                    {status === "ready" && (
-                      <button type="button" onClick={() => { setMegaModalId(item.id); setMegaMessage(""); }} disabled={!isStaff}
-                        className="mt-2 w-full h-8 rounded-lg bg-cyan-600 text-white text-[11px] font-bold hover:bg-cyan-500 disabled:opacity-50 transition">
-                        {isStaff ? "사용하기" : "운영진만"}
-                      </button>
-                    )}
-                    {status === "active" && (
-                      <p className="text-[10px] text-slate-500 truncate mt-1">{item.megaphone_message}</p>
-                    )}
-                    {status === "expired" && isStaff && (
-                      <button type="button" onClick={() => handleDeleteMega(item)} disabled={deletePending === item.id}
-                        className="mt-2 w-full h-8 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50 transition flex items-center justify-center gap-1">
-                        {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3 h-3" />삭제</>}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          {/* 분류 탭에서 비어있을 때 */}
+          {((tab === "background" && bgCount === 0) ||
+            (tab === "sticker" && stickerPacks.length === 0) ||
+            (tab === "cosmetic" && cosmetics.length === 0) ||
+            (tab === "megaphone" && megaCount === 0)) && (
+            <div className="col-span-full rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+              <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm text-slate-600">이 분류에 아이템이 없어요</p>
+            </div>
+          )}
 
-            {/* 분류 탭에서 비어있을 때 */}
-            {((tab === "background" && bgCount === 0) ||
-              (tab === "sticker" && stickerPacks.length === 0) ||
-              (tab === "cosmetic" && cosmetics.length === 0) ||
-              (tab === "megaphone" && megaCount === 0)) && (
-              <div className="col-span-full rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
-                <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-600">이 분류에 아이템이 없어요</p>
-              </div>
-            )}
-          </div>
-        )}
+          {/* 전체 탭인데 아이템도 빈 칸도 없을 때(슬롯 0) */}
+          {tab === "all" && totalCount === 0 && emptyCount === 0 && (
+            <div className="col-span-full rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+              <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm text-slate-600">아직 구매한 길드 아이템이 없어요</p>
+              <p className="text-xs text-slate-400 mt-1">상점에서 길드 포인트로 아이템을 구매해보세요</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 코스메틱 삭제 확인 모달 */}
