@@ -7,10 +7,10 @@ const ATTENDANCE_POINTS = 1;
 
 function drawCardGrade(): string {
   const r = Math.random() * 100;
-  if (r < 70) return "common";
-  if (r < 90) return "rare";
-  if (r < 98) return "unique";
-  return "epic";
+  if (r < 85) return "common";    // 85%
+  if (r < 97) return "rare";      // 12%
+  if (r < 99.5) return "unique";  // 2.5%
+  return "epic";                  // 0.5%
 }
 
 export async function checkAttendance(guildCode: string) {
@@ -92,7 +92,7 @@ export async function checkAttendance(guildCode: string) {
     .update({ points: (member.points ?? 0) + totalPoints })
     .eq("id", member.id);
 
- // ── 길드 포인트 적립 (출석 + 카드 보너스만큼 길드에도 적립) ──
+  // ── 길드 포인트 적립 (개인과 동일하게 출석 + 카드 보너스만큼) ──
   await supabase.rpc("increment_guild_points", {
     p_guild_id: guild.id,
     p_amount: totalPoints,
