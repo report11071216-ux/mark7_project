@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Speakerphone, X } from "lucide-react";
+import { Megaphone, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveRecruitInfo, type RecruitInput } from "@/app/guild/[code]/admin/recruit-actions";
 
