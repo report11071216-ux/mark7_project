@@ -76,56 +76,44 @@ function CardHeader({
   );
 }
 
-// ─── 필드보스용 ───
-function TimedContentBody({
-  items,
-  emptyText,
-}: {
-  items: CalendarContent[];
-  emptyText: string;
-}) {
+// ─── 필드보스 (정각마다 출현이라 시간 나열 대신 텍스트) ───
+function FieldBossBody({ items }: { items: CalendarContent[] }) {
   const todayItems = items.filter(
     (item) => item.StartTimes?.some((t) => isTodayKST(t))
   );
 
   if (todayItems.length === 0) {
-    return <p className="text-xs text-slate-400 text-center py-4">{emptyText}</p>;
+    return <p className="text-xs text-slate-400 text-center py-4">오늘 필드보스 정보가 없어요</p>;
   }
 
+  const first = todayItems[0];
+  const remainder = todayItems.length - 1;
+
   return (
-    <div className="space-y-4">
-      {todayItems.map((item, i) => {
-        const todayTimes = (item.StartTimes ?? []).filter(isTodayKST);
-        return (
-          <div key={i}>
-            <div className="flex items-center gap-2">
-              {item.ContentsIcon && (
-                <img
-                  src={item.ContentsIcon}
-                  alt={item.ContentsName}
-                  className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">
-                  {item.ContentsName}
-                </p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <p className="text-[10px] font-mono text-slate-600">
-                    {todayTimes.map(formatKST).join(" · ")}
-                  </p>
-                  {item.Location && (
-                    <p className="text-[10px] text-slate-400 truncate">
-                      · {item.Location}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-            <RewardItems items={item.RewardItems} />
-          </div>
-        );
-      })}
+    <div>
+      <div className="flex items-center gap-2">
+        {first.ContentsIcon && (
+          <img
+            src={first.ContentsIcon}
+            alt={first.ContentsName}
+            className="w-8 h-8 rounded-md object-cover ring-1 ring-slate-200"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-slate-900 truncate">{first.ContentsName}</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">정각마다 출현</p>
+          {first.Location && (
+            <p className="text-[10px] text-slate-400 truncate">{first.Location}</p>
+          )}
+        </div>
+      </div>
+      <RewardItems items={first.RewardItems} />
+
+      {remainder > 0 && (
+        <p className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100">
+          외 {remainder}개 보스도 출현
+        </p>
+      )}
     </div>
   );
 }
@@ -266,7 +254,7 @@ function FieldBossWidget({ items }: { items: CalendarContent[] }) {
     <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden flex flex-col h-full">
       <CardHeader icon={Skull} title="필드보스" />
       <div className="p-4 flex-1">
-        <TimedContentBody items={items} emptyText="오늘 필드보스 정보가 없어요" />
+        <FieldBossBody items={items} />
       </div>
     </div>
   );
