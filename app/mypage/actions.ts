@@ -33,7 +33,8 @@ export async function syncLostarkCharacter(
     };
   }
 
-  const combatPower = extractCombatPower(profile.Stats, profile.CharacterClassName);
+  // 전투력은 이제 API의 CombatPower 필드를 그대로 사용 (profile 전체 전달)
+  const combatPower = extractCombatPower(profile);
   const itemLevel = parseItemLevel(profile.ItemAvgLevel);
 
   const { error } = await supabase
