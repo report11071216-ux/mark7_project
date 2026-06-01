@@ -14,7 +14,6 @@ export default async function GuildPostsPage({ params }: Props) {
     supabase.auth.getUser(),
     supabase.from("guilds").select("id, name, code").eq("code", code).single(),
   ]);
-
   if (!user || !guild) notFound();
 
   const { data: membership } = await supabase
@@ -23,12 +22,11 @@ export default async function GuildPostsPage({ params }: Props) {
     .eq("guild_id", guild.id)
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!membership) notFound();
 
   const { data: rawPosts } = await supabase
     .from("posts")
-    .select("id, title, is_notice, view_count, like_count, created_at, author_id")
+    .select("id, title, is_notice, category, view_count, like_count, created_at, author_id")
     .eq("guild_id", guild.id)
     .order("is_notice", { ascending: false })
     .order("created_at", { ascending: false })
@@ -55,6 +53,7 @@ export default async function GuildPostsPage({ params }: Props) {
     id: p.id,
     title: p.title,
     is_notice: p.is_notice ?? false,
+    category: p.category ?? "free",
     view_count: p.view_count ?? 0,
     like_count: p.like_count ?? 0,
     created_at: p.created_at,
