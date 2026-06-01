@@ -1,8 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Megaphone, Clock, Loader2, X, Check } from "lucide-react";
-import { activateMegaphone } from "@/app/guild/[code]/shop/actions";
+import { Megaphone, Clock, Loader2, X, Check, Trash2 } from "lucide-react";
+import { activateMegaphone, deleteGuildPurchase } from "@/app/guild/[code]/shop/actions";
 import toast from "react-hot-toast";
 
 export type MegaphoneItem = {
@@ -16,6 +16,7 @@ export type MegaphoneItem = {
 
 type Props = {
   guildCode: string;
+  guildId: string;
   items: MegaphoneItem[];
   canUse: boolean;
 };
@@ -28,11 +29,12 @@ function statusOf(item: MegaphoneItem): "ready" | "active" | "expired" {
   return "expired";
 }
 
-export default function MegaphoneInventory({ guildCode, items, canUse }: Props) {
+export default function MegaphoneInventory({ guildCode, guildId, items, canUse }: Props) {
   const router = useRouter();
   const [modalId, setModalId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [deletePending, setDeletePending] = useState<string | null>(null);
 
   if (items.length === 0) return null;
 
@@ -53,6 +55,19 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
         toast.error(result.error ?? "사용에 실패했습니다");
       }
     });
+  };
+
+  const handleDelete = async (item: MegaphoneItem) => {
+    if (deletePending) return;
+    setDeletePending(item.id);
+    const result = await deleteGuildPurchase(guildCode, guildId, item.id);
+    setDeletePending(null);
+    if (result.success) {
+      toast.success("삭제되었습니다");
+      router.refresh();
+    } else {
+      toast.error(result.error ?? "삭제에 실패했습니다");
+    }
   };
 
   return (
@@ -99,8 +114,22 @@ export default function MegaphoneInventory({ guildCode, items, canUse }: Props) 
                 </div>
               )}
               {status === "expired" && (
-                <div className="w-full h-9 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <span className="text-xs text-slate-400">사용 완료</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <span className="text-xs text-slate-400">사용 완료</span>
+                  </div>
+                  {canUse && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item)}
+                      disabled={deletePending === item.id}
+                      className="h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 disabled:opacity-50 transition flex items-center justify-center shrink-0"
+                      aria-label="삭제"
+                      title="삭제"
+                    >
+                      {deletePending === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
