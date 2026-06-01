@@ -40,6 +40,7 @@ export default async function BoardPage({ searchParams }: Props) {
           "id, title, category, is_notice, view_count, created_at, author_id, guild_id",
           { count: "exact" }
         )
+        .is("guild_id", null)
         .order("is_notice", { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -53,7 +54,7 @@ export default async function BoardPage({ searchParams }: Props) {
   const totalCount = postsResult.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
- const authorIds = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean)));
+  const authorIds = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean)));
   const guildIds = Array.from(new Set(posts.map((p) => p.guild_id).filter(Boolean)));
   const [authorsResult, guildsResult] = await Promise.all([
     authorIds.length > 0
