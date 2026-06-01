@@ -4,10 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendGuildWebhook, buildNoticeMessage } from "@/lib/discord";
 
+const ALLOWED = ["notice", "free", "flex", "custom", "tip"];
+
 type NewPostInput = {
   title: string;
   content: string;
-  is_notice: boolean;
+  category: string;
 };
 
 export async function createGuildPost(guildCode: string, input: NewPostInput) {
@@ -39,11 +41,15 @@ export async function createGuildPost(guildCode: string, input: NewPostInput) {
   }
 
   const isStaff = membership.role === "master" || membership.role === "submaster";
-  const finalIsNotice = isStaff ? input.is_notice : false;
 
   if (!input.title.trim() || !input.content.trim()) {
     return { success: false, error: "제목과 내용을 입력하세요" };
   }
+
+  // 카테고리 검증 + 공지는 운영진만 (아니면 자유로 강등)
+  const requested = ALLOWED.includes(input.category) ? input.category : "free";
+  const finalCategory = requested === "notice" && !isStaff ? "free" : requested;
+  const finalIsNotice = finalCategory === "notice";
 
   const { data: inserted, error } = await supabase
     .from("posts")
@@ -52,6 +58,7 @@ export async function createGuildPost(guildCode: string, input: NewPostInput) {
       author_id: user.id,
       title: input.title.trim(),
       content: input.content.trim(),
+      category: finalCategory,
       is_notice: finalIsNotice,
     })
     .select("id")
