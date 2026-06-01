@@ -93,9 +93,20 @@ export async function checkAttendance(guildCode: string) {
     .eq("id", member.id);
 
   // ── 길드 포인트 적립 (개인과 동일하게 출석 + 카드 보너스만큼) ──
+ // 로그용 이름 조회
+  const { data: actorProfile } = await supabase
+    .from("profiles")
+    .select("username, main_character_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const actorName = actorProfile?.main_character_name || actorProfile?.username || null;
+
   await supabase.rpc("increment_guild_points", {
     p_guild_id: guild.id,
     p_amount: totalPoints,
+    p_actor_name: actorName,
+    p_log_type: "attendance",
+    p_memo: null,
   });
 
   // ── 카드 뽑기: 등급 뽑고 → 그 등급 활성 카드 중 랜덤 1장 ──
