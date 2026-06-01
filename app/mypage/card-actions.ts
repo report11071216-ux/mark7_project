@@ -43,11 +43,12 @@ export async function equipAttendanceCard(cardId: string | null) {
   return { success: true };
 }
 
+// 출석 액션과 동일한 확률로 통일 (커먼85 / 레어12 / 유니크2.5 / 에픽0.5)
 function drawCardGrade(): string {
   const r = Math.random() * 100;
-  if (r < 70) return "common";
-  if (r < 90) return "rare";
-  if (r < 98) return "unique";
+  if (r < 85) return "common";
+  if (r < 97) return "rare";
+  if (r < 99.5) return "unique";
   return "epic";
 }
 
