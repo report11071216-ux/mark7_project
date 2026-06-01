@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronLeft, Swords, Upload, Loader2, Coins } from "lucide-react";
+import { ChevronLeft, Swords, Upload, Loader2, Coins, TrendingUp, Gift } from "lucide-react";
 import { createRaidEntry } from "@/app/guild/[code]/raids/actions";
 import toast from "react-hot-toast";
 
@@ -20,6 +20,9 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
   const [goldNormal, setGoldNormal] = useState("");
   const [goldHard, setGoldHard] = useState("");
   const [goldNightmare, setGoldNightmare] = useState("");
+  const [recItemLevel, setRecItemLevel] = useState("");
+  const [recCombatPower, setRecCombatPower] = useState("");
+  const [rewardMaterials, setRewardMaterials] = useState("");
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -66,6 +69,9 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
         gold_normal: parseInt(goldNormal, 10) || 0,
         gold_hard: parseInt(goldHard, 10) || 0,
         gold_nightmare: parseInt(goldNightmare, 10) || 0,
+        rec_item_level: recItemLevel ? parseInt(recItemLevel, 10) : null,
+        rec_combat_power: recCombatPower ? parseInt(recCombatPower, 10) : null,
+        reward_materials: rewardMaterials,
       });
       if (result.success) {
         toast.success("레이드가 등록되었어요");
@@ -95,7 +101,7 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
         </div>
 
         <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-          레이드를 등록하면 레이드 위젯에 카드로 표시돼요. 일정은 캘린더에서 따로 잡을 수 있어요.
+          레이드를 등록하면 레이드 위젯에 카드로 표시돼요. 카드를 누르면 수치와 공략을 볼 수 있어요.
         </p>
 
         <div className="space-y-4">
@@ -158,6 +164,54 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* 적정 스펙 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5 text-violet-500" />
+              적정 스펙
+            </label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold w-16 shrink-0 text-slate-600">아이템레벨</span>
+                <input
+                  value={recItemLevel}
+                  onChange={(e) => setRecItemLevel(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="예: 1680"
+                  inputMode="numeric"
+                  className="flex-1 h-10 px-3 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none"
+                />
+                <span className="text-xs text-slate-400 shrink-0 w-8 text-right">Lv</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold w-16 shrink-0 text-slate-600">전투력</span>
+                <input
+                  value={recCombatPower}
+                  onChange={(e) => setRecCombatPower(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="예: 5000000"
+                  inputMode="numeric"
+                  className="flex-1 h-10 px-3 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none"
+                />
+                <span className="text-xs text-slate-400 shrink-0 w-8 text-right">CP</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 획득 재화 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+              <Gift className="w-3.5 h-3.5 text-rose-500" />
+              획득 재화
+            </label>
+            <input
+              value={rewardMaterials}
+              onChange={(e) => setRewardMaterials(e.target.value)}
+              placeholder="예: 운명의 돌파석, 명예의 파편, 1막 재료"
+              maxLength={120}
+              className="w-full h-11 px-3.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">자유롭게 입력하세요 (쉼표로 구분)</p>
           </div>
 
           {/* 버튼 */}
