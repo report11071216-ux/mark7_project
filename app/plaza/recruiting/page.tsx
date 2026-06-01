@@ -16,9 +16,9 @@ export default async function RecruitingPage() {
     .order("recruit_updated_at", { ascending: false, nullsFirst: false });
 
   const guilds = guildsRaw ?? [];
+  const guildIds = guilds.map((g) => g.id);
 
   // 최근 7일 출석 있는 길드만 (죽은 길드 자동 제외)
-  const guildIds = guilds.map((g) => g.id);
   let activeGuildIds = new Set<string>();
   if (guildIds.length > 0) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -32,7 +32,47 @@ export default async function RecruitingPage() {
     }
   }
 
-  // 전체 랭킹 (total_exp 순위) 계산용 — 각 길드의 순위
+  // 장착 마크 조회: guild_themes.equipped_mark_id → purchases.item_id → shop_items.image_url
+  let markUrlMap = new Map<string, string | null>();
+  if (guildIds.length > 0) {
+    const { data: themes } = await supabase
+      .from("guild_themes")
+      .select("guild_id, equipped_mark_id")
+      .in("guild_id", guildIds);
+
+    const purchaseIds = (themes ?? [])
+      .map((t) => t.equipped_mark_id)
+      .filter(Boolean) as string[];
+
+    if (purchaseIds.length > 0) {
+      const { data: purchases } = await supabase
+        .from("purchases")
+        .select("id, item_id")
+        .in("id", purchaseIds);
+
+      const itemIds = Array.from(
+        new Set((purchases ?? []).map((p) => p.item_id).filter(Boolean))
+      ) as string[];
+
+      let itemImageMap = new Map<string, string | null>();
+      if (itemIds.length > 0) {
+        const { data: items } = await supabase
+          .from("shop_items")
+          .select("id, image_url")
+          .in("id", itemIds);
+        itemImageMap = new Map((items ?? []).map((it) => [it.id, it.image_url]));
+      }
+
+      const purchaseToItem = new Map((purchases ?? []).map((p) => [p.id, p.item_id]));
+      for (const t of themes ?? []) {
+        if (!t.equipped_mark_id) continue;
+        const itemId = purchaseToItem.get(t.equipped_mark_id);
+        if (itemId) markUrlMap.set(t.guild_id, itemImageMap.get(itemId) ?? null);
+      }
+    }
+  }
+
+  // 전체 랭킹 (total_exp 순위)
   const { data: allForRank } = await supabase
     .from("guilds")
     .select("id, total_exp")
@@ -46,7 +86,7 @@ export default async function RecruitingPage() {
       id: g.id,
       code: g.code,
       name: g.name,
-      logoUrl: g.logo_url,
+      logoUrl: markUrlMap.get(g.id) ?? g.logo_url,
       server: g.server ?? null,
       description: g.description ?? "",
       memberCount: g.member_count ?? 0,
