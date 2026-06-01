@@ -202,15 +202,19 @@ export default function RecruitingGallery({ guilds }: { guilds: RecruitGuild[] }
                 </div>
               ) : null}
 
-              {selected.discordUrl ? (
-                
-                  href={selected.discordUrl.startsWith("http") ? selected.discordUrl : "https://" + selected.discordUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 h-9 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-bold hover:bg-indigo-100 transition"
+            {selected.discordUrl ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = selected.discordUrl.startsWith("http")
+                      ? selected.discordUrl
+                      : "https://" + selected.discordUrl;
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-bold hover:bg-indigo-100 transition"
                 >
                   <MessageSquare className="w-4 h-4" /> 디스코드 참여하기
-                </a>
+                </button>
               ) : null}
             </div>
 
