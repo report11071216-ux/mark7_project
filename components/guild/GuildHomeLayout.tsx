@@ -145,12 +145,6 @@ export default function GuildHomeLayout({
         >
           <div className="max-w-[1200px] mx-auto px-4">
             <div className="flex items-center gap-4 py-3">
-              <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
-                {guild.logo_url
-                  ? <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
-                  : <span className="text-white font-bold text-xl">{guild.name?.[0] ?? "G"}</span>
-                }
-              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <h1 className="text-lg font-bold leading-tight truncate" style={{ color: textPrimary }}>{guild.name}</h1>
