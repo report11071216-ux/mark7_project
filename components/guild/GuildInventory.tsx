@@ -355,6 +355,7 @@ export default function GuildInventory({
                 )}
                 <MegaphoneInventory
                   guildCode={guildCode}
+                  guildId={guildId}
                   items={megaphoneItems}
                   canUse={isStaff}
                 />
