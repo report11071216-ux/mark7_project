@@ -10,6 +10,7 @@ type NewPostInput = {
   title: string;
   content: string;
   category: string;
+  imageUrls: string[];
 };
 
 export async function createGuildPost(guildCode: string, input: NewPostInput) {
@@ -66,6 +67,21 @@ export async function createGuildPost(guildCode: string, input: NewPostInput) {
 
   if (error || !inserted) {
     return { success: false, error: error?.message ?? "등록 실패" };
+  }
+
+  // ── 이미지 저장 (최대 10장) ──
+  const urls = (input.imageUrls ?? []).filter(Boolean).slice(0, 10);
+  if (urls.length > 0) {
+    const rows = urls.map((url, i) => ({
+      post_id: inserted.id,
+      url,
+      sort_order: i,
+    }));
+    const { error: imgError } = await supabase.from("post_images").insert(rows);
+    if (imgError) {
+      // 이미지 저장 실패해도 글은 살림 — 다만 에러 메시지 전달
+      return { success: true, postId: inserted.id, imageWarning: imgError.message };
+    }
   }
 
   // ── 공지 알림 (공지글일 때만) ──
@@ -164,6 +180,7 @@ export async function deleteGuildPost(guildCode: string, postId: string) {
     return { success: false, error: "본인 글만 삭제할 수 있습니다" };
   }
 
+  // post_images 는 FK ON DELETE CASCADE 라 자동 삭제됨
   const { error } = await supabase
     .from("posts")
     .delete()
