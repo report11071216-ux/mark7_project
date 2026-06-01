@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, ClipboardList, CalendarDays, Users, MessageCircle,
-  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout,
+  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout, BookOpen,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useState } from "react";
@@ -23,7 +23,6 @@ interface SidebarProps {
   backgroundColor?: string;
 }
 
-// 테마색을 깊게 어둡게 — 색조는 살리되 거의 검정에 가까운 톤
 function darkTint(hex: string, keep: number) {
   const h = (hex ?? "").replace("#", "");
   if (h.length < 6) return "rgb(13,13,18)";
@@ -83,6 +82,7 @@ export function Sidebar({
   ];
 
   const isPlazaActive = pathname.startsWith("/plaza");
+  const isGuideActive = pathname.startsWith("/guide");
 
   const roleLabel =
     userRole === "master" ? "마스터" :
@@ -117,6 +117,32 @@ export function Sidebar({
         </Link>
       );
     });
+  }
+
+  function discoverItems(onClick?: () => void) {
+    return (
+      <>
+        <Link
+          href="/plaza"
+          onClick={onClick}
+          className={linkBase}
+          style={menuLinkStyle(isPlazaActive)}
+        >
+          <Trophy className="w-4 h-4 shrink-0" style={{ color: isPlazaActive ? accent : textMuted }} />
+          <span className="flex-1">광장</span>
+          <span className="text-[10px] font-mono uppercase" style={{ color: textMuted }}>랭킹</span>
+        </Link>
+        <Link
+          href="/guide"
+          onClick={onClick}
+          className={linkBase}
+          style={menuLinkStyle(isGuideActive)}
+        >
+          <BookOpen className="w-4 h-4 shrink-0" style={{ color: isGuideActive ? accent : textMuted }} />
+          <span className="flex-1">도움말</span>
+        </Link>
+      </>
+    );
   }
 
   function userBlock(onClick?: () => void) {
@@ -188,11 +214,7 @@ export function Sidebar({
           {renderMenuItems()}
 
           <p className="px-3 pt-6 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>DISCOVER</p>
-          <Link href="/plaza" className={linkBase} style={menuLinkStyle(isPlazaActive)}>
-            <Trophy className="w-4 h-4 shrink-0" style={{ color: isPlazaActive ? accent : textMuted }} />
-            <span className="flex-1">광장</span>
-            <span className="text-[10px] font-mono uppercase" style={{ color: textMuted }}>랭킹</span>
-          </Link>
+          {discoverItems()}
 
           {isStaff && (
             <>
@@ -297,16 +319,7 @@ export function Sidebar({
               {renderMenuItems(() => setDrawerOpen(false))}
 
               <p className="px-3 pt-4 pb-2 text-[10px] font-mono uppercase tracking-widest" style={{ color: textMuted }}>DISCOVER</p>
-              <Link
-                href="/plaza"
-                onClick={() => setDrawerOpen(false)}
-                className={linkBase}
-                style={menuLinkStyle(isPlazaActive)}
-              >
-                <Trophy className="w-4 h-4" style={{ color: isPlazaActive ? accent : textMuted }} />
-                <span className="flex-1">광장</span>
-                <span className="text-[10px] font-mono" style={{ color: textMuted }}>랭킹</span>
-              </Link>
+              {discoverItems(() => setDrawerOpen(false))}
 
               {isStaff && (
                 <>
