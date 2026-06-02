@@ -158,6 +158,7 @@ export default async function GuildAdminPage({
 
   return (
     <AdminTabs
+      guildCode={guild.code}
       appearance={appearanceTab}
       recruit={recruitTab}
       discord={discordTab}
