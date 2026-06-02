@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendGuildWebhook, buildJoinRequestMessage } from "@/lib/discord";
 
 // 가입 신청 (유저)
 export async function requestJoinGuild(guildId: string, message: string) {
@@ -27,22 +28,32 @@ export async function requestJoinGuild(guildId: string, message: string) {
     return { success: false, error: "베타에서는 최대 2개 길드까지 가입할 수 있어요" };
   }
 
+  const cleanMessage = (message ?? "").trim().slice(0, 200);
+
   const { error } = await supabase
     .from("guild_join_requests")
     .insert({
       guild_id: guildId,
       user_id: user.id,
-      message: (message ?? "").trim().slice(0, 200),
+      message: cleanMessage,
       status: "pending",
     });
 
   if (error) {
-    // UNIQUE 위반 = 이미 신청함
     if (error.code === "23505") {
       return { success: false, error: "이미 가입 신청을 했어요" };
     }
     return { success: false, error: "신청에 실패했어요" };
   }
+
+  // 디스코드 가입신청 알림 (신청자 이름 조회 후 발송)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, main_character_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const applicantName = profile?.main_character_name || profile?.username || "누군가";
+  await sendGuildWebhook(guildId, "join", buildJoinRequestMessage(applicantName, cleanMessage));
 
   revalidatePath("/plaza/recruiting");
   return { success: true };
