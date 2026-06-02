@@ -28,12 +28,15 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "길드패스" }],
   creator: "길드패스",
-  metadataBase: new URL("https://mark7-project.vercel.app"),
+  metadataBase: new URL("https://clayloa.com"),
+  alternates: {
+    canonical: "https://clayloa.com",
+  },
   openGraph: {
     title: "길드패스 - 로스트아크 길드 운영 플랫폼",
     description:
       "위젯으로 직접 꾸미는 우리 길드만의 홈페이지. 베타 기간 무료.",
-    url: "https://mark7-project.vercel.app",
+    url: "https://clayloa.com",
     siteName: "길드패스",
     locale: "ko_KR",
     type: "website",
