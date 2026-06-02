@@ -41,49 +41,53 @@ export default async function GuildLayout({
     redirect("/onboarding/join");
   }
 
-  // 접속 시각 갱신 (온라인 멤버 판정용)
-  await supabase
+  // 접속 시각 갱신 (온라인 판정용) — await 안 함: 렌더를 막지 않게 백그라운드 처리
+  supabase
     .from("profiles")
     .update({ last_seen_at: new Date().toISOString() })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .then(() => {});
 
-  // 장착한 길드 마크 이미지 찾기 (없으면 원래 logo_url)
+  // 길드 마크 + 개인 마크 purchase를 한 번에 조회 (순차 4연속 → 병렬 2단계)
+  const guildMarkPurchaseId = themeRow?.equipped_mark_id ?? null;
+  const userMarkPurchaseId = profile?.equipped_mark_id ?? null;
+  const markPurchaseIds = Array.from(
+    new Set([guildMarkPurchaseId, userMarkPurchaseId].filter(Boolean))
+  ) as string[];
+
   let guildLogoUrl = guild.logo_url;
-  if (themeRow?.equipped_mark_id) {
-    const { data: guildMarkPurchase } = await supabase
-      .from("purchases")
-      .select("item_id")
-      .eq("id", themeRow.equipped_mark_id)
-      .maybeSingle();
-    if (guildMarkPurchase?.item_id) {
-      const { data: markItem } = await supabase
-        .from("shop_items")
-        .select("image_url")
-        .eq("id", guildMarkPurchase.item_id)
-        .maybeSingle();
-      if (markItem?.image_url) {
-        guildLogoUrl = markItem.image_url;
-      }
-    }
-  }
-
-  // 장착한 개인 마크 이미지 찾기 (없으면 디스코드 아바타)
   let userAvatarUrl = profile?.avatar_url ?? null;
-  if (profile?.equipped_mark_id) {
-    const { data: markPurchase } = await supabase
+
+  if (markPurchaseIds.length > 0) {
+    const { data: purchaseRows } = await supabase
       .from("purchases")
-      .select("item_id")
-      .eq("id", profile.equipped_mark_id)
-      .maybeSingle();
-    if (markPurchase?.item_id) {
-      const { data: markItem } = await supabase
+      .select("id, item_id")
+      .in("id", markPurchaseIds);
+
+    const itemIds = Array.from(
+      new Set((purchaseRows ?? []).map((p) => p.item_id).filter(Boolean))
+    ) as string[];
+
+    let itemImageMap = new Map<string, string | null>();
+    if (itemIds.length > 0) {
+      const { data: itemRows } = await supabase
         .from("shop_items")
-        .select("image_url")
-        .eq("id", markPurchase.item_id)
-        .maybeSingle();
-      if (markItem?.image_url) {
-        userAvatarUrl = markItem.image_url;
-      }
+        .select("id, image_url")
+        .in("id", itemIds);
+      itemImageMap = new Map((itemRows ?? []).map((it) => [it.id, it.image_url]));
+    }
+
+    const purchaseToItem = new Map((purchaseRows ?? []).map((p) => [p.id, p.item_id]));
+
+    if (guildMarkPurchaseId) {
+      const itemId = purchaseToItem.get(guildMarkPurchaseId);
+      const img = itemId ? itemImageMap.get(itemId) : null;
+      if (img) guildLogoUrl = img;
+    }
+    if (userMarkPurchaseId) {
+      const itemId = purchaseToItem.get(userMarkPurchaseId);
+      const img = itemId ? itemImageMap.get(itemId) : null;
+      if (img) userAvatarUrl = img;
     }
   }
 
@@ -119,7 +123,6 @@ export default async function GuildLayout({
         primaryColor={primaryColor}
         backgroundColor={backgroundColor}
       />
-      {/* 모바일: 상단 헤더(56px) + 하단 탭(60px) 여백, 데스크탑: 여백 없음 */}
       <main className="flex-1 overflow-x-hidden pt-14 pb-16 md:pt-0 md:pb-0">
         {children}
       </main>
