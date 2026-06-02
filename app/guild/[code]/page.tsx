@@ -16,7 +16,7 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.auth.getUser(),
     supabase
       .from("guilds")
-      .select("id, name, code, description, total_points, member_count, max_members, logo_url, is_recruiting, server")
+      .select("id, name, code, description, total_points, member_count, max_members, logo_url, is_recruiting, server, discord_widget_id")
       .eq("code", code)
       .single(),
   ]);
@@ -59,7 +59,6 @@ export default async function GuildHomePage({ params }: Props) {
   const isStaff = ["master", "submaster"].includes(myMembership?.role ?? "");
   const showcaseUploadedToday = (showcaseToday ?? []).length > 0;
 
-  // ── 멤버들의 장착 마크/프로필카드 이미지 조회 ──
   const equippedPurchaseIds: string[] = [];
   for (const m of members) {
     const p = m.profiles;
@@ -187,6 +186,7 @@ export default async function GuildHomePage({ params }: Props) {
       logo_url: (guild as any).logo_url ?? null,
       is_recruiting: (guild as any).is_recruiting ?? false,
       server: (guild as any).server ?? null,
+      discord_widget_id: (guild as any).discord_widget_id ?? null,
     },
     attendanceDates, alreadyAttended, streak, totalAttendances,
     recentMembers, rankingMembers, onlineMembers, noticePosts,
