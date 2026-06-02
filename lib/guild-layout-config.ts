@@ -1,4 +1,5 @@
 import { type WidgetId } from "@/lib/themes";
+
 export type LayoutColumnKey = "left" | "center" | "right";
 export type LayoutWidget = { id: WidgetId };
 export type LayoutColumns = {
@@ -6,11 +7,13 @@ export type LayoutColumns = {
   center: LayoutWidget[];
   right: LayoutWidget[];
 };
+
 // 위젯 빌더 저장 포맷 (version 2)
 export type LayoutConfigV2 = {
   version: 2;
   columns: LayoutColumns;
 };
+
 // 빌더로 한 번도 저장 안 한 길드 / 옛 포맷 길드의 기본 배치
 export const DEFAULT_LAYOUT: LayoutColumns = {
   left: [{ id: "pointRanking" }, { id: "onlineMembers" }, { id: "calendar" }],
@@ -23,12 +26,14 @@ export const DEFAULT_LAYOUT: LayoutColumns = {
   ],
   right: [{ id: "attendance" }, { id: "raidStatus" }, { id: "stats" }],
 };
+
 const VALID_IDS: WidgetId[] = [
   "attendance", "calendar", "stats", "recentMembers",
   "notice", "guildIntro", "pointRanking", "guardian",
   "raidStatus", "onlineMembers", "raidSchedule", "raidCalendar",
-  "raidActivity",
+  "raidActivity", "discord",
 ];
+
 function cleanColumn(arr: any): LayoutWidget[] {
   if (!Array.isArray(arr)) return [];
   const out: LayoutWidget[] = [];
@@ -40,6 +45,7 @@ function cleanColumn(arr: any): LayoutWidget[] {
   }
   return out;
 }
+
 // guild_themes.layout_config 를 항상 안전한 컬럼 구조로 변환.
 // version 2 가 아니면(옛 포맷) 기본 배치를 돌려줘서 기존 길드가 안 깨지게 함.
 export function normalizeLayout(rawConfig: any): LayoutColumns {
