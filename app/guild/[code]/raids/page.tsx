@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import RaidGrid, { type RaidEntry } from "@/components/guild/RaidGrid";
+import RaidReorder from "@/components/guild/RaidReorder";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,17 @@ export default async function RaidsPage({ params }: Props) {
             캘린더
           </Link>
         </div>
+
+        {/* 스태프 전용 순서 편집 (드래그) */}
+        {isStaff && (
+          <div className="mb-4">
+            <RaidReorder
+              guildCode={guild.code}
+              raids={raids.map((r) => ({ id: r.id, title: r.title, image_url: r.image_url }))}
+            />
+          </div>
+        )}
+
         <RaidGrid
           guildCode={guild.code}
           guildName={guild.name}
