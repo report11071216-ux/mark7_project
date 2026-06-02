@@ -1,3 +1,4 @@
+// app/guild/[code]/admin/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import GuildAppearanceEditor from "@/components/guild/GuildAppearanceEditor";
@@ -6,6 +7,7 @@ import WebhookSettings from "@/components/guild/WebhookSettings";
 import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import RecruitEditor from "@/components/guild/RecruitEditor";
 import JoinRequestManager, { type JoinRequest } from "@/components/guild/JoinRequestManager";
+import MemberManager, { type AdminMemberRow } from "@/components/guild/MemberManager";
 import AdminTabs from "@/components/guild/AdminTabs";
 import { Megaphone } from "lucide-react";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
@@ -37,6 +39,8 @@ export default async function GuildAdminPage({
     redirect(`/guild/${code}`);
   }
   const isMaster = member.role === "master";
+  const myRole = member.role as "master" | "submaster";
+
   const { data: theme } = await supabase
     .from("guild_themes")
     .select("primary_color, background_color, welcome_message, banner_url, card_style, equipped_background_url")
@@ -99,6 +103,21 @@ export default async function GuildAdminPage({
     };
   });
 
+  // ── 멤버 목록 (멤버 관리 탭용) ──
+  const { data: memberRaw } = await supabase
+    .from("guild_members")
+    .select("user_id, role, joined_at, profiles(username, avatar_url, character_class)")
+    .eq("guild_id", guild.id)
+    .order("joined_at", { ascending: true });
+
+  const adminMembers: AdminMemberRow[] = (memberRaw ?? []).map((m: any) => ({
+    userId: m.user_id,
+    name: m.profiles?.username ?? "알 수 없음",
+    avatarUrl: m.profiles?.avatar_url ?? null,
+    role: m.role,
+    characterClass: m.profiles?.character_class ?? "",
+  }));
+
   // ── 탭별 내용 ──
   const appearanceTab = (
     <div className="space-y-6">
@@ -117,6 +136,15 @@ export default async function GuildAdminPage({
         hasBackground={!!theme?.equipped_background_url}
       />
     </div>
+  );
+
+  const membersTab = (
+    <MemberManager
+      guildCode={guild.code}
+      guildId={guild.id}
+      myRole={myRole}
+      members={adminMembers}
+    />
   );
 
   const recruitTab = (
@@ -160,6 +188,7 @@ export default async function GuildAdminPage({
     <AdminTabs
       guildCode={guild.code}
       appearance={appearanceTab}
+      members={membersTab}
       recruit={recruitTab}
       discord={discordTab}
       danger={dangerTab}
