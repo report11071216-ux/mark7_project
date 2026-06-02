@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   BookOpen, UserCog, Coins, Trophy, Sprout, Swords,
-  ShoppingBag, Calendar, Megaphone, ArrowLeft, Sparkles, Box,
+  ShoppingBag, Calendar, Megaphone, ArrowLeft, Sparkles, Box, MessageCircle,
 } from "lucide-react";
 
 export const metadata = {
@@ -168,6 +168,9 @@ export default function GuidePage() {
           <Step num={2}>공략 탭에서 <Highlight>공대장용 / 공대원용</Highlight> 공략을 작성 (길드원 누구나 가능)</Step>
           <Step num={3}>레이드 캘린더에서 일정을 잡고, 참여할 캐릭터를 골라 신청</Step>
           <Step num={4}>레이드를 마치면 완료 처리 (운영진·주최자) → 길드 활동 통계에 반영</Step>
+          <p className="text-xs text-slate-400">
+            ※ 도감의 레이드 순서는 운영진이 <b className="text-slate-500">순서 편집</b>으로 드래그해서 바꿀 수 있어요. 바뀐 순서는 길드 홈 위젯에도 그대로 반영돼요.
+          </p>
         </Section>
 
         {/* 6. 상점 & 보관함 */}
@@ -188,6 +191,43 @@ export default function GuidePage() {
               보관함 칸이 꽉 차면 성장 페이지에서 슬롯을 늘려야 더 살 수 있어요. (확성기는 칸을 차지하지 않아요)
             </span>
           </p>
+        </Section>
+
+        {/* 7. 디스코드 연동 */}
+        <Section icon={MessageCircle} color="#5865F2" bg="#E8EAFD" title="7. 디스코드 연동">
+          <p>
+            길드패스는 디스코드와 두 가지로 연동돼요 — <b className="text-slate-900">① 알림 자동 전송</b>과
+            <b className="text-slate-900"> ② 접속 현황 위젯</b>이에요. 둘 다 <Highlight>관리자 패널 → 디스코드 탭</Highlight>에서 설정해요.
+          </p>
+
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <p className="font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+              <Megaphone className="w-4 h-4 text-violet-600" /> ① 디스코드 알림 (웹훅)
+            </p>
+            <p className="text-[13px] text-slate-600 mb-3">
+              길드에 새 소식이 생기면 디스코드 채널로 자동 전송돼요.
+              알림 종류는 <b className="text-slate-700">공지 · 레이드 · 환영(새 길드원) · 가입 신청</b> 네 가지예요.
+            </p>
+            <Step num={1}>디스코드 채널 → <Highlight color="cyan">설정(톱니)</Highlight> → 연동 → 웹훅 → 새 웹훅 → URL 복사</Step>
+            <Step num={2}>관리자 패널 디스코드 탭의 칸에 붙여넣기 (종류별로 다른 채널 지정 가능, 비우면 기본 채널로)</Step>
+            <Step num={3}><Highlight>테스트</Highlight> 버튼으로 디스코드에 메시지가 오는지 확인 → <Highlight color="emerald">전체 저장</Highlight></Step>
+          </div>
+
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <p className="font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-cyan-600" /> ② 디스코드 접속 현황 위젯
+            </p>
+            <p className="text-[13px] text-slate-600 mb-3">
+              길드 홈에 <b className="text-slate-700">"지금 N명 접속 중"</b> + 접속 중인 멤버를 보여줘요.
+              길드가 활발하다는 걸 한눈에 보여줄 수 있어요.
+            </p>
+            <Step num={1}>디스코드 서버 설정 → <Highlight color="cyan">위젯</Highlight> → "서버 위젯 활성화" 켜기</Step>
+            <Step num={2}>같은 화면의 <Highlight>서버 아이디</Highlight>를 복사해서 관리자 패널 디스코드 탭 맨 아래 칸에 붙여넣고 저장</Step>
+            <Step num={3}>길드 홈 편집(위젯 빌더)에서 <Highlight color="cyan">디스코드 현황</Highlight> 위젯을 원하는 위치에 배치</Step>
+            <p className="text-xs text-slate-400 mt-2">
+              ※ "디스코드 참여" 버튼이 뜨게 하려면, 디스코드 위젯 설정에서 <b className="text-slate-500">초대 채널</b>을 지정하세요. (선택 사항)
+            </p>
+          </div>
         </Section>
 
         {/* 마무리 */}
