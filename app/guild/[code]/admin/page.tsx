@@ -6,6 +6,7 @@ import WebhookSettings from "@/components/guild/WebhookSettings";
 import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import RecruitEditor from "@/components/guild/RecruitEditor";
 import JoinRequestManager, { type JoinRequest } from "@/components/guild/JoinRequestManager";
+import AdminTabs from "@/components/guild/AdminTabs";
 import { Megaphone } from "lucide-react";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
 
@@ -70,7 +71,6 @@ export default async function GuildAdminPage({
     recruitMessage: guild.recruit_message ?? "",
   };
 
-  // 대기중인 가입 신청
   const { data: reqRaw } = await supabase
     .from("guild_join_requests")
     .select("id, user_id, message, created_at")
@@ -99,8 +99,9 @@ export default async function GuildAdminPage({
     };
   });
 
-  return (
-    <>
+  // ── 탭별 내용 ──
+  const appearanceTab = (
+    <div className="space-y-6">
       <GuildAppearanceEditor
         guildId={guild.id}
         guildCode={guild.code}
@@ -109,9 +110,18 @@ export default async function GuildAdminPage({
         initialWelcome={theme?.welcome_message ?? ""}
         initialBanner={theme?.banner_url ?? ""}
       />
+      <CardStyleSelector
+        guildId={guild.id}
+        guildCode={guild.code}
+        initialStyle={theme?.card_style ?? "solid"}
+        hasBackground={!!theme?.equipped_background_url}
+      />
+    </div>
+  );
 
-      {/* 모집 공고 */}
-      <div className="mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
+  const recruitTab = (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
             <Megaphone className="w-5 h-5 text-violet-600" />
@@ -130,30 +140,28 @@ export default async function GuildAdminPage({
           </span>
         </div>
       </div>
+      <JoinRequestManager guildCode={guild.code} requests={joinRequests} />
+    </div>
+  );
 
-      {/* 가입 신청 관리 */}
-      <div className="mt-6">
-        <JoinRequestManager guildCode={guild.code} requests={joinRequests} />
-      </div>
+  const discordTab = (
+    <WebhookSettings guildId={guild.id} initial={webhookInitial} />
+  );
 
-      <div className="mt-6">
-        <CardStyleSelector
-          guildId={guild.id}
-          guildCode={guild.code}
-          initialStyle={theme?.card_style ?? "solid"}
-          hasBackground={!!theme?.equipped_background_url}
-        />
-      </div>
-      <div className="mt-6">
-        <WebhookSettings guildId={guild.id} initial={webhookInitial} />
-      </div>
-      {isMaster ? (
-        <DeleteGuildSection
-          guildId={guild.id}
-          guildCode={guild.code}
-          guildName={guild.name}
-        />
-      ) : null}
-    </>
+  const dangerTab = isMaster ? (
+    <DeleteGuildSection
+      guildId={guild.id}
+      guildCode={guild.code}
+      guildName={guild.name}
+    />
+  ) : null;
+
+  return (
+    <AdminTabs
+      appearance={appearanceTab}
+      recruit={recruitTab}
+      discord={discordTab}
+      danger={dangerTab}
+    />
   );
 }
