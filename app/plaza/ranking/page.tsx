@@ -29,14 +29,48 @@ export default async function PlazaRankingPage() {
   ]);
 
   const guildRows = totalResult.data ?? [];
+  const guildIds = guildRows.map((g) => g.id);
 
-  // code → 서버/경험치/인원 메타 (주간·월간 탭에서 재사용)
-  const metaByCode: { [key: string]: { server: string | null; exp: number; member_count: number } } = {};
+  // 1) 각 길드가 장착한 마크 id 가져오기 (guild_themes.equipped_mark_id)
+  const markIdByGuildId: { [key: string]: string } = {};
+  if (guildIds.length > 0) {
+    const { data: themes } = await supabase
+      .from("guild_themes")
+      .select("guild_id, equipped_mark_id")
+      .in("guild_id", guildIds);
+    (themes ?? []).forEach((t) => {
+      if (t.equipped_mark_id) markIdByGuildId[t.guild_id] = t.equipped_mark_id;
+    });
+  }
+
+  // 2) 그 마크들의 실제 이미지 url 가져오기 (shop_items.image_url)
+  const markUrlById: { [key: string]: string } = {};
+  const markIds = Array.from(new Set(Object.values(markIdByGuildId)));
+  if (markIds.length > 0) {
+    const { data: items } = await supabase
+      .from("shop_items")
+      .select("id, image_url")
+      .in("id", markIds);
+    (items ?? []).forEach((it) => {
+      if (it.image_url) markUrlById[it.id] = it.image_url;
+    });
+  }
+
+  // 길드 id → 표시할 마크 이미지 (장착 마크 우선, 없으면 logo_url)
+  function resolveMark(guildId: string, fallbackLogo: string | null): string | null {
+    const markId = markIdByGuildId[guildId];
+    if (markId && markUrlById[markId]) return markUrlById[markId];
+    return fallbackLogo ?? null;
+  }
+
+  // code → 서버/경험치/인원/마크 메타 (주간·월간 탭에서 재사용)
+  const metaByCode: { [key: string]: { server: string | null; exp: number; member_count: number; mark: string | null } } = {};
   guildRows.forEach((g) => {
     metaByCode[g.code] = {
       server: g.server ?? null,
       exp: g.total_exp ?? 0,
       member_count: g.member_count ?? 0,
+      mark: resolveMark(g.id, g.logo_url),
     };
   });
 
@@ -44,7 +78,7 @@ export default async function PlazaRankingPage() {
     id: g.id,
     code: g.code,
     name: g.name,
-    logo_url: g.logo_url,
+    logo_url: resolveMark(g.id, g.logo_url),
     member_count: g.member_count ?? 0,
     master_name: null,
     points: g.total_exp ?? 0,
@@ -58,7 +92,7 @@ export default async function PlazaRankingPage() {
       id: g.id,
       code: g.code,
       name: g.name,
-      logo_url: g.logo_url,
+      logo_url: meta ? meta.mark : g.logo_url,
       member_count: meta ? meta.member_count : null,
       master_name: null,
       points: g.weekly_points ?? 0,
@@ -73,7 +107,7 @@ export default async function PlazaRankingPage() {
       id: g.id,
       code: g.code,
       name: g.name,
-      logo_url: g.logo_url,
+      logo_url: meta ? meta.mark : g.logo_url,
       member_count: meta ? meta.member_count : null,
       master_name: null,
       points: g.monthly_points ?? 0,
