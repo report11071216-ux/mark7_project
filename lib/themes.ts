@@ -2,7 +2,7 @@ export type WidgetId =
   | "attendance" | "calendar" | "stats" | "recentMembers"
   | "notice" | "guildIntro" | "pointRanking" | "guardian"
   | "raidStatus" | "onlineMembers" | "raidSchedule" | "raidCalendar"
-  | "raidActivity";
+  | "raidActivity" | "discord";
 
 export type ThemeWidget = { id: WidgetId; wide: boolean; enabled: boolean };
 
@@ -31,8 +31,8 @@ export const WIDGET_META: { [key: string]: { label: string; icon: string; descri
   raidSchedule:  { label: "레이드 일정", icon: "📆", description: "다가오는 레이드 일정 + 주간 캘린더" },
   raidCalendar:  { label: "레이드 달력", icon: "🗓️", description: "이번 달 레이드 일정 달력" },
   raidActivity:  { label: "레이드 활동", icon: "📈", description: "주/월 레이드 참여율 + 내 현황" },
+  discord:       { label: "디스코드 현황", icon: "💬", description: "지금 접속 중인 디스코드 멤버" },
 };
-
 export const THEMES: Theme[] = [
   {
     id: "naver",
