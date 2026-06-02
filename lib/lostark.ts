@@ -90,7 +90,7 @@ export async function getCalendar(): Promise<CalendarContent[]> {
         Authorization: `bearer ${process.env.LOSTARK_API_KEY}`,
         Accept: "application/json",
       },
-      next: { revalidate: 3600 },
+      next: { revalidate: 80000 },
     });
     if (!res.ok) return [];
     return res.json();
