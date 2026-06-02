@@ -332,3 +332,49 @@ export async function saveRaidGuide(guildCode: string, input: SaveGuideInput) {
   revalidatePath(`/guild/${code}`);
   return { success: true };
 }
+// ── (4) 레이드 도감 순서 저장 (스태프만) ──
+export async function updateRaidOrder(guildCode: string, orderedIds: string[]) {
+  const supabase = await createClient();
+  const code = guildCode.toUpperCase();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다" };
+  }
+
+  const { data: guild } = await supabase
+    .from("guilds")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
+  if (!guild) {
+    return { success: false, error: "길드를 찾을 수 없습니다" };
+  }
+
+  const { data: membership } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guild.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isStaff = membership?.role === "master" || membership?.role === "submaster";
+  if (!isStaff) {
+    return { success: false, error: "마스터·부마스터만 순서를 바꿀 수 있습니다" };
+  }
+
+  // 받은 순서대로 sort_order 1, 2, 3... 부여
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase
+      .from("raids")
+      .update({ sort_order: i + 1 })
+      .eq("id", orderedIds[i])
+      .eq("guild_id", guild.id);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  revalidatePath(`/guild/${code}/raids`);
+  revalidatePath(`/guild/${code}`);
+  return { success: true };
+}
