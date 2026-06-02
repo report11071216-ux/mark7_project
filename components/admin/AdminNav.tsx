@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Shield,
+  Users,
   Swords,
   SlidersHorizontal,
   Megaphone,
@@ -17,6 +18,7 @@ import {
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/guilds", label: "길드 목록", icon: Shield },
+  { href: "/admin/members", label: "회원 목록", icon: Users },
   { href: "/admin/guardian", label: "가디언 토벌", icon: Swords },
   { href: "/admin/shop", label: "상품 관리", icon: ShoppingBag },
   { href: "/admin/stickers", label: "이모티콘팩", icon: Smile },
