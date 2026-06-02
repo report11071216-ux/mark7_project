@@ -87,29 +87,28 @@ export default async function PlazaPage() {
     });
   }
 
-  // 좋아요 카운트 (화제글 정렬용)
+  // 좋아요 카운트 + 주간 랭킹 로고 (서로 독립 → 병렬)
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
+  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
+
+  const [likeRowsResult, weeklyDisplayResult] = await Promise.all([
+    plazaPostIds.length > 0
+      ? supabase.from("post_likes").select("post_id").in("post_id", plazaPostIds)
+      : Promise.resolve({ data: [] }),
+    weeklyGuildIds.length > 0
+      ? supabase.from("guilds_display").select("id, display_logo_url").in("id", weeklyGuildIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
   let likeCountMap: { [key: string]: number } = {};
-  if (plazaPostIds.length > 0) {
-    const { data: likeRows } = await supabase
-      .from("post_likes")
-      .select("post_id")
-      .in("post_id", plazaPostIds);
-    for (const row of likeRows ?? []) {
-      const pid = (row as any).post_id as string;
-      likeCountMap[pid] = (likeCountMap[pid] ?? 0) + 1;
-    }
+  for (const row of likeRowsResult.data ?? []) {
+    const pid = (row as any).post_id as string;
+    likeCountMap[pid] = (likeCountMap[pid] ?? 0) + 1;
   }
 
-  // 주간 랭킹 로고
-  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
   let weeklyLogoMap = new Map<string, string | null>();
-  if (weeklyGuildIds.length > 0) {
-    const { data: weeklyDisplay } = await supabase
-      .from("guilds_display")
-      .select("id, display_logo_url")
-      .in("id", weeklyGuildIds);
-    weeklyLogoMap = new Map((weeklyDisplay ?? []).map((g) => [g.id, g.display_logo_url]));
+  for (const g of weeklyDisplayResult.data ?? []) {
+    weeklyLogoMap.set(g.id, g.display_logo_url);
   }
 
   const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
@@ -136,18 +135,41 @@ export default async function PlazaPage() {
   const memberships = (membershipsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  // 장착 마크/카드 이미지
+  // 내 길드 정보 + 서버 이름 (멤버십/모집 결과에 의존 → 병렬로 묶음)
+  const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
+  const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
+  const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
+
+  // 장착 마크/카드 purchase id
+  const equippedPurchaseIds = myProfile
+    ? ([myProfile.equipped_mark_id, myProfile.equipped_card_id].filter(Boolean) as string[])
+    : [];
+
+  const [myGuildsDisplayResult, serverRowsResult, equippedPurchasesResult] = await Promise.all([
+    myGuildIds.length > 0
+      ? supabase.from("guilds_display").select("id, code, name, display_logo_url").in("id", myGuildIds)
+      : Promise.resolve({ data: [] }),
+    guildIdsForServer.length > 0
+      ? supabase.from("guilds").select("id, server").in("id", guildIdsForServer)
+      : Promise.resolve({ data: [] }),
+    equippedPurchaseIds.length > 0
+      ? supabase.from("purchases").select("id, item_id").in("id", equippedPurchaseIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  let myGuildMap = new Map<string, { id: string; code: string; name: string; display_logo_url: string | null }>();
+  myGuildMap = new Map((myGuildsDisplayResult.data ?? []).map((g) => [g.id, g]));
+
+  let serverMap = new Map<string, string | null>();
+  serverMap = new Map((serverRowsResult.data ?? []).map((r) => [r.id, (r as any).server ?? null]));
+
+  // 장착 마크/카드 이미지 (purchase → shop_items)
   let equippedMarkUrl: string | null = null;
   let equippedCardFrameUrl: string | null = null;
-  if (myProfile && (myProfile.equipped_mark_id || myProfile.equipped_card_id)) {
-    const equippedPurchaseIds = [myProfile.equipped_mark_id, myProfile.equipped_card_id].filter(Boolean) as string[];
-    const { data: equippedPurchases } = await supabase
-      .from("purchases")
-      .select("id, item_id")
-      .in("id", equippedPurchaseIds);
-
+  const equippedPurchases = equippedPurchasesResult.data ?? [];
+  if (equippedPurchases.length > 0) {
     const purchaseItemIds = Array.from(
-      new Set((equippedPurchases ?? []).map((p) => p.item_id).filter(Boolean))
+      new Set(equippedPurchases.map((p) => p.item_id).filter(Boolean))
     ) as string[];
 
     let itemImageMap: { [key: string]: { image_url: string | null; frame_url: string | null } } = {};
@@ -161,38 +183,15 @@ export default async function PlazaPage() {
       }
     }
 
-    const purchaseMap = new Map((equippedPurchases ?? []).map((p) => [p.id, p.item_id]));
-    if (myProfile.equipped_mark_id) {
+    const purchaseMap = new Map(equippedPurchases.map((p) => [p.id, p.item_id]));
+    if (myProfile?.equipped_mark_id) {
       const markItemId = purchaseMap.get(myProfile.equipped_mark_id);
       if (markItemId) equippedMarkUrl = itemImageMap[markItemId]?.image_url ?? null;
     }
-    if (myProfile.equipped_card_id) {
+    if (myProfile?.equipped_card_id) {
       const cardItemId = purchaseMap.get(myProfile.equipped_card_id);
       if (cardItemId) equippedCardFrameUrl = itemImageMap[cardItemId]?.frame_url ?? null;
     }
-  }
-
-  // 내 길드 표시 정보
-  const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
-  let myGuildMap = new Map<string, { id: string; code: string; name: string; display_logo_url: string | null }>();
-  if (myGuildIds.length > 0) {
-    const { data: myGuildsDisplay } = await supabase
-      .from("guilds_display")
-      .select("id, code, name, display_logo_url")
-      .in("id", myGuildIds);
-    myGuildMap = new Map((myGuildsDisplay ?? []).map((g) => [g.id, g]));
-  }
-
-  // 서버 이름
-  const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
-  const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
-  let serverMap = new Map<string, string | null>();
-  if (guildIdsForServer.length > 0) {
-    const { data: serverRows } = await supabase
-      .from("guilds")
-      .select("id, server")
-      .in("id", guildIdsForServer);
-    serverMap = new Map((serverRows ?? []).map((r) => [r.id, (r as any).server ?? null]));
   }
 
   const recruitingGuilds: RecruitingGuild[] = (recruitingRaw ?? []).map((g) => ({
