@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import { Crown, Medal, Award } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 
 export type RankedGuild = {
@@ -29,19 +28,19 @@ export function getGuildGrade(exp: number): { name: string; tone: string } {
   return { name: "브론즈", tone: "bronze" };
 }
 
-// 다크(포디움)용 등급 뱃지 색
-export const GRADE_BADGE_DARK: { [key: string]: { bg: string; color: string } } = {
-  bronze: { bg: "#431407", color: "#fdba74" },
-  slate: { bg: "#334155", color: "#cbd5e1" },
-  yellow: { bg: "#422006", color: "#fde047" },
-  teal: { bg: "#134e4a", color: "#5eead4" },
-  emerald: { bg: "#064e3b", color: "#6ee7b7" },
-  blue: { bg: "#1e3a8a", color: "#bfdbfe" },
-  violet: { bg: "#4c1d95", color: "#ddd6fe" },
-  pink: { bg: "#831843", color: "#fbcfe8" },
+// 등급 점(dot) 색
+const GRADE_DOT: { [key: string]: string } = {
+  bronze: "#d6a06a",
+  slate: "#94a3b8",
+  yellow: "#eab308",
+  teal: "#14b8a6",
+  emerald: "#10b981",
+  blue: "#3b82f6",
+  violet: "#8b5cf6",
+  pink: "#ec4899",
 };
 
-// 라이트(리스트)용 등급 뱃지 색
+// 라이트(리스트)용 등급 뱃지 색 — RankingList.tsx가 import해서 씀
 export const GRADE_BADGE_LIGHT: { [key: string]: { bg: string; color: string } } = {
   bronze: { bg: "#fef3e2", color: "#b45309" },
   slate: { bg: "#f1f5f9", color: "#475569" },
@@ -55,17 +54,70 @@ export const GRADE_BADGE_LIGHT: { [key: string]: { bg: string; color: string } }
 
 type RankStyle = {
   label: string;
-  pillBg: string;
-  pillColor: string;
+  numColor: string;
+  labelColor: string;
   cardBorder: string;
-  markRing: string;
+  cardShadow: string;
+  markBg: string;
+  markIconColor: string;
+  serverChipColor: string;
   expColor: string;
+  expUnitColor: string;
+  nameColor: string;
+  numSize: number;
+  numWeight: number;
+  marginTop: number;
 };
 
 const RANK_STYLES: { [key: string]: RankStyle } = {
-  "1": { label: "CHAMPION", pillBg: "#fef9c3", pillColor: "#a16207", cardBorder: "2px solid #facc15", markRing: "#facc15", expColor: "#fde047" },
-  "2": { label: "RANK 2", pillBg: "#e2e8f0", pillColor: "#475569", cardBorder: "1px solid #334155", markRing: "#94a3b8", expColor: "#f8fafc" },
-  "3": { label: "RANK 3", pillBg: "#fde9d0", pillColor: "#b45309", cardBorder: "1px solid #334155", markRing: "#f59e0b", expColor: "#f8fafc" },
+  "1": {
+    label: "First",
+    numColor: "#fbbf24",
+    labelColor: "#d97706",
+    cardBorder: "1px solid rgba(251,191,36,0.5)",
+    cardShadow: "0 0 0 1px rgba(251,191,36,0.12), 0 18px 50px -12px rgba(251,191,36,0.35)",
+    markBg: "#1a1206",
+    markIconColor: "#fbbf24",
+    serverChipColor: "#fde68a",
+    expColor: "#fbbf24",
+    expUnitColor: "#92400e",
+    nameColor: "#ffffff",
+    numSize: 32,
+    numWeight: 700,
+    marginTop: 0,
+  },
+  "2": {
+    label: "Second",
+    numColor: "#94a3b8",
+    labelColor: "#94a3b8",
+    cardBorder: "1px solid rgba(148,163,184,0.22)",
+    cardShadow: "none",
+    markBg: "#161f33",
+    markIconColor: "#94a3b8",
+    serverChipColor: "#cbd5e1",
+    expColor: "#f8fafc",
+    expUnitColor: "#475569",
+    nameColor: "#f1f5f9",
+    numSize: 26,
+    numWeight: 600,
+    marginTop: 34,
+  },
+  "3": {
+    label: "Third",
+    numColor: "#d6a06a",
+    labelColor: "#b45309",
+    cardBorder: "1px solid rgba(217,119,6,0.28)",
+    cardShadow: "none",
+    markBg: "#1c1408",
+    markIconColor: "#d6a06a",
+    serverChipColor: "#fcd9a6",
+    expColor: "#f8fafc",
+    expUnitColor: "#475569",
+    nameColor: "#f1f5f9",
+    numSize: 26,
+    numWeight: 600,
+    marginTop: 34,
+  },
 };
 
 export default function PodiumTop3({ guilds, metricLabel }: { guilds: RankedGuild[]; metricLabel: string }) {
@@ -73,59 +125,81 @@ export default function PodiumTop3({ guilds, metricLabel }: { guilds: RankedGuil
   const second = guilds[1];
   const third = guilds[2];
   return (
-    <div className="grid grid-cols-3 gap-2.5 items-end mb-7">
-      <PodiumCard guild={second} rank={2} metricLabel={metricLabel} />
-      <PodiumCard guild={first} rank={1} metricLabel={metricLabel} />
-      <PodiumCard guild={third} rank={3} metricLabel={metricLabel} />
+    <div className="grid gap-3.5 items-start mb-7" style={{ gridTemplateColumns: "1fr 1.12fr 1fr" }}>
+      <PodiumCard guild={second} rank={2} />
+      <PodiumCard guild={first} rank={1} />
+      <PodiumCard guild={third} rank={3} />
     </div>
   );
 }
 
-function PodiumCard({ guild, rank, metricLabel }: { guild: RankedGuild | undefined; rank: 1 | 2 | 3; metricLabel: string }) {
+function PodiumCard({ guild, rank }: { guild: RankedGuild | undefined; rank: 1 | 2 | 3 }) {
+  const s = RANK_STYLES[String(rank)];
+
   if (!guild) {
     return (
-      <div className="flex flex-col items-center">
-        <div className="w-full rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-400 text-xs">—</div>
+      <div style={{ marginTop: s.marginTop }}>
+        <div className="rounded-[22px] border border-dashed border-slate-300 text-center text-slate-400 text-xs flex items-center justify-center" style={{ aspectRatio: "1 / 1.35" }}>
+          —
+        </div>
       </div>
     );
   }
 
-  const s = RANK_STYLES[String(rank)];
   const isFirst = rank === 1;
   const grade = getGuildGrade(guild.exp ?? guild.points);
-  const gradeStyle = GRADE_BADGE_DARK[grade.tone];
-  const Icon = rank === 1 ? Crown : rank === 2 ? Medal : Award;
+  const dotColor = GRADE_DOT[grade.tone];
 
   return (
     <Link href={`/guild/${guild.code}`} className="block group">
-      <div className="flex flex-col items-center">
-        <div className="mb-2.5 inline-flex items-center gap-1 rounded-full px-3 py-1" style={{ background: s.pillBg, color: s.pillColor }}>
-          <Icon className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-mono font-medium">{s.label}</span>
+      <div style={{ marginTop: s.marginTop }}>
+        {/* 순위 숫자 + 라벨 */}
+        <div className="flex items-baseline gap-[7px] px-1 pb-2">
+          <span style={{ fontSize: s.numSize, fontWeight: s.numWeight, color: s.numColor, lineHeight: 1 }}>{rank}</span>
+          <span style={{ fontSize: 12, fontWeight: isFirst ? 600 : 500, color: s.labelColor }}>{s.label}</span>
         </div>
 
-        <div className="w-full rounded-2xl p-3 text-center transition group-hover:-translate-y-0.5" style={{ background: "#0f172a", border: s.cardBorder }}>
-          <div className="w-full mb-2.5 rounded-xl overflow-hidden" style={{ aspectRatio: "1 / 1", border: `2px solid ${s.markRing}`, background: "#1e293b" }}>
+        {/* 카드 */}
+        <div
+          className="transition group-hover:-translate-y-0.5"
+          style={{ background: "#0d1426", border: s.cardBorder, borderRadius: isFirst ? 24 : 22, padding: isFirst ? 14 : 12, boxShadow: s.cardShadow }}
+        >
+          {/* 마크 */}
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "1 / 1", borderRadius: isFirst ? 18 : 16, background: s.markBg }}>
             {guild.logo_url ? (
               <img src={guild.logo_url} alt={guild.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center font-medium" style={{ color: s.markRing, fontSize: isFirst ? 48 : 36 }}>
+              <div className="w-full h-full flex items-center justify-center font-bold" style={{ color: s.markIconColor, fontSize: isFirst ? 56 : 40 }}>
                 {guild.name.charAt(0)}
               </div>
             )}
-          </div>
-
-          <p className="font-medium text-white truncate" style={{ fontSize: isFirst ? 18 : 15 }}>{guild.name}</p>
-
-          <div className="flex gap-1 justify-center my-2 flex-wrap">
             {guild.server && (
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: "#164e63", color: "#67e8f9" }}>{guild.server}</span>
+              <span
+                className="absolute"
+                style={{ left: isFirst ? 10 : 9, bottom: isFirst ? 10 : 9, fontSize: 10, color: s.serverChipColor, background: "rgba(2,6,23,0.55)", backdropFilter: "blur(4px)", padding: "3px 8px", borderRadius: 6 }}
+              >
+                {guild.server}
+              </span>
             )}
-            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: gradeStyle.bg, color: gradeStyle.color }}>{grade.name}</span>
           </div>
 
-          <p className="font-medium" style={{ fontSize: isFirst ? 26 : 19, color: s.expColor }}>{formatNumber(guild.points)}</p>
-          <p className="text-[10px] font-mono text-slate-500">{metricLabel} · {guild.member_count ?? 0}명</p>
+          {/* 본문 */}
+          <div style={{ padding: isFirst ? "14px 4px 4px" : "12px 4px 4px" }}>
+            <p className="truncate" style={{ fontSize: isFirst ? 18 : 15, fontWeight: isFirst ? 700 : 600, color: s.nameColor, margin: "0 0 9px" }}>
+              {guild.name}
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-[5px]">
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor }} />
+                <span style={{ fontSize: 12, color: isFirst ? "#cbd5e1" : "#94a3b8" }}>{grade.name}</span>
+              </span>
+              <span style={{ fontSize: 12, color: "#64748b" }}>{guild.member_count ?? 0}명</span>
+            </div>
+            <div className="flex items-baseline gap-[5px]" style={{ marginTop: isFirst ? 11 : 10, paddingTop: isFirst ? 11 : 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: isFirst ? 26 : 20, fontWeight: isFirst ? 700 : 600, color: s.expColor }}>{formatNumber(guild.points)}</span>
+              <span style={{ fontSize: 11, color: s.expUnitColor }}>EXP</span>
+            </div>
+          </div>
         </div>
       </div>
     </Link>
