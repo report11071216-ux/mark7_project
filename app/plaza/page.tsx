@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
 import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
@@ -14,7 +15,7 @@ import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 import { formatNumber } from "@/lib/utils";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 function SectionHeader({
   icon: Icon,
@@ -358,7 +359,15 @@ export default async function PlazaPage() {
 
             <section>
               <SectionHeader icon={Gamepad2} title="인게임 정보" />
-              <GameContentWidgets />
+              <Suspense fallback={
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-48 rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />
+                  ))}
+                </div>
+              }>
+                <GameContentWidgets />
+              </Suspense>
             </section>
           </div>
 
