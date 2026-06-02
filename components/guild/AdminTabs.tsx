@@ -1,24 +1,27 @@
+// components/guild/AdminTabs.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { Palette, Megaphone, MessageCircle, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Palette, Megaphone, MessageCircle, AlertTriangle, ArrowLeft, Users } from "lucide-react";
 
-type TabKey = "appearance" | "recruit" | "discord" | "danger";
+type TabKey = "appearance" | "members" | "recruit" | "discord" | "danger";
 
 type Props = {
   guildCode: string;
   appearance: React.ReactNode;
+  members: React.ReactNode;
   recruit: React.ReactNode;
   discord: React.ReactNode;
   danger: React.ReactNode | null;
 };
 
-export default function AdminTabs({ guildCode, appearance, recruit, discord, danger }: Props) {
+export default function AdminTabs({ guildCode, appearance, members, recruit, discord, danger }: Props) {
   const [tab, setTab] = useState<TabKey>("appearance");
 
   const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "appearance", label: "꾸미기", icon: Palette },
+    { key: "members", label: "멤버", icon: Users },
     { key: "recruit", label: "모집", icon: Megaphone },
     { key: "discord", label: "디스코드", icon: MessageCircle },
   ];
@@ -28,7 +31,6 @@ export default function AdminTabs({ guildCode, appearance, recruit, discord, dan
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* 헤더 + 탭 바 (흰 배경) */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-6">
           <div className="flex items-center gap-3 py-4">
@@ -66,10 +68,9 @@ export default function AdminTabs({ guildCode, appearance, recruit, discord, dan
           </div>
         </div>
       </div>
-
-      {/* 탭 내용 */}
       <div className="max-w-2xl mx-auto px-6 py-8">
         {tab === "appearance" ? appearance : null}
+        {tab === "members" ? members : null}
         {tab === "recruit" ? recruit : null}
         {tab === "discord" ? discord : null}
         {tab === "danger" ? danger : null}
