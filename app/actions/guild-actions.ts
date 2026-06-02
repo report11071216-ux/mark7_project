@@ -108,12 +108,13 @@ async function assertGuildManager(
   return {};
 }
 
-// 전체 알림 설정 저장 (4칸 + 토글 한꺼번에)
+// 전체 알림 설정 저장 (5칸 + 토글 한꺼번에)
 export type WebhookSettingsInput = {
   default_url: string;
   notice: { url: string; enabled: boolean };
   raid: { url: string; enabled: boolean };
   welcome: { url: string; enabled: boolean };
+  join: { url: string; enabled: boolean };
 };
 
 export async function saveNotificationSettings(
@@ -129,6 +130,7 @@ export async function saveNotificationSettings(
     { label: "공지", url: input.notice.url },
     { label: "레이드", url: input.raid.url },
     { label: "환영", url: input.welcome.url },
+    { label: "가입 신청", url: input.join.url },
   ];
   for (const item of urlsToCheck) {
     const trimmed = (item.url ?? "").trim();
@@ -152,6 +154,10 @@ export async function saveNotificationSettings(
     welcome: {
       url: (input.welcome.url ?? "").trim(),
       enabled: input.welcome.enabled,
+    },
+    join: {
+      url: (input.join.url ?? "").trim(),
+      enabled: input.join.enabled,
     },
   };
 
@@ -199,6 +205,7 @@ export async function sendTestNotification(
     notice: "📢 공지",
     raid: "⚔️ 레이드",
     welcome: "👋 환영",
+    join: "🙋 가입 신청",
   };
   const label = labelMap[type] ?? type;
 
