@@ -8,6 +8,8 @@ export const revalidate = 60;
 export default async function RecruitingPage() {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   // 모집중인 길드 조회
   const { data: guildsRaw } = await supabase
     .from("guilds")
@@ -121,7 +123,7 @@ export default async function RecruitingPage() {
       </div>
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
-        <RecruitingGallery guilds={items} />
+        <RecruitingGallery guilds={items} isLoggedIn={!!user} />
       </div>
     </div>
   );
