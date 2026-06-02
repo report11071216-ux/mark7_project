@@ -225,3 +225,37 @@ export async function sendTestNotification(
   }
   return { success: true };
 }
+// ── 디스코드 서버 위젯 ID 저장 (스태프만) ──
+export async function saveDiscordWidgetId(guildId: string, widgetId: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "로그인이 필요합니다" };
+  }
+
+  const { data: membership } = await supabase
+    .from("guild_members")
+    .select("role")
+    .eq("guild_id", guildId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isStaff = membership?.role === "master" || membership?.role === "submaster";
+  if (!isStaff) {
+    return { error: "마스터·부마스터만 설정할 수 있습니다" };
+  }
+
+  // 숫자만 남기기 (사용자가 URL 통째로 붙여도 ID만 추출)
+  const cleaned = (widgetId.match(/\d{17,20}/) ?? [""])[0];
+
+  const { error } = await supabase
+    .from("guilds")
+    .update({ discord_widget_id: cleaned || null })
+    .eq("id", guildId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true, savedId: cleaned };
+}
