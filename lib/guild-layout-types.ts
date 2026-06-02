@@ -71,6 +71,7 @@ export type GuildLayoutData = {
     logo_url: string | null;
     is_recruiting: boolean;
     server: string | null;
+    discord_widget_id: string | null;
   };
   attendanceDates: string[];
   alreadyAttended: boolean;
