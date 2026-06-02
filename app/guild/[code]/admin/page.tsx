@@ -56,6 +56,10 @@ export default async function GuildAdminPage({
       url: ns.welcome?.url ?? "",
       enabled: ns.welcome?.enabled !== false,
     },
+    join: {
+      url: ns.join?.url ?? "",
+      enabled: ns.join?.enabled !== false,
+    },
   };
 
   const recruitInitial = {
