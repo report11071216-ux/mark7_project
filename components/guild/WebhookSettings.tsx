@@ -18,6 +18,7 @@ const ROWS: ChannelRow[] = [
   { key: "notice", emoji: "📢", label: "공지 알림", desc: "공지글을 올리면 전송" },
   { key: "raid", emoji: "⚔️", label: "레이드 알림", desc: "레이드 일정이 열리면 전송" },
   { key: "welcome", emoji: "👋", label: "환영 알림", desc: "새 길드원이 들어오면 전송" },
+  { key: "join", emoji: "🙋", label: "가입 신청 알림", desc: "가입 신청이 들어오면 전송" },
 ];
 
 export default function WebhookSettings({
@@ -31,6 +32,7 @@ export default function WebhookSettings({
   const [notice, setNotice] = useState(initial.notice);
   const [raid, setRaid] = useState(initial.raid);
   const [welcome, setWelcome] = useState(initial.welcome);
+  const [join, setJoin] = useState(initial.join);
 
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
@@ -38,11 +40,11 @@ export default function WebhookSettings({
     null
   );
 
-  const stateMap = { notice, raid, welcome };
-  const setterMap = { notice: setNotice, raid: setRaid, welcome: setWelcome };
+  const stateMap = { notice, raid, welcome, join };
+  const setterMap = { notice: setNotice, raid: setRaid, welcome: setWelcome, join: setJoin };
 
   function buildInput(): WebhookSettingsInput {
-    return { default_url: defaultUrl, notice, raid, welcome };
+    return { default_url: defaultUrl, notice, raid, welcome, join };
   }
 
   async function handleSave() {
