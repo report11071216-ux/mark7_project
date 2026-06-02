@@ -5,6 +5,7 @@ import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
 import WebhookSettings from "@/components/guild/WebhookSettings";
 import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import RecruitEditor from "@/components/guild/RecruitEditor";
+import JoinRequestManager, { type JoinRequest } from "@/components/guild/JoinRequestManager";
 import { Megaphone } from "lucide-react";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
 
@@ -65,6 +66,35 @@ export default async function GuildAdminPage({
     recruitMessage: guild.recruit_message ?? "",
   };
 
+  // 대기중인 가입 신청
+  const { data: reqRaw } = await supabase
+    .from("guild_join_requests")
+    .select("id, user_id, message, created_at")
+    .eq("guild_id", guild.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  const reqUserIds = Array.from(new Set((reqRaw ?? []).map((r) => r.user_id).filter(Boolean))) as string[];
+  let profileMap = new Map<string, { username: string | null; avatar_url: string | null }>();
+  if (reqUserIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", reqUserIds);
+    profileMap = new Map((profiles ?? []).map((p) => [p.id, { username: p.username, avatar_url: p.avatar_url }]));
+  }
+
+  const joinRequests: JoinRequest[] = (reqRaw ?? []).map((r) => {
+    const p = profileMap.get(r.user_id);
+    return {
+      id: r.id,
+      userName: p?.username ?? "알 수 없음",
+      avatarUrl: p?.avatar_url ?? null,
+      message: r.message ?? "",
+      createdAt: r.created_at,
+    };
+  });
+
   return (
     <>
       <GuildAppearanceEditor
@@ -95,6 +125,11 @@ export default async function GuildAdminPage({
             {recruitInitial.isRecruiting ? "● 모집중" : "○ 모집 안 함"}
           </span>
         </div>
+      </div>
+
+      {/* 가입 신청 관리 */}
+      <div className="mt-6">
+        <JoinRequestManager guildCode={guild.code} requests={joinRequests} />
       </div>
 
       <div className="mt-6">
