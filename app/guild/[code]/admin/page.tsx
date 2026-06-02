@@ -25,7 +25,7 @@ export default async function GuildAdminPage({
   if (!user) redirect("/login");
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, code, name, notification_settings, is_recruiting, description, recruit_tags, recruit_discord_url, recruit_message")
+    .select("id, code, name, notification_settings, is_recruiting, description, recruit_tags, recruit_discord_url, recruit_message, discord_widget_id")
     .eq("code", code)
     .maybeSingle();
   if (!guild) notFound();
@@ -172,8 +172,12 @@ export default async function GuildAdminPage({
     </div>
   );
 
-  const discordTab = (
-    <WebhookSettings guildId={guild.id} initial={webhookInitial} />
+ const discordTab = (
+    <WebhookSettings
+      guildId={guild.id}
+      initial={webhookInitial}
+      initialWidgetId={guild.discord_widget_id ?? ""}
+    />
   );
 
   const dangerTab = isMaster ? (
