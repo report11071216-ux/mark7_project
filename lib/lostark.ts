@@ -90,7 +90,7 @@ export async function getCalendar(): Promise<CalendarContent[]> {
         Authorization: `bearer ${process.env.LOSTARK_API_KEY}`,
         Accept: "application/json",
       },
-      next: { revalidate: 80000 },
+      next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
     return res.json();
@@ -199,8 +199,16 @@ export function parseItemLevel(levelStr: string | null | undefined): number {
 }
 
 // ─── Time utils ───
+// 로스트아크 API의 StartTimes는 시간대 표기가 없는 KST 문자열임 (예: "2026-06-05T19:00:00").
+// 그냥 new Date()로 읽으면 서버(UTC)가 UTC로 오해해서 +9시간 밀림 → "오늘"이 "내일"이 됨.
+// 그래서 표기가 없을 때만 "+09:00"을 붙여서 KST로 정확히 파싱한다.
+function parseKST(dateStr: string): Date {
+  const hasOffset = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(dateStr);
+  return new Date(hasOffset ? dateStr : dateStr + "+09:00");
+}
+
 export function formatKST(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("ko-KR", {
+  return parseKST(dateStr).toLocaleTimeString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -216,6 +224,6 @@ export function isTodayKST(dateStr: string): boolean {
     day: "2-digit",
   };
   const today = new Date().toLocaleDateString("ko-KR", opts);
-  const target = new Date(dateStr).toLocaleDateString("ko-KR", opts);
+  const target = parseKST(dateStr).toLocaleDateString("ko-KR", opts);
   return today === target;
 }
