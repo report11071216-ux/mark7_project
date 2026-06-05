@@ -27,6 +27,28 @@ type UpdateEventInput = {
   description: string
 }
 
+// 설명(블록 JSON 또는 일반 텍스트)을 디스코드용 일반 텍스트로 변환
+function descToText(d: string): string {
+  if (!d) return ''
+  try {
+    const v = JSON.parse(d)
+    if (Array.isArray(v)) {
+      return v
+        .map((b) => {
+          if (!b || typeof b !== 'object') return ''
+          if (b.type === 'divider') return '─────────'
+          if (b.type === 'heading') return '【' + (b.text || '') + '】'
+          return b.text || ''
+        })
+        .filter(Boolean)
+        .join('\n')
+    }
+  } catch {
+    // JSON 아니면 원문 그대로
+  }
+  return d
+}
+
 export async function createEvent(input: CreateEventInput): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -73,10 +95,11 @@ export async function createEvent(input: CreateEventInput): Promise<ActionResult
     const when = input.scheduledDate
       ? input.scheduledDate + (input.scheduledTime ? ' ' + input.scheduledTime : '')
       : '일정 미정'
+    const body = descToText(input.description)
     const content =
       '🎉 새 이벤트 [' + type + '] ' + input.title.trim() + '\n' +
       '🗓️ ' + when + '\n' +
-      (input.description.trim() ? input.description.trim() + '\n' : '') +
+      (body ? body + '\n' : '') +
       '길드패스 이벤트 탭에서 참가 신청하세요!'
     await sendGuildWebhook(guild.id, 'notice', content)
   } catch {
