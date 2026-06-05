@@ -63,8 +63,8 @@ export type LostarkArmory = {
   Collectibles: unknown[] | null;
 };
 
-// ─── 서포터 직업 목록 ───
-const SUPPORT_CLASSES = ["홀리나이트", "바드", "도화가", "기상술사"];
+// ─── 서포터 직업 목록 (발키리·홀리나이트·도화가·바드) ───
+const SUPPORT_CLASSES = ["발키리", "홀리나이트", "도화가", "바드"];
 
 export function isSupportClass(className: string): boolean {
   return SUPPORT_CLASSES.includes(className);
