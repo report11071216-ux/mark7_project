@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import {
   Plus,
   Pencil,
@@ -112,7 +112,7 @@ function parseDescBlocks(s: string): DescBlock[] | null {
   return null
 }
 
-// URL만 자동 링크 (다른 기호 없음)
+// URL만 자동 링크
 function linkify(text: string, kp: string): ReactNode[] {
   const nodes: ReactNode[] = []
   const re = /(https?:\/\/[^\s]+)/
@@ -170,7 +170,6 @@ function renderDescription(description: string): ReactNode {
       </div>
     )
   }
-  // 일반 텍스트(예전 이벤트) 그대로
   return (
     <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
       {linkify(description, 'pf')}
@@ -178,7 +177,6 @@ function renderDescription(description: string): ReactNode {
   )
 }
 
-// 편집용: 설명 문자열 → 블록 배열
 function descToBlocks(d: string): DescBlock[] {
   if (!d) return []
   const parsed = parseDescBlocks(d)
@@ -186,7 +184,6 @@ function descToBlocks(d: string): DescBlock[] {
   return [{ type: 'text', text: d }]
 }
 
-// 저장용: 블록 배열 → 문자열
 function blocksToDesc(bs: DescBlock[]): string {
   const clean = bs
     .filter((b) => b.type === 'divider' || (b.text && b.text.trim() !== ''))
@@ -217,12 +214,37 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
   const [teams, setTeams] = useState<EventParticipant[][] | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // 슬롯머신 연출
+  const [spinning, setSpinning] = useState(false)
+  const [reelName, setReelName] = useState('')
+  const reelRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function stopReel() {
+    if (reelRef.current !== null) {
+      clearTimeout(reelRef.current)
+      reelRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    return () => stopReel()
+  }, [])
+
   function toggleOpen(id: string) {
     setError('')
     setConfirmDeleteId('')
+    stopReel()
+    setSpinning(false)
     setTeams(null)
     setCopied(false)
     setOpenId(openId === id ? '' : id)
+  }
+
+  function resetTeams() {
+    stopReel()
+    setSpinning(false)
+    setTeams(null)
+    setCopied(false)
   }
 
   function openCreate() {
@@ -358,15 +380,38 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
   }
 
   function rollTeams(participants: EventParticipant[]) {
-    if (participants.length < 2) return
+    if (participants.length < 2 || spinning) return
+    stopReel()
+
+    // 결과 먼저 확정
     const shuffled = shuffle(participants)
     const result: EventParticipant[][] = []
     for (let i = 0; i < teamCount; i++) result.push([])
     shuffled.forEach((p, i) => {
       result[i % teamCount].push(p)
     })
-    setTeams(result)
+
+    // 슬롯머신 연출
+    setTeams(null)
     setCopied(false)
+    setSpinning(true)
+    const names = participants.map((p) => p.name)
+    const start = Date.now()
+    const duration = 1500
+
+    const tick = () => {
+      const elapsed = Date.now() - start
+      setReelName(names[Math.floor(Math.random() * names.length)])
+      if (elapsed >= duration) {
+        stopReel()
+        setSpinning(false)
+        setTeams(result)
+        return
+      }
+      const delay = 50 + (elapsed / duration) * 130
+      reelRef.current = setTimeout(tick, delay)
+    }
+    tick()
   }
 
   function copyTeams(ev: GuildEvent) {
@@ -390,6 +435,14 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
 
   return (
     <div>
+      <style>{`
+        @keyframes slotPop {
+          0% { opacity: 0; transform: translateY(-7px); }
+          60% { opacity: 1; transform: translateY(2px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm text-slate-500">총 {events.length}개의 이벤트</span>
         {isStaff ? (
@@ -562,12 +615,13 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                               <button
                                 key={n}
                                 type="button"
+                                disabled={spinning}
                                 onClick={() => {
                                   setTeamCount(n)
-                                  setTeams(null)
+                                  resetTeams()
                                 }}
                                 className={cx(
-                                  'rounded-md px-2.5 py-1 text-xs font-bold transition',
+                                  'rounded-md px-2.5 py-1 text-xs font-bold transition disabled:opacity-50',
                                   teamCount === n
                                     ? 'bg-violet-600 text-white'
                                     : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300'
@@ -581,12 +635,13 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                           <button
                             type="button"
                             onClick={() => rollTeams(ev.participants)}
-                            className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-violet-700"
+                            disabled={spinning}
+                            className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
                           >
-                            <Shuffle className="h-3.5 w-3.5" />
-                            {teams ? '다시 돌리기' : '랜덤 돌리기'}
+                            <Shuffle className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} />
+                            {spinning ? '돌리는 중...' : teams ? '다시 돌리기' : '랜덤 돌리기'}
                           </button>
-                          {teams ? (
+                          {teams && !spinning ? (
                             <button
                               type="button"
                               onClick={() => copyTeams(ev)}
@@ -602,7 +657,12 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                           ) : null}
                         </div>
 
-                        {teams ? (
+                        {spinning ? (
+                          <div className="flex h-24 flex-col items-center justify-center rounded-lg border border-violet-200 bg-white">
+                            <p className="text-[11px] font-bold text-violet-400">두구두구... 팀을 뽑는 중</p>
+                            <p className="mt-1 text-xl font-bold text-violet-700">{reelName || '...'}</p>
+                          </div>
+                        ) : teams ? (
                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             {teams.map((team, i) => (
                               <div
@@ -616,8 +676,15 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                                   <span className="text-[11px] text-slate-400">{team.length}명</span>
                                 </div>
                                 <div className="space-y-1">
-                                  {team.map((p) => (
-                                    <div key={p.userId} className="flex items-center gap-1.5">
+                                  {team.map((p, mi) => (
+                                    <div
+                                      key={p.userId}
+                                      className="flex items-center gap-1.5"
+                                      style={{
+                                        animation: 'slotPop 0.3s ease-out both',
+                                        animationDelay: (i * 0.12 + mi * 0.06) + 's',
+                                      }}
+                                    >
                                       <span className="text-xs font-medium text-slate-800">
                                         {p.name}
                                       </span>
