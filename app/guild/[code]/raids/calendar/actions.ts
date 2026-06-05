@@ -137,7 +137,7 @@ export async function joinRaidSchedule(
 
   const { data: schedule } = await supabase
     .from('raid_schedules')
-    .select('id, guild_id, max_members, completed')
+    .select('id, guild_id, max_members, completed, scheduled_date, scheduled_time')
     .eq('id', scheduleId)
     .single()
 
@@ -169,6 +169,52 @@ export async function joinRaidSchedule(
 
   if (existing) {
     return { ok: false, error: '이미 참여 신청한 일정입니다.' }
+  }
+
+  // ── 같은 시간 중복 신청 방지 ──
+  // 한 사람은 같은 날짜 + 같은 시간에 한 레이드만 참여 가능 (한 몸이라 동시에 두 곳 불가).
+  // 시간이 다르면 OK (예: 20시 발탄 + 22시 비아키스).
+  const { data: myParts } = await supabase
+    .from('raid_participants')
+    .select('schedule_id')
+    .eq('user_id', user.id)
+
+  const myScheduleIds = (myParts || [])
+    .map((p) => p.schedule_id as string)
+    .filter((id) => id !== scheduleId)
+
+  if (myScheduleIds.length > 0) {
+    const { data: conflicts } = await supabase
+      .from('raid_schedules')
+      .select('id, raid_id, scheduled_time')
+      .in('id', myScheduleIds)
+      .eq('scheduled_date', schedule.scheduled_date)
+      .eq('scheduled_time', schedule.scheduled_time)
+      .limit(1)
+
+    if (conflicts && conflicts.length > 0) {
+      let raidName = '다른 레이드'
+      const conflictRaidId = conflicts[0].raid_id as string | null
+      if (conflictRaidId) {
+        const { data: conflictRaid } = await supabase
+          .from('raids')
+          .select('title')
+          .eq('id', conflictRaidId)
+          .maybeSingle()
+        if (conflictRaid?.title) raidName = conflictRaid.title as string
+      }
+      const rawTime = (schedule.scheduled_time as string) || ''
+      const timeLabel = rawTime ? rawTime.slice(0, 5) : ''
+      return {
+        ok: false,
+        error:
+          '이미 같은 시간' +
+          (timeLabel ? '(' + timeLabel + ')' : '') +
+          '에 "' +
+          raidName +
+          '" 일정에 신청돼 있어요. 한 시간에 한 레이드만 참여할 수 있어요.',
+      }
+    }
   }
 
   const { count } = await supabase
