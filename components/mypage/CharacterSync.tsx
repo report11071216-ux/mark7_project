@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RefreshCw, Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { syncLostarkCharacter } from "@/app/mypage/actions";
+import SubAccountManager from "./SubAccountManager";
 
 type Props = {
   currentName: string | null;
@@ -83,6 +84,8 @@ export default function CharacterSync({ currentName, syncedAt }: Props) {
           </p>
         )}
       </div>
+
+      <SubAccountManager />
 
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
