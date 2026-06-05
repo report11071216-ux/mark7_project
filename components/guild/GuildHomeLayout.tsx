@@ -87,6 +87,7 @@ export default function GuildHomeLayout({
     { label: "성장", href: `/guild/${guildCode}/growth` },
     { label: "랭킹", href: null },
     { label: "레이드", href: `/guild/${guildCode}/raids` },
+    { label: "이벤트", href: `/guild/${guildCode}/events` },
   ];
 
   function renderColumn(items: { id: string }[]) {
