@@ -126,7 +126,8 @@ export async function getMyCharacters(guildCode: string): Promise<MyCharacter[]>
 export async function joinRaidSchedule(
   scheduleId: string,
   guildCode: string,
-  characterName: string
+  characterName: string,
+  role?: string
 ): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -227,12 +228,16 @@ export async function joinRaidSchedule(
     return { ok: false, error: '정원이 가득 찼습니다.' }
   }
 
+  // 역할: 'dealer' | 'support' 만 허용, 그 외엔 null (표시 시 직업으로 추정)
+  const safeRole = role === 'dealer' || role === 'support' ? role : null
+
   const { error } = await supabase
     .from('raid_participants')
     .insert({
       schedule_id: scheduleId,
       user_id: user.id,
       character_name: characterName || null,
+      role: safeRole,
     })
 
   if (error) {
