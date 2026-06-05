@@ -386,13 +386,11 @@ export default function GuildInventory({
                         <p className={"text-[10px] mt-0.5 " + (owned ? "text-slate-500" : "text-slate-400")}>
                           {owned ? `보유 ${c.guildCount}장` : "미보유"}
                         </p>
-                        {owned && (
-                          <div className="mt-1 flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className={"w-3 h-3 " + (s <= stars ? "text-violet-500 fill-current" : "text-slate-200")} />
-                            ))}
-                          </div>
-                        )}
+                        <div className="mt-1 flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className={"w-3 h-3 " + (s <= stars ? "text-violet-500 fill-current" : "text-slate-200")} />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
