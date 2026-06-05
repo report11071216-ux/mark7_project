@@ -72,7 +72,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
   if (scheduleIds.length > 0) {
     const { data } = await supabase
       .from('raid_participants')
-      .select('schedule_id, user_id, character_name')
+      .select('schedule_id, user_id, character_name, role')
       .in('schedule_id', scheduleIds)
     participantRows = data || []
   }
@@ -207,6 +207,15 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
     const cls = charInfo ? charInfo.characterClass : profileClassOf(p.user_id)
     const ilvl = charInfo ? charInfo.itemLevel : profileIlvlOf(p.user_id)
 
+    // 본인이 신청 시 고른 역할(저장값)을 우선. 없으면 직업으로 추정.
+    const storedRole =
+      p.role === 'dealer' || p.role === 'support' ? (p.role as 'dealer' | 'support') : null
+    const finalRole: 'dealer' | 'support' | null = storedRole
+      ? storedRole
+      : cls
+      ? getClassRole(cls)
+      : null
+
     participantsBySchedule[key].push({
       userId: p.user_id,
       name: displayName,
@@ -214,7 +223,7 @@ export default async function RaidCalendarPage({ params, searchParams }: PagePro
       cardBgUrl: cardBgOf(p.user_id),
       characterClass: cls,
       itemLevel: ilvl,
-      role: cls ? getClassRole(cls) : null,
+      role: finalRole,
       synergy: cls ? getClassSynergy(cls) : '',
     })
   }
