@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BookOpen, UserCog, Coins, Trophy, Sprout, Swords,
   ShoppingBag, Calendar, Megaphone, ArrowLeft, Sparkles, Box, MessageCircle,
+  Shuffle, LayoutGrid, Gift, Star,
 } from "lucide-react";
 
 export const metadata = {
@@ -9,13 +10,14 @@ export const metadata = {
 };
 
 function Section({
-  icon: Icon, color, bg, title, children,
+  id, icon: Icon, color, bg, title, children,
 }: {
+  id: string;
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color: string; bg: string; title: string; children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
+    <section id={id} className="scroll-mt-20 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
           <Icon className="w-5 h-5" style={{ color }} />
@@ -48,6 +50,18 @@ function Highlight({ children, color = "violet" }: { children: React.ReactNode; 
   return <span className={`inline-block px-1.5 py-0.5 rounded text-[13px] font-bold ${map[color]}`}>{children}</span>;
 }
 
+const TOC = [
+  { id: "guide-character", label: "캐릭터 연동" },
+  { id: "guide-points", label: "포인트" },
+  { id: "guide-ranking", label: "주간 랭킹" },
+  { id: "guide-growth", label: "길드 성장" },
+  { id: "guide-raid", label: "레이드" },
+  { id: "guide-events", label: "이벤트 & 팀셔플" },
+  { id: "guide-shop", label: "상점 & 보관함" },
+  { id: "guide-home", label: "홈 꾸미기 & 위젯" },
+  { id: "guide-discord", label: "디스코드 연동" },
+];
+
 export default function GuidePage() {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -68,8 +82,25 @@ export default function GuidePage() {
           출석하고, 레이드 돌고, 포인트로 길드를 키우는 게 핵심이에요.
         </p>
 
-        {/* 1. 시작하기 */}
-        <Section icon={UserCog} color="#7c3aed" bg="#EEEDFE" title="1. 가장 먼저 — 캐릭터 연동">
+        {/* 목차 */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">바로가기</p>
+          <div className="flex flex-wrap gap-1.5">
+            {TOC.map((t, i) => (
+              <a
+                key={t.id}
+                href={`#${t.id}`}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[12px] font-medium text-slate-600 hover:border-violet-300 hover:text-violet-700 transition"
+              >
+                <span className="text-slate-400 font-mono text-[11px]">{i + 1}</span>
+                {t.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* 1. 캐릭터 연동 */}
+        <Section id="guide-character" icon={UserCog} color="#7c3aed" bg="#EEEDFE" title="1. 가장 먼저 — 캐릭터 연동">
           <p>
             무엇보다 먼저 <Highlight>마이페이지</Highlight>에서 로스트아크 캐릭터를 연동하세요.
             연동하면 아이템 레벨·전투력·직업이 자동으로 표시되고, 레이드 참여 시 어떤 캐릭터로 갈지 고를 수 있어요.
@@ -83,7 +114,7 @@ export default function GuidePage() {
         </Section>
 
         {/* 2. 포인트 시스템 */}
-        <Section icon={Coins} color="#185FA5" bg="#E6F1FB" title="2. 포인트 — 두 종류가 있어요">
+        <Section id="guide-points" icon={Coins} color="#185FA5" bg="#E6F1FB" title="2. 포인트 — 두 종류가 있어요">
           <p>길드패스의 포인트는 <b className="text-slate-900">두 가지로 나뉘어요.</b> 헷갈리지 않게 구분해서 알아두세요.</p>
 
           <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
@@ -114,7 +145,7 @@ export default function GuidePage() {
         </Section>
 
         {/* 3. 주간 랭킹 보상 */}
-        <Section icon={Trophy} color="#0F6E56" bg="#E1F5EE" title="3. 매주 수요일 — 랭킹 보상">
+        <Section id="guide-ranking" icon={Trophy} color="#0F6E56" bg="#E1F5EE" title="3. 매주 수요일 — 랭킹 보상">
           <p>
             매주 <Highlight color="emerald">수요일 오전 6시</Highlight>, 길드 순위에 따라
             <b className="text-slate-900"> 길드원 모두에게 개인 포인트</b>가 지급돼요.
@@ -141,7 +172,7 @@ export default function GuidePage() {
         </Section>
 
         {/* 4. 길드 성장 */}
-        <Section icon={Sprout} color="#534AB7" bg="#EEEDFE" title="4. 길드 성장 — 포인트로 키우기">
+        <Section id="guide-growth" icon={Sprout} color="#534AB7" bg="#EEEDFE" title="4. 길드 성장 — 포인트로 키우기">
           <p>
             <Highlight>성장</Highlight> 페이지에서 마스터·부마스터가 길드 포인트로 길드를 강화할 수 있어요.
             성장 현황은 모든 길드원이 볼 수 있어요 (강화는 운영진만).
@@ -156,10 +187,23 @@ export default function GuidePage() {
             브론즈 → 실버 → 골드 → 플래티넘 → 에메랄드 → 다이아몬드 → 마스터 → 그랜드마스터.
             모든 포인트 사용·획득 내역은 성장 페이지에 <b className="text-slate-900">투명하게 공개</b>돼요.
           </p>
+
+          <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
+            <p className="font-bold text-amber-800 mb-1 flex items-center gap-1.5">
+              <Gift className="w-4 h-4" /> 길드 카드 보관함 (기증)
+            </p>
+            <p className="text-[13px] text-amber-900/80 leading-relaxed mb-2">
+              출석으로 뽑은 <b>카드를 길드에 기증</b>해서 길드 도감을 채우는 시스템이에요.
+              기증한 카드는 돌려받을 수 없지만, 길드 전체의 보상으로 돌아와요.
+            </p>
+            <Step num={1}>보관함의 <Highlight color="amber">카드 보관함</Highlight> 탭에서 내 카드를 골라 기증</Step>
+            <Step num={2}>같은 카드를 5장 모으면 별 1개 (최대 5★ = 25장)</Step>
+            <Step num={3}>매주 수요일, 기증 수량과 별에 비례해 <b className="text-amber-900">길드 포인트</b>가 자동 적립돼요</Step>
+          </div>
         </Section>
 
         {/* 5. 레이드 도감 */}
-        <Section icon={Swords} color="#A32D2D" bg="#FCEBEB" title="5. 레이드 도감 & 일정">
+        <Section id="guide-raid" icon={Swords} color="#A32D2D" bg="#FCEBEB" title="5. 레이드 도감 & 일정">
           <p>
             길드 홈의 레이드 위젯에서 레이드를 <Highlight color="amber">클릭</Highlight>하면
             클리어 골드·적정 레벨·적정 전투력·획득 재화 정보와 공략을 볼 수 있어요.
@@ -173,12 +217,42 @@ export default function GuidePage() {
           </p>
         </Section>
 
-        {/* 6. 상점 & 보관함 */}
-        <Section icon={ShoppingBag} color="#0E7490" bg="#CFFAFE" title="6. 상점 & 보관함">
+        {/* 6. 이벤트 & 팀셔플 */}
+        <Section id="guide-events" icon={Calendar} color="#9333EA" bg="#F3E8FF" title="6. 이벤트 & 팀셔플">
+          <p>
+            내전·친목·경쟁전 같은 길드 행사를 만들고, 참가자를 모으고,
+            <b className="text-slate-900"> 팀을 랜덤으로 나눌 수 있어요.</b> 사이드바의 <Highlight>이벤트</Highlight>에서 써요.
+          </p>
+          <Step num={1}>운영진이 <Highlight color="violet">이벤트 만들기</Highlight>로 제목·종류·일정·설명을 작성 (제목/내용/구분선 블록으로 꾸미기)</Step>
+          <Step num={2}>길드원은 <Highlight color="cyan">참가 신청</Highlight>으로 참여, 모집은 마감/재개할 수 있어요</Step>
+          <Step num={3}>이벤트를 만들면 디스코드 공지 채널로 자동 알림이 가요</Step>
+
+          <div className="rounded-xl bg-violet-50 border border-violet-100 p-4 mt-1">
+            <p className="font-bold text-violet-800 mb-1 flex items-center gap-1.5">
+              <Shuffle className="w-4 h-4" /> 팀셔플 — 팀 랜덤 짜기
+            </p>
+            <p className="text-[13px] text-violet-900/80 leading-relaxed mb-2">
+              이벤트 탭의 <b>팀셔플</b>에서 길드원을 골라 팀을 자동으로 나눠줘요. 외부 참가자는 직접 입력도 돼요.
+            </p>
+            <div className="space-y-1.5 text-[13px] text-violet-900/80">
+              <p>· <b className="text-violet-900">길드원 선택</b> — 카드에서 참가자를 탭해서 고르기 (외부인은 직접 입력)</p>
+              <p>· <b className="text-violet-900">나누기 기준</b> — 팀 개수로 / 팀당 인원으로 선택</p>
+              <p>· <b className="text-violet-900">방식</b> — 슬롯머신 또는 사다리타기 연출로 팀 배정</p>
+              <p>· 결과는 팀별로 정리되고 <b className="text-violet-900">복사</b>해서 디스코드에 바로 붙여넣을 수 있어요</p>
+            </div>
+          </div>
+        </Section>
+
+        {/* 7. 상점 & 보관함 */}
+        <Section id="guide-shop" icon={ShoppingBag} color="#0E7490" bg="#CFFAFE" title="7. 상점 & 보관함">
           <p>모은 포인트로 꾸미기 아이템을 살 수 있어요.</p>
           <div className="grid grid-cols-1 gap-2">
             <p>· <b className="text-slate-900">길드 마크 / 프로필카드</b> — 길드와 내 프로필을 꾸며요</p>
             <p>· <b className="text-slate-900">이모티콘팩</b> — 길드 채팅에서 사용</p>
+            <p className="flex items-start gap-1.5">
+              <Star className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span><b className="text-slate-900">출석 카드 11연팩</b> — 포인트로 카드를 한 번에 11장 뽑아요 (등급: 커먼/레어/유니크/에픽)</span>
+            </p>
             <p className="flex items-start gap-1.5">
               <Megaphone className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
               <span><b className="text-slate-900">확성기</b> — 광장 상단에 길드 홍보 문구를 띄워요 (1·3·6·12시간)</span>
@@ -191,10 +265,27 @@ export default function GuidePage() {
               보관함 칸이 꽉 차면 성장 페이지에서 슬롯을 늘려야 더 살 수 있어요. (확성기는 칸을 차지하지 않아요)
             </span>
           </p>
+          <p className="text-xs text-slate-400">
+            ※ 구매한 마크·프로필카드는 <b className="text-slate-500">장착</b>해야 적용돼요. 길드 마크는 관리자 패널, 개인 프로필카드는 마이페이지에서 장착해요.
+          </p>
         </Section>
 
-        {/* 7. 디스코드 연동 */}
-        <Section icon={MessageCircle} color="#5865F2" bg="#E8EAFD" title="7. 디스코드 연동">
+        {/* 8. 홈 꾸미기 & 위젯 */}
+        <Section id="guide-home" icon={LayoutGrid} color="#BA7517" bg="#FAEEDA" title="8. 홈 꾸미기 & 위젯">
+          <p>
+            길드 홈은 <b className="text-slate-900">위젯을 직접 배치</b>해서 우리 길드만의 홈페이지로 꾸밀 수 있어요.
+            마스터·부마스터가 <Highlight color="amber">홈 편집</Highlight>에서 설정해요.
+          </p>
+          <Step num={1}>출석·랭킹·레이드 일정·접속 현황·공지 등 <Highlight>위젯</Highlight>을 원하는 위치에 배치</Step>
+          <Step num={2}>관리자 패널 <Highlight color="cyan">꾸미기</Highlight> 탭에서 길드 대표 색(테마)과 카드 스타일을 골라요</Step>
+          <Step num={3}>장착한 길드 마크가 홈 곳곳에 함께 표시돼요</Step>
+          <p className="text-xs text-slate-400">
+            ※ 위젯 종류는 계속 추가되고 있어요. 배치는 길드원 전체에게 동일하게 보여요.
+          </p>
+        </Section>
+
+        {/* 9. 디스코드 연동 */}
+        <Section id="guide-discord" icon={MessageCircle} color="#5865F2" bg="#E8EAFD" title="9. 디스코드 연동">
           <p>
             길드패스는 디스코드와 두 가지로 연동돼요 — <b className="text-slate-900">① 알림 자동 전송</b>과
             <b className="text-slate-900"> ② 접속 현황 위젯</b>이에요. 둘 다 <Highlight>관리자 패널 → 디스코드 탭</Highlight>에서 설정해요.
