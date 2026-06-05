@@ -156,7 +156,7 @@ export async function toggleStickerPack(
   if (current.includes(shopItemId)) {
     next = current.filter((id) => id !== shopItemId);
   } else {
-    next = [...current, shopItemId];
+    next = current.concat(shopItemId);
   }
   const { error } = await supabase
     .from("guild_themes")
@@ -276,6 +276,7 @@ export async function toggleGuildBackground(
 }
 
 // ── 11연 뽑기권 패키지 구매 (활동 포인트 → 뽑기권 11개) ──
+// 포인트 차감 + 뽑기권 충전을 buy_card_pack RPC(SECURITY DEFINER)에서 처리 — 조작 차단
 export async function buyCardPack(guildCode: string, guildId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -283,64 +284,17 @@ export async function buyCardPack(guildCode: string, guildId: string) {
     return { success: false, error: "로그인이 필요합니다" };
   }
 
-  // 패키지 설정 (가격/활성)
-  const { data: setting } = await supabase
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "card_pack")
-    .maybeSingle();
-  const pack = setting?.value as { price: number; active: boolean } | null;
-  if (!pack || !pack.active) {
-    return { success: false, error: "지금은 판매하지 않는 상품이에요." };
-  }
-  const price = Math.floor(pack.price ?? 0);
-
-  // 내 활동 포인트 (이 길드)
-  const { data: member } = await supabase
-    .from("guild_members")
-    .select("id, points")
-    .eq("guild_id", guildId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!member) {
-    return { success: false, error: "길드원이 아니에요." };
-  }
-  const myPoints = member.points ?? 0;
-  if (myPoints < price) {
-    return { success: false, error: "포인트가 부족해요." };
+  const { data, error } = await supabase.rpc("buy_card_pack", {
+    p_guild_id: guildId,
+  });
+  if (error) {
+    return { success: false, error: `결제 실패: ${error.message}` };
   }
 
-  // 포인트 차감
-  const { error: pointError } = await supabase
-    .from("guild_members")
-    .update({ points: myPoints - price })
-    .eq("id", member.id);
-  if (pointError) {
-    return { success: false, error: `결제 실패: ${pointError.message}` };
+  const result = data as { success: boolean; error?: string; tickets?: number; price?: number };
+  if (result.success) {
+    revalidatePath(`/guild/${guildCode}/shop`);
+    revalidatePath("/mypage");
   }
-
-  // 뽑기권 11개 충전 (user_card_state 없으면 생성)
-  const { data: state } = await supabase
-    .from("user_card_state")
-    .select("draw_tickets, total_duplicates, equipped_card_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (state) {
-    await supabase
-      .from("user_card_state")
-      .update({
-        draw_tickets: (state.draw_tickets ?? 0) + 11,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
-  } else {
-    await supabase
-      .from("user_card_state")
-      .insert({ user_id: user.id, draw_tickets: 11, total_duplicates: 0 });
-  }
-
-  revalidatePath(`/guild/${guildCode}/shop`);
-  revalidatePath("/mypage");
-  return { success: true, tickets: 11, price };
+  return result;
 }
