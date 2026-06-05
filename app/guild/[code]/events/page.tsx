@@ -1,8 +1,29 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import EventsClient, { type GuildEvent } from '@/components/guild/EventsClient'
+import EventsClient from '@/components/guild/EventsClient'
 
 export const dynamic = 'force-dynamic'
+
+type EventParticipant = {
+  userId: string
+  name: string
+  avatar: string
+  characterClass: string
+  itemLevel: number | null
+}
+
+type GuildEvent = {
+  id: string
+  title: string
+  description: string
+  eventType: string
+  scheduledDate: string
+  scheduledTime: string
+  status: string
+  createdBy: string
+  createdByName: string
+  participants: EventParticipant[]
+}
 
 type PageProps = {
   params: { code: string }
@@ -72,7 +93,7 @@ export default async function EventsPage({ params }: PageProps) {
     return pr.main_character_name || pr.username || '길드원'
   }
 
-  const partsByEvent: { [key: string]: any[] } = {}
+  const partsByEvent: { [key: string]: EventParticipant[] } = {}
   for (const p of partRows) {
     const key = String(p.event_id)
     if (!partsByEvent[key]) partsByEvent[key] = []
