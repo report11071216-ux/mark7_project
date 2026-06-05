@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import {
   Plus,
   Pencil,
@@ -12,6 +12,11 @@ import {
   Trash2,
   X,
   ChevronDown,
+  Heading,
+  List,
+  Minus,
+  Bold,
+  Highlighter,
 } from 'lucide-react'
 import {
   createEvent,
@@ -89,13 +94,124 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+// ── 인라인 서식: **굵게**, !!강조!!, URL 링크 ──
+function renderInline(text: string, kp: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const re = /(\*\*[^*\n]+\*\*)|(!![^!\n]+!!)|(https?:\/\/[^\s]+)/
+  let rest = text
+  let k = 0
+  while (rest.length > 0) {
+    const m = re.exec(rest)
+    if (!m) {
+      nodes.push(rest)
+      break
+    }
+    const idx = m.index
+    if (idx > 0) nodes.push(rest.slice(0, idx))
+    const tok = m[0]
+    if (tok.startsWith('**')) {
+      nodes.push(
+        <strong key={kp + '-' + k} className="font-bold text-slate-900">
+          {tok.slice(2, -2)}
+        </strong>
+      )
+    } else if (tok.startsWith('!!')) {
+      nodes.push(
+        <span key={kp + '-' + k} className="font-bold text-violet-600">
+          {tok.slice(2, -2)}
+        </span>
+      )
+    } else {
+      nodes.push(
+        <a
+          key={kp + '-' + k}
+          href={tok}
+          target="_blank"
+          rel="noreferrer"
+          className="text-violet-600 underline break-all"
+        >
+          {tok}
+        </a>
+      )
+    }
+    rest = rest.slice(idx + tok.length)
+    k++
+  }
+  return nodes
+}
+
+// ── 줄 단위 서식: ■ 제목, • 항목, ─ 구분선 ──
+function renderDescription(text: string): ReactNode {
+  const lines = text.split('\n')
+  const out: ReactNode[] = []
+  let bullets: string[] = []
+  let bk = 0
+
+  function flush() {
+    if (bullets.length > 0) {
+      const items = bullets.slice()
+      const key = bk
+      out.push(
+        <ul key={'ul-' + key} className="my-1 space-y-0.5">
+          {items.map((b, i) => (
+            <li key={i} className="flex gap-2 text-sm leading-relaxed text-slate-600">
+              <span className="text-violet-500">•</span>
+              <span>{renderInline(b, 'b' + key + '-' + i)}</span>
+            </li>
+          ))}
+        </ul>
+      )
+      bk++
+      bullets = []
+    }
+  }
+
+  lines.forEach((line, i) => {
+    const t = line.trim()
+    if (t === '') {
+      flush()
+      out.push(<div key={'sp-' + i} className="h-2" />)
+      return
+    }
+    if (/^─{2,}$/.test(t) || t === '---') {
+      flush()
+      out.push(<div key={'hr-' + i} className="my-2 border-t border-slate-200" />)
+      return
+    }
+    if (t.startsWith('■')) {
+      flush()
+      out.push(
+        <div key={'h-' + i} className="mt-2 flex items-center gap-2">
+          <span className="h-3.5 w-[3px] shrink-0 rounded bg-violet-600" />
+          <p className="text-sm font-bold text-slate-900">
+            {renderInline(t.replace(/^■\s*/, ''), 'h' + i)}
+          </p>
+        </div>
+      )
+      return
+    }
+    if (t.startsWith('•') || t.startsWith('- ')) {
+      bullets.push(t.replace(/^•\s*/, '').replace(/^-\s+/, ''))
+      return
+    }
+    flush()
+    out.push(
+      <p key={'p-' + i} className="text-sm leading-relaxed text-slate-600">
+        {renderInline(line, 'p' + i)}
+      </p>
+    )
+  })
+  flush()
+
+  return <div>{out}</div>
+}
+
 export default function EventsClient({ guildCode, currentUserId, isStaff, events }: Props) {
   const [openId, setOpenId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState('')
 
-  // 만들기/수정 모달 (editId === '' 이면 만들기, 아니면 수정)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState('')
   const [title, setTitle] = useState('')
@@ -103,10 +219,20 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [desc, setDesc] = useState('')
+  const descRef = useRef<HTMLTextAreaElement | null>(null)
 
   const [teamCount, setTeamCount] = useState(2)
   const [teams, setTeams] = useState<EventParticipant[][] | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // 설명칸 자동 높이
+  useEffect(() => {
+    const ta = descRef.current
+    if (ta) {
+      ta.style.height = 'auto'
+      ta.style.height = Math.min(ta.scrollHeight, 360) + 'px'
+    }
+  }, [desc, showForm])
 
   function toggleOpen(id: string) {
     setError('')
@@ -136,6 +262,51 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
     setDesc(ev.description || '')
     setError('')
     setShowForm(true)
+  }
+
+  function restoreCursor(s: number, e: number) {
+    requestAnimationFrame(() => {
+      const ta = descRef.current
+      if (!ta) return
+      ta.focus()
+      ta.setSelectionRange(s, e)
+    })
+  }
+
+  function applyFormat(kind: string) {
+    const ta = descRef.current
+    const start = ta ? ta.selectionStart : desc.length
+    const end = ta ? ta.selectionEnd : desc.length
+    const before = desc.slice(0, start)
+    const selected = desc.slice(start, end)
+    const after = desc.slice(end)
+
+    if (kind === 'heading' || kind === 'bullet') {
+      const marker = kind === 'heading' ? '■ ' : '• '
+      const needNL = before.length > 0 && !before.endsWith('\n')
+      const mid = (needNL ? '\n' : '') + marker
+      setDesc(before + mid + selected + after)
+      const pos = before.length + mid.length + selected.length
+      restoreCursor(pos, pos)
+      return
+    }
+
+    if (kind === 'divider') {
+      const needNL = before.length > 0 && !before.endsWith('\n')
+      const mid = (needNL ? '\n' : '') + '─────────\n'
+      setDesc(before + mid + after)
+      const pos = before.length + mid.length
+      restoreCursor(pos, pos)
+      return
+    }
+
+    // bold / accent (감싸기)
+    const wrap = kind === 'bold' ? '**' : '!!'
+    const inner = selected || (kind === 'bold' ? '굵게' : '강조')
+    const mid = wrap + inner + wrap
+    setDesc(before + mid + after)
+    const innerStart = before.length + wrap.length
+    restoreCursor(innerStart, innerStart + inner.length)
   }
 
   async function handleSubmit() {
@@ -343,9 +514,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                 {open ? (
                   <div className="border-t border-slate-100 px-4 py-4">
                     {ev.description ? (
-                      <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-                        {ev.description}
-                      </p>
+                      <div className="mb-4">{renderDescription(ev.description)}</div>
                     ) : null}
 
                     <div className="mb-2 flex items-center justify-between">
@@ -574,7 +743,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
 
       {showForm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">
                 {editId ? '이벤트 수정' : '이벤트 만들기'}
@@ -643,14 +812,65 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-500">설명 (선택)</label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-500">설명 (선택)</label>
+                  <span className="text-[11px] text-slate-400">{desc.length}자</span>
+                </div>
+
+                <div className="mb-1.5 flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('heading')}
+                    className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <Heading className="h-3 w-3" />
+                    제목
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('bullet')}
+                    className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <List className="h-3 w-3" />
+                    항목
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('divider')}
+                    className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <Minus className="h-3 w-3" />
+                    구분선
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('bold')}
+                    className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <Bold className="h-3 w-3" />
+                    굵게
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat('accent')}
+                    className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-violet-600 transition hover:bg-violet-50"
+                  >
+                    <Highlighter className="h-3 w-3" />
+                    강조
+                  </button>
+                </div>
+
                 <textarea
+                  ref={descRef}
                   value={desc}
                   onChange={(e) => setDesc(e.target.value)}
-                  rows={3}
-                  placeholder="진행 방식, 집합 안내 등"
-                  className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                  rows={5}
+                  placeholder={'■ 일정 안내\n6월 8일(일) 저녁 9시 집합\n\n• 1부 — 팀 대항전\n**중요** 사항은 굵게, !!필독!! 은 강조'}
+                  className="w-full resize-none overflow-hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 placeholder-slate-300 transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  버튼을 누르면 서식 기호가 들어가요. 보일 땐 제목·항목·구분선·굵게·강조·링크로 정리돼요.
+                </p>
               </div>
 
               {error ? (
