@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, ClipboardList, CalendarDays, Users, MessageCircle,
-  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout, BookOpen,
+  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout, BookOpen, PartyPopper,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useState } from "react";
@@ -76,6 +76,7 @@ export function Sidebar({
     { icon: CalendarDays, label: "레이드", href: `${baseUrl}/raids` },
     { icon: Users, label: "멤버", href: `${baseUrl}/members`, badge: memberCount },
     { icon: Sprout, label: "성장", href: `${baseUrl}/growth` },
+    { icon: PartyPopper, label: "이벤트", href: `${baseUrl}/events` },
     { icon: MessageCircle, label: "채팅", href: `${baseUrl}/chat` },
     { icon: ShoppingBag, label: "상점", href: `${baseUrl}/shop` },
     { icon: Package, label: "길드 보관함", href: `${baseUrl}/inventory` },
