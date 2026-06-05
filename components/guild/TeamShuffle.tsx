@@ -1,9 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Shuffle, Network, Copy, Check, Users, RotateCw, X, Info, AlertTriangle, SkipForward } from 'lucide-react'
+import { Shuffle, Network, Copy, Check, Users, RotateCw, Info, AlertTriangle, SkipForward } from 'lucide-react'
 
-export type ShuffleMember = { userId: string; name: string }
+export type ShuffleMember = {
+  userId: string
+  name: string
+  avatar: string
+  characterClass: string
+  itemLevel: number | null
+}
 
 const TEAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 const NUM_OPTIONS = [2, 3, 4, 5, 6, 7, 8]
@@ -18,9 +24,25 @@ const TEAM_HEAD = [
   { bg: '#EAF3DE', fg: '#27500A', chip: '#3B6D11' },
   { bg: '#FCEBEB', fg: '#791F1F', chip: '#A32D2D' },
 ]
+const AV = [
+  { bg: '#CECBF6', fg: '#3C3489' },
+  { bg: '#9FE1CB', fg: '#085041' },
+  { bg: '#F5C4B3', fg: '#712B13' },
+  { bg: '#F4C0D1', fg: '#72243E' },
+  { bg: '#B5D4F4', fg: '#0C447C' },
+  { bg: '#C0DD97', fg: '#27500A' },
+  { bg: '#FAC775', fg: '#633806' },
+  { bg: '#F7C1C1', fg: '#791F1F' },
+]
 
 function cx(...p: (string | false | null | undefined)[]): string {
   return p.filter(Boolean).join(' ')
+}
+
+function avColor(s: string): { bg: string; fg: string } {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return AV[h % AV.length]
 }
 
 function parseNames(raw: string): string[] {
@@ -192,6 +214,7 @@ export default function TeamShuffle({ members }: Props) {
     }
   }
   const total = names.length
+  const selectedCount = members.filter((m) => selectedIds.includes(m.userId)).length
 
   function getTc(t: number): number {
     if (t < 1) return 0
@@ -319,7 +342,6 @@ export default function TeamShuffle({ members }: Props) {
     const shuffled = shuffle(names)
     const count = getTc(shuffled.length)
     const l = buildLadder(shuffled.length)
-    // 결과 팀
     const grouped: string[][] = []
     for (let i = 0; i < count; i++) grouped.push([])
     shuffled.forEach((nm, i) => {
@@ -373,8 +395,6 @@ export default function TeamShuffle({ members }: Props) {
   }
 
   const canRun = total >= 2 && !playing
-  const selectedMembers = members.filter((m) => selectedIds.includes(m.userId))
-  const unselectedMembers = members.filter((m) => !selectedIds.includes(m.userId))
   const numOptions = splitMode === 'count' ? teamCount : teamSize
   const numLabel = splitMode === 'count' ? '팀 개수' : '한 팀 인원'
 
@@ -388,57 +408,63 @@ export default function TeamShuffle({ members }: Props) {
         }
       `}</style>
 
-      {/* 길드원 선택 */}
+      {/* 길드원 카드 그리드 */}
       {members.length > 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-2.5 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
               <Users className="h-4 w-4 text-violet-600" />
               길드원
             </span>
             <span className="text-xs text-slate-400">
-              {selectedMembers.length} / {members.length}명 선택
+              {selectedCount} / {members.length}명 선택
             </span>
           </div>
 
-          {selectedMembers.length > 0 ? (
-            <div className="mb-2.5">
-              <p className="mb-1.5 text-[11px] text-slate-400">선택됨 · 탭하면 빼기</p>
-              <div className="flex flex-wrap gap-1.5">
-                {selectedMembers.map((m) => (
-                  <button
-                    key={m.userId}
-                    type="button"
-                    disabled={playing}
-                    onClick={() => toggleMember(m.userId)}
-                    className="flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[12px] font-medium text-violet-800 transition hover:bg-violet-200 disabled:opacity-50"
-                  >
-                    {m.name}
-                    <X className="h-3 w-3 opacity-60" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {unselectedMembers.length > 0 ? (
-            <div className={selectedMembers.length > 0 ? 'border-t border-slate-100 pt-2.5' : ''}>
-              <p className="mb-1.5 text-[11px] text-slate-400">탭해서 추가</p>
-              <div className="flex flex-wrap gap-1.5">
-                {unselectedMembers.map((m) => (
-                  <button
-                    key={m.userId}
-                    type="button"
-                    disabled={playing}
-                    onClick={() => toggleMember(m.userId)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-50"
-                  >
-                    {m.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {members.map((m) => {
+              const on = selectedIds.includes(m.userId)
+              const av = avColor(m.name)
+              const sub = [
+                m.characterClass,
+                m.itemLevel != null ? Math.floor(m.itemLevel).toLocaleString() : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+              return (
+                <button
+                  key={m.userId}
+                  type="button"
+                  disabled={playing}
+                  onClick={() => toggleMember(m.userId)}
+                  className={cx(
+                    'relative flex items-center gap-2.5 rounded-lg border-2 p-2 text-left transition disabled:opacity-50',
+                    on ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white hover:border-violet-300'
+                  )}
+                >
+                  {m.avatar ? (
+                    <img src={m.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <div
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+                      style={{ backgroundColor: av.bg, color: av.fg }}
+                    >
+                      {m.name.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] font-bold text-slate-900">{m.name}</p>
+                    <p className="truncate text-[11px] text-slate-400">{sub || '미연동'}</p>
+                  </div>
+                  {on ? (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-violet-600">
+                      <Check className="h-3 w-3 text-white" />
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
 
           <div className="mt-3 flex gap-1.5">
             <button
@@ -598,7 +624,6 @@ export default function TeamShuffle({ members }: Props) {
           )}
         </div>
 
-        {/* 안내 */}
         {total < 2 ? (
           <div className="mt-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
@@ -647,19 +672,16 @@ export default function TeamShuffle({ members }: Props) {
                   return <line key={'r' + r + '-' + c} x1={x1} y1={y} x2={x2} y2={y} stroke="#cbd5e1" strokeWidth={2} />
                 })
               )}
-              {/* 완료된 참가자 경로 */}
               {ladder.geo.map((g, i) => {
                 if (phase !== 'done' && i >= doneCount) return null
                 return (
                   <path key={'done' + i} d={fullPath(g)} fill="none" stroke={COLORS[i % COLORS.length]} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
                 )
               })}
-              {/* 진행 중 경로 + 공 */}
               {phase === 'playing' && drawn ? (
                 <path d={drawn} fill="none" stroke={ball ? ball.color : '#7c3aed'} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
               ) : null}
               {ball ? <circle cx={ball.x} cy={ball.y} r={6} fill={ball.color} stroke="#fff" strokeWidth={2} /> : null}
-              {/* 위 이름 */}
               {ladderNames.map((nm, i) => {
                 const x = ladder.marginX + i * ladder.colGap
                 return (
@@ -668,7 +690,6 @@ export default function TeamShuffle({ members }: Props) {
                   </text>
                 )
               })}
-              {/* 아래 팀 */}
               {Array.from({ length: ladder.cols }).map((_, p) => {
                 const x = ladder.marginX + p * ladder.colGap
                 const h = TEAM_HEAD[(p % tc) % TEAM_HEAD.length]
