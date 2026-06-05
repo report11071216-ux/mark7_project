@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Shuffle, Network, Copy, Check, Users, RotateCw } from 'lucide-react'
 
+export type ShuffleMember = { userId: string; name: string }
+
 const TEAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 const TEAM_COUNTS = [2, 3, 4, 5, 6, 7, 8]
 const COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2', '#db2777', '#65a30d', '#9333ea', '#0d9488', '#e11d48', '#4f46e5', '#16a34a', '#ea580c', '#0ea5e9', '#c026d3']
@@ -95,8 +97,13 @@ function buildLadder(n: number, teamCount: number): Ladder {
   return { cols, rows, rungs, paths, perm, bottomTeam, marginX, colGap, topY, rowGap, bottomY, width, height }
 }
 
-export default function TeamShuffle() {
-  const [raw, setRaw] = useState('')
+type Props = {
+  members: ShuffleMember[]
+}
+
+export default function TeamShuffle({ members }: Props) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [manualRaw, setManualRaw] = useState('')
   const [mode, setMode] = useState<'slot' | 'ladder'>('slot')
   const [teamCount, setTeamCount] = useState(2)
   const [teams, setTeams] = useState<string[][] | null>(null)
@@ -111,7 +118,17 @@ export default function TeamShuffle() {
   const [ladder, setLadder] = useState<Ladder | null>(null)
   const [ladderNames, setLadderNames] = useState<string[]>([])
 
-  const names = parseNames(raw)
+  // 최종 명단 = 선택한 길드원 + 직접 입력 (중복 제거)
+  const memberNames = members.filter((m) => selectedIds.includes(m.userId)).map((m) => m.name)
+  const manualNames = parseNames(manualRaw)
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const nm of memberNames.concat(manualNames)) {
+    if (!seen.has(nm)) {
+      seen.add(nm)
+      names.push(nm)
+    }
+  }
   const effTeams = Math.min(teamCount, Math.max(1, names.length))
 
   function stopReel() {
@@ -130,6 +147,21 @@ export default function TeamShuffle() {
     setTeams(null)
     setLadder(null)
     setCopied(false)
+  }
+
+  function toggleMember(id: string) {
+    reset()
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.concat(id)))
+  }
+
+  function selectAll() {
+    reset()
+    setSelectedIds(members.map((m) => m.userId))
+  }
+
+  function clearAll() {
+    reset()
+    setSelectedIds([])
   }
 
   function assignRoundRobin(list: string[]): string[][] {
@@ -174,7 +206,6 @@ export default function TeamShuffle() {
     setCopied(false)
     const shuffled = shuffle(names)
     const l = buildLadder(shuffled.length, teamCount)
-    // 결과 팀 구성
     const res: { [team: string]: string[] } = {}
     shuffled.forEach((nm, i) => {
       const team = l.bottomTeam[l.perm[i]]
@@ -228,23 +259,60 @@ export default function TeamShuffle() {
         }
       `}</style>
 
-      {/* 이름 입력 */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      {/* 길드원 선택 */}
+      {members.length > 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+              <Users className="h-4 w-4 text-violet-600" />
+              길드원 추가
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={selectAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50">
+                전체
+              </button>
+              <button type="button" onClick={clearAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50">
+                해제
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {members.map((m) => {
+              const on = selectedIds.includes(m.userId)
+              return (
+                <button
+                  key={m.userId}
+                  type="button"
+                  disabled={spinning}
+                  onClick={() => toggleMember(m.userId)}
+                  className={cx(
+                    'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition disabled:opacity-50',
+                    on ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                  )}
+                >
+                  {on ? <Check className="h-3 w-3" /> : null}
+                  {m.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* 직접 입력 */}
+      <div className={cx('rounded-xl border border-slate-200 bg-white p-4', members.length > 0 ? 'mt-3' : '')}>
         <div className="mb-2 flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
-            <Users className="h-4 w-4 text-violet-600" />
-            참가자 이름
-          </span>
-          <span className="text-[11px] text-slate-400">{names.length}명</span>
+          <span className="text-sm font-bold text-slate-700">직접 입력 {members.length > 0 ? '(외부 참가자)' : ''}</span>
+          <span className="text-[11px] text-slate-400">전체 {names.length}명</span>
         </div>
         <textarea
-          value={raw}
+          value={manualRaw}
           onChange={(e) => {
-            setRaw(e.target.value)
+            setManualRaw(e.target.value)
             reset()
           }}
-          rows={4}
-          placeholder={'한 줄에 한 명씩 입력하세요\n예)\n농낭판치\n홍길동\n쁘밍이'}
+          rows={3}
+          placeholder={'한 줄에 한 명씩 입력하세요\n예) 외부길드원, 친구1'}
           className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 placeholder-slate-300 transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
         />
         <p className="mt-1 text-[11px] text-slate-400">줄바꿈 또는 쉼표(,)로 구분돼요.</p>
@@ -317,7 +385,7 @@ export default function TeamShuffle() {
         </div>
 
         {names.length < 2 ? (
-          <p className="mt-2 text-[11px] text-slate-400">이름을 2명 이상 입력하면 팀을 짤 수 있어요.</p>
+          <p className="mt-2 text-[11px] text-slate-400">참가자를 2명 이상 골라야 팀을 짤 수 있어요.</p>
         ) : (
           <p className="mt-2 text-[11px] text-slate-400">{names.length}명을 {effTeams}개 팀으로 나눠요.</p>
         )}
@@ -335,12 +403,10 @@ export default function TeamShuffle() {
       {mode === 'ladder' && ladder ? (
         <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3">
           <svg width={ladder.width} height={ladder.height} className="mx-auto block">
-            {/* 세로줄 */}
             {Array.from({ length: ladder.cols }).map((_, c) => {
               const x = ladder.marginX + c * ladder.colGap
               return <line key={'v' + c} x1={x} y1={ladder.topY} x2={x} y2={ladder.bottomY} stroke="#e2e8f0" strokeWidth={2} />
             })}
-            {/* 가로 가지 */}
             {ladder.rungs.map((row, r) =>
               row.map((on, c) => {
                 if (!on) return null
@@ -350,7 +416,6 @@ export default function TeamShuffle() {
                 return <line key={'r' + r + '-' + c} x1={x1} y1={y} x2={x2} y2={y} stroke="#cbd5e1" strokeWidth={2} />
               })
             )}
-            {/* 각 참가자 경로 */}
             {ladder.paths.map((d, i) => (
               <path
                 key={'p' + i}
@@ -363,7 +428,6 @@ export default function TeamShuffle() {
                 style={{ strokeDasharray: 2600, animation: 'ladderDraw 0.9s ease-out forwards', animationDelay: i * 0.12 + 's' }}
               />
             ))}
-            {/* 위: 이름 */}
             {ladderNames.map((nm, i) => {
               const x = ladder.marginX + i * ladder.colGap
               return (
@@ -372,7 +436,6 @@ export default function TeamShuffle() {
                 </text>
               )
             })}
-            {/* 아래: 팀 */}
             {ladder.bottomTeam.map((tm, p) => {
               const x = ladder.marginX + p * ladder.colGap
               return (
