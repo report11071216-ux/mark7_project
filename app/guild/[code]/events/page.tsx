@@ -71,11 +71,19 @@ export default async function EventsPage({ params }: PageProps) {
     partRows = data || []
   }
 
+  // 길드원 전체 (팀셔플용)
+  const { data: memberRows } = await supabase
+    .from('guild_members')
+    .select('user_id')
+    .eq('guild_id', guild.id)
+  const memberIds = (memberRows || []).map((m) => m.user_id as string)
+
   const idSet = new Set<string>()
   for (const p of partRows) idSet.add(p.user_id)
   for (const e of events) {
     if (e.created_by) idSet.add(e.created_by)
   }
+  for (const mid of memberIds) idSet.add(mid)
   const allUserIds = Array.from(idSet)
 
   const profileMap: { [key: string]: any } = {}
@@ -120,6 +128,10 @@ export default async function EventsPage({ params }: PageProps) {
     participants: partsByEvent[String(e.id)] || [],
   }))
 
+  const members = memberIds
+    .map((uid) => ({ userId: uid, name: nameOf(uid) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-6">
@@ -135,6 +147,7 @@ export default async function EventsPage({ params }: PageProps) {
         currentUserId={user.id}
         isStaff={isStaff}
         events={guildEvents}
+        members={members}
       />
     </div>
   )
