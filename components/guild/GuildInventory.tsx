@@ -347,8 +347,8 @@ export default function GuildInventory({
                   const gs = gradeStyle(c.grade);
                   return (
                     <div key={c.cardId}
-                      className={"group relative rounded-xl border overflow-hidden flex flex-col " + (owned ? "border-slate-200 shadow-sm bg-white" : "border-slate-200 bg-slate-50")}>
-                      <div className="relative aspect-square bg-slate-100">
+                      className={"group relative rounded-xl border overflow-hidden flex flex-col h-72 " + (owned ? "border-slate-200 shadow-sm bg-white" : "border-slate-200 bg-slate-50")}>
+                      <div className="relative h-[70%] w-full bg-slate-100">
                         {c.imageUrl ? (
                           <img src={c.imageUrl} alt={c.name} className={"w-full h-full object-cover " + (owned ? "" : "grayscale opacity-40")} />
                         ) : (
@@ -381,7 +381,7 @@ export default function GuildInventory({
                           </div>
                         )}
                       </div>
-                      <div className="p-2.5 flex flex-col flex-1">
+                      <div className="h-[30%] w-full p-2.5 flex flex-col justify-center">
                         <p className={"text-xs font-bold truncate " + (owned ? "text-slate-900" : "text-slate-400")}>{c.name}</p>
                         <p className={"text-[10px] mt-0.5 " + (owned ? "text-slate-500" : "text-slate-400")}>
                           {owned ? `보유 ${c.guildCount}장` : "미보유"}
