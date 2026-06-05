@@ -9,6 +9,7 @@ import {
   uncompleteRaidSchedule,
   type MyCharacter,
 } from '@/app/guild/[code]/raids/calendar/actions'
+import { getClassRole } from '@/lib/lostark-classes'
 
 export type Participant = {
   userId: string
@@ -72,6 +73,12 @@ function diffBadgeClass(diff: string): string {
   return 'border-yellow-500/40 bg-yellow-500/15 text-yellow-300'
 }
 
+// 서폿 가능 직업이면 딜/서폿 선택 가능 (기본 서폿)
+function defaultRoleFor(characterClass: string): 'dealer' | 'support' {
+  if (characterClass && getClassRole(characterClass) === 'support') return 'support'
+  return 'dealer'
+}
+
 export default function ScheduleDetailModal({
   open,
   schedule,
@@ -85,6 +92,7 @@ export default function ScheduleDetailModal({
   const [error, setError] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [selectedChar, setSelectedChar] = useState('')
+  const [selectedRole, setSelectedRole] = useState<'dealer' | 'support'>('dealer')
 
   const chars = Array.isArray(myCharacters) ? myCharacters : []
 
@@ -103,7 +111,9 @@ export default function ScheduleDetailModal({
       setSubmitting(false)
       setConfirming(false)
       const rep = chars.find((c) => c.isRepresentative)
-      setSelectedChar(rep ? rep.name : chars.length > 0 ? chars[0].name : '')
+      const initChar = rep ? rep : chars.length > 0 ? chars[0] : null
+      setSelectedChar(initChar ? initChar.name : '')
+      setSelectedRole(initChar ? defaultRoleFor(initChar.characterClass) : 'dealer')
     }
   }, [open, schedule])
 
@@ -117,6 +127,13 @@ export default function ScheduleDetailModal({
   const isCompleted = schedule.completed
   const hasChars = chars.length > 0
 
+  const selectedCharObj = chars.find((c) => c.name === selectedChar)
+  const selectedClass = selectedCharObj ? selectedCharObj.characterClass : ''
+  const roleSelectable = selectedClass ? getClassRole(selectedClass) === 'support' : false
+  const effectiveRole: 'dealer' | 'support' = roleSelectable ? selectedRole : 'dealer'
+
+  const showJoinUI = !isCompleted && !joined && !full && hasChars
+
   let dealerCount = 0
   let supportCount = 0
   for (const p of schedule.participants) {
@@ -128,7 +145,7 @@ export default function ScheduleDetailModal({
     if (!schedule) return
     setError('')
     setSubmitting(true)
-    const result = await joinRaidSchedule(schedule.id, guildCode, selectedChar)
+    const result = await joinRaidSchedule(schedule.id, guildCode, selectedChar, effectiveRole)
     setSubmitting(false)
     if (!result.ok) {
       setError(result.error || '참여 신청에 실패했습니다.')
@@ -369,7 +386,7 @@ export default function ScheduleDetailModal({
             </p>
           ) : null}
 
-          {!isCompleted && !joined && !full && hasChars ? (
+          {showJoinUI ? (
             <div className="mt-5">
               <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                 참여 캐릭터 선택
@@ -381,7 +398,10 @@ export default function ScheduleDetailModal({
                     <button
                       key={c.name}
                       type="button"
-                      onClick={() => setSelectedChar(c.name)}
+                      onClick={() => {
+                        setSelectedChar(c.name)
+                        setSelectedRole(defaultRoleFor(c.characterClass))
+                      }}
                       className={cx(
                         'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition',
                         active
@@ -410,6 +430,40 @@ export default function ScheduleDetailModal({
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          ) : null}
+
+          {showJoinUI && roleSelectable ? (
+            <div className="mt-3">
+              <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
+                역할 선택
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('dealer')}
+                  className={cx(
+                    'flex-1 rounded-lg border py-2 text-sm font-medium transition',
+                    selectedRole === 'dealer'
+                      ? 'border-rose-500 bg-rose-500/15 text-rose-200'
+                      : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
+                  )}
+                >
+                  딜러
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('support')}
+                  className={cx(
+                    'flex-1 rounded-lg border py-2 text-sm font-medium transition',
+                    selectedRole === 'support'
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-200'
+                      : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700'
+                  )}
+                >
+                  서포터
+                </button>
               </div>
             </div>
           ) : null}
@@ -443,7 +497,9 @@ export default function ScheduleDetailModal({
                 {submitting
                   ? '처리 중...'
                   : hasChars
-                  ? `${selectedChar || '캐릭터'}(으)로 참여 신청`
+                  ? `${selectedChar || '캐릭터'} · ${
+                      effectiveRole === 'support' ? '서포터' : '딜러'
+                    }(으)로 참여 신청`
                   : '참여 신청'}
               </button>
             )}
