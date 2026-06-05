@@ -129,7 +129,16 @@ export default async function EventsPage({ params }: PageProps) {
   }))
 
   const members = memberIds
-    .map((uid) => ({ userId: uid, name: nameOf(uid) }))
+    .map((uid) => {
+      const pr = profileMap[uid]
+      return {
+        userId: uid,
+        name: nameOf(uid),
+        avatar: pr ? pr.avatar_url || '' : '',
+        characterClass: pr && pr.character_class ? String(pr.character_class) : '',
+        itemLevel: pr && pr.item_level != null ? Number(pr.item_level) : null,
+      }
+    })
     .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
