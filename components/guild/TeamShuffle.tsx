@@ -1,13 +1,23 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Shuffle, Network, Copy, Check, Users, RotateCw } from 'lucide-react'
+import { Shuffle, Network, Copy, Check, Users, RotateCw, X, Info, AlertTriangle, SkipForward } from 'lucide-react'
 
 export type ShuffleMember = { userId: string; name: string }
 
 const TEAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
-const TEAM_COUNTS = [2, 3, 4, 5, 6, 7, 8]
+const NUM_OPTIONS = [2, 3, 4, 5, 6, 7, 8]
 const COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2', '#db2777', '#65a30d', '#9333ea', '#0d9488', '#e11d48', '#4f46e5', '#16a34a', '#ea580c', '#0ea5e9', '#c026d3']
+const TEAM_HEAD = [
+  { bg: '#EEEDFE', fg: '#3C3489', chip: '#534AB7' },
+  { bg: '#E6F1FB', fg: '#0C447C', chip: '#185FA5' },
+  { bg: '#E1F5EE', fg: '#085041', chip: '#0F6E56' },
+  { bg: '#FAECE7', fg: '#712B13', chip: '#993C1D' },
+  { bg: '#FBEAF0', fg: '#72243E', chip: '#993556' },
+  { bg: '#FAEEDA', fg: '#633806', chip: '#854F0B' },
+  { bg: '#EAF3DE', fg: '#27500A', chip: '#3B6D11' },
+  { bg: '#FCEBEB', fg: '#791F1F', chip: '#A32D2D' },
+]
 
 function cx(...p: (string | false | null | undefined)[]): string {
   return p.filter(Boolean).join(' ')
@@ -31,13 +41,23 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+function teamSizes(total: number, tc: number): number[] {
+  if (tc < 1) return []
+  const base = Math.floor(total / tc)
+  const rem = total % tc
+  const out: number[] = []
+  for (let i = 0; i < tc; i++) out.push(base + (i < rem ? 1 : 0))
+  return out
+}
+
+type Pt = { x: number; y: number }
+type Geo = { pts: Pt[]; cum: number[]; total: number }
 type Ladder = {
   cols: number
   rows: number
   rungs: boolean[][]
-  paths: string[]
+  geo: Geo[]
   perm: number[]
-  bottomTeam: string[]
   marginX: number
   colGap: number
   topY: number
@@ -47,7 +67,7 @@ type Ladder = {
   height: number
 }
 
-function buildLadder(n: number, teamCount: number): Ladder {
+function buildLadder(n: number): Ladder {
   const cols = n
   const rows = Math.max(6, cols + 2)
   const rungs: boolean[][] = []
@@ -61,40 +81,72 @@ function buildLadder(n: number, teamCount: number): Ladder {
   }
 
   const marginX = 26
-  const colGap = 56
-  const topY = 26
-  const rowGap = 24
+  const colGap = 58
+  const topY = 28
+  const rowGap = 26
   const bottomY = topY + (rows + 1) * rowGap
   const xOf = (c: number) => marginX + c * colGap
 
-  const paths: string[] = []
+  const geo: Geo[] = []
   const perm: number[] = []
   for (let i = 0; i < cols; i++) {
     let pos = i
-    let d = 'M ' + xOf(i) + ' ' + topY
+    const pts: Pt[] = [{ x: xOf(i), y: topY }]
     for (let r = 0; r < rows; r++) {
       const ry = topY + (r + 1) * rowGap
-      d += ' L ' + xOf(pos) + ' ' + ry
+      pts.push({ x: xOf(pos), y: ry })
       if (pos > 0 && rungs[r][pos - 1]) {
         pos = pos - 1
-        d += ' L ' + xOf(pos) + ' ' + ry
+        pts.push({ x: xOf(pos), y: ry })
       } else if (pos < cols - 1 && rungs[r][pos]) {
         pos = pos + 1
-        d += ' L ' + xOf(pos) + ' ' + ry
+        pts.push({ x: xOf(pos), y: ry })
       }
     }
-    d += ' L ' + xOf(pos) + ' ' + bottomY
-    paths.push(d)
+    pts.push({ x: xOf(pos), y: bottomY })
     perm.push(pos)
+
+    const cum = [0]
+    let total = 0
+    for (let k = 1; k < pts.length; k++) {
+      const dx = pts[k].x - pts[k - 1].x
+      const dy = pts[k].y - pts[k - 1].y
+      total += Math.sqrt(dx * dx + dy * dy)
+      cum.push(total)
+    }
+    geo.push({ pts, cum, total })
   }
 
-  const bottomTeam: string[] = []
-  for (let p = 0; p < cols; p++) bottomTeam.push(TEAM_LABELS[p % teamCount])
-
   const width = marginX * 2 + (cols - 1) * colGap
-  const height = bottomY + 26
+  const height = bottomY + 28
+  return { cols, rows, rungs, geo, perm, marginX, colGap, topY, rowGap, bottomY, width, height }
+}
 
-  return { cols, rows, rungs, paths, perm, bottomTeam, marginX, colGap, topY, rowGap, bottomY, width, height }
+function fullPath(g: Geo): string {
+  let d = 'M ' + g.pts[0].x + ' ' + g.pts[0].y
+  for (let k = 1; k < g.pts.length; k++) d += ' L ' + g.pts[k].x + ' ' + g.pts[k].y
+  return d
+}
+
+function partialPath(g: Geo, dist: number): { d: string; x: number; y: number } {
+  if (dist <= 0) return { d: 'M ' + g.pts[0].x + ' ' + g.pts[0].y, x: g.pts[0].x, y: g.pts[0].y }
+  let d = 'M ' + g.pts[0].x + ' ' + g.pts[0].y
+  for (let k = 1; k < g.pts.length; k++) {
+    if (g.cum[k] <= dist) {
+      d += ' L ' + g.pts[k].x + ' ' + g.pts[k].y
+      if (k === g.pts.length - 1) return { d, x: g.pts[k].x, y: g.pts[k].y }
+    } else {
+      const segStart = g.cum[k - 1]
+      const segEnd = g.cum[k]
+      const f = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0
+      const x = g.pts[k - 1].x + (g.pts[k].x - g.pts[k - 1].x) * f
+      const y = g.pts[k - 1].y + (g.pts[k].y - g.pts[k - 1].y) * f
+      d += ' L ' + x + ' ' + y
+      return { d, x, y }
+    }
+  }
+  const last = g.pts[g.pts.length - 1]
+  return { d, x: last.x, y: last.y }
 }
 
 type Props = {
@@ -105,7 +157,9 @@ export default function TeamShuffle({ members }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [manualRaw, setManualRaw] = useState('')
   const [mode, setMode] = useState<'slot' | 'ladder'>('slot')
+  const [splitMode, setSplitMode] = useState<'count' | 'size'>('count')
   const [teamCount, setTeamCount] = useState(2)
+  const [teamSize, setTeamSize] = useState(5)
   const [teams, setTeams] = useState<string[][] | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -117,8 +171,16 @@ export default function TeamShuffle({ members }: Props) {
   // 사다리
   const [ladder, setLadder] = useState<Ladder | null>(null)
   const [ladderNames, setLadderNames] = useState<string[]>([])
+  const [phase, setPhase] = useState<'idle' | 'playing' | 'done'>('idle')
+  const [doneCount, setDoneCount] = useState(0)
+  const [drawn, setDrawn] = useState('')
+  const [ball, setBall] = useState<{ x: number; y: number; color: string } | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ladderRef = useRef<Ladder | null>(null)
+  const finalRef = useRef<string[][] | null>(null)
 
-  // 최종 명단 = 선택한 길드원 + 직접 입력 (중복 제거)
+  // 최종 명단
   const memberNames = members.filter((m) => selectedIds.includes(m.userId)).map((m) => m.name)
   const manualNames = parseNames(manualRaw)
   const seen = new Set<string>()
@@ -129,23 +191,44 @@ export default function TeamShuffle({ members }: Props) {
       names.push(nm)
     }
   }
-  const effTeams = Math.min(teamCount, Math.max(1, names.length))
+  const total = names.length
 
-  function stopReel() {
-    if (reelRef.current !== null) {
+  function getTc(t: number): number {
+    if (t < 1) return 0
+    return splitMode === 'count' ? Math.min(teamCount, t) : Math.max(1, Math.ceil(t / teamSize))
+  }
+  const tc = getTc(total)
+  const sizes = teamSizes(total, tc)
+  const playing = spinning || phase === 'playing'
+
+  function cancelAll() {
+    if (reelRef.current) {
       clearTimeout(reelRef.current)
       reelRef.current = null
     }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
   }
+
   useEffect(() => {
-    return () => stopReel()
+    return () => cancelAll()
   }, [])
 
   function reset() {
-    stopReel()
+    cancelAll()
     setSpinning(false)
     setTeams(null)
     setLadder(null)
+    setPhase('idle')
+    setDoneCount(0)
+    setDrawn('')
+    setBall(null)
     setCopied(false)
   }
 
@@ -153,30 +236,29 @@ export default function TeamShuffle({ members }: Props) {
     reset()
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.concat(id)))
   }
-
   function selectAll() {
     reset()
     setSelectedIds(members.map((m) => m.userId))
   }
-
   function clearAll() {
     reset()
     setSelectedIds([])
   }
 
-  function assignRoundRobin(list: string[]): string[][] {
-    const tc = Math.min(teamCount, list.length)
+  function assignRoundRobin(list: string[], count: number): string[][] {
     const res: string[][] = []
-    for (let i = 0; i < tc; i++) res.push([])
-    list.forEach((nm, i) => res[i % tc].push(nm))
+    for (let i = 0; i < count; i++) res.push([])
+    list.forEach((nm, i) => res[i % count].push(nm))
     return res
   }
 
   function runSlot() {
-    if (names.length < 2 || spinning) return
-    stopReel()
+    if (total < 2 || playing) return
+    cancelAll()
     setLadder(null)
-    const result = assignRoundRobin(shuffle(names))
+    setPhase('idle')
+    const count = getTc(total)
+    const result = assignRoundRobin(shuffle(names), count)
     setTeams(null)
     setCopied(false)
     setSpinning(true)
@@ -187,7 +269,7 @@ export default function TeamShuffle({ members }: Props) {
       const elapsed = Date.now() - start
       setReelName(pool[Math.floor(Math.random() * pool.length)])
       if (elapsed >= duration) {
-        stopReel()
+        cancelAll()
         setSpinning(false)
         setTeams(result)
         return
@@ -198,26 +280,73 @@ export default function TeamShuffle({ members }: Props) {
     tick()
   }
 
+  function animatePlayer(i: number) {
+    const l = ladderRef.current
+    if (!l) return
+    if (i >= l.cols) {
+      setPhase('done')
+      setDoneCount(l.cols)
+      setBall(null)
+      setDrawn('')
+      setTeams(finalRef.current)
+      return
+    }
+    const g = l.geo[i]
+    const color = COLORS[i % COLORS.length]
+    const dur = 850
+    const start = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / dur)
+      const dist = t * g.total
+      const cur = partialPath(g, dist)
+      setDrawn(cur.d)
+      setBall({ x: cur.x, y: cur.y, color })
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(step)
+      } else {
+        setDoneCount(i + 1)
+        setDrawn('')
+        setBall(null)
+        timerRef.current = setTimeout(() => animatePlayer(i + 1), 220)
+      }
+    }
+    rafRef.current = requestAnimationFrame(step)
+  }
+
   function runLadder() {
-    if (names.length < 2) return
-    stopReel()
-    setSpinning(false)
+    if (total < 2 || playing) return
+    cancelAll()
+    const shuffled = shuffle(names)
+    const count = getTc(shuffled.length)
+    const l = buildLadder(shuffled.length)
+    // 결과 팀
+    const grouped: string[][] = []
+    for (let i = 0; i < count; i++) grouped.push([])
+    shuffled.forEach((nm, i) => {
+      grouped[l.perm[i] % count].push(nm)
+    })
+    ladderRef.current = l
+    finalRef.current = grouped
+    setLadder(l)
+    setLadderNames(shuffled)
     setTeams(null)
     setCopied(false)
-    const shuffled = shuffle(names)
-    const l = buildLadder(shuffled.length, teamCount)
-    const res: { [team: string]: string[] } = {}
-    shuffled.forEach((nm, i) => {
-      const team = l.bottomTeam[l.perm[i]]
-      if (!res[team]) res[team] = []
-      res[team].push(nm)
-    })
-    const tc = Math.min(teamCount, shuffled.length)
-    const grouped: string[][] = []
-    for (let i = 0; i < tc; i++) grouped.push(res[TEAM_LABELS[i]] ?? [])
-    setLadderNames(shuffled)
-    setLadder(l)
-    setTeams(grouped)
+    setDoneCount(0)
+    setDrawn('')
+    setBall(null)
+    setPhase('playing')
+    timerRef.current = setTimeout(() => animatePlayer(0), 150)
+  }
+
+  function skipLadder() {
+    const l = ladderRef.current
+    if (!l) return
+    cancelAll()
+    setDoneCount(l.cols)
+    setDrawn('')
+    setBall(null)
+    setPhase('done')
+    setTeams(finalRef.current)
   }
 
   function run() {
@@ -243,7 +372,11 @@ export default function TeamShuffle({ members }: Props) {
     }
   }
 
-  const canRun = names.length >= 2 && !spinning
+  const canRun = total >= 2 && !playing
+  const selectedMembers = members.filter((m) => selectedIds.includes(m.userId))
+  const unselectedMembers = members.filter((m) => !selectedIds.includes(m.userId))
+  const numOptions = splitMode === 'count' ? teamCount : teamSize
+  const numLabel = splitMode === 'count' ? '팀 개수' : '한 팀 인원'
 
   return (
     <div>
@@ -253,48 +386,77 @@ export default function TeamShuffle({ members }: Props) {
           60% { opacity: 1; transform: translateY(2px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        @keyframes ladderDraw {
-          from { stroke-dashoffset: 2600; }
-          to { stroke-dashoffset: 0; }
-        }
       `}</style>
 
       {/* 길드원 선택 */}
       {members.length > 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
               <Users className="h-4 w-4 text-violet-600" />
-              길드원 추가
+              길드원
             </span>
-            <div className="flex items-center gap-1.5">
-              <button type="button" onClick={selectAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50">
-                전체
-              </button>
-              <button type="button" onClick={clearAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50">
-                해제
-              </button>
-            </div>
+            <span className="text-xs text-slate-400">
+              {selectedMembers.length} / {members.length}명 선택
+            </span>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {members.map((m) => {
-              const on = selectedIds.includes(m.userId)
-              return (
-                <button
-                  key={m.userId}
-                  type="button"
-                  disabled={spinning}
-                  onClick={() => toggleMember(m.userId)}
-                  className={cx(
-                    'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition disabled:opacity-50',
-                    on ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                  )}
-                >
-                  {on ? <Check className="h-3 w-3" /> : null}
-                  {m.name}
-                </button>
-              )
-            })}
+
+          {selectedMembers.length > 0 ? (
+            <div className="mb-2.5">
+              <p className="mb-1.5 text-[11px] text-slate-400">선택됨 · 탭하면 빼기</p>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMembers.map((m) => (
+                  <button
+                    key={m.userId}
+                    type="button"
+                    disabled={playing}
+                    onClick={() => toggleMember(m.userId)}
+                    className="flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[12px] font-medium text-violet-800 transition hover:bg-violet-200 disabled:opacity-50"
+                  >
+                    {m.name}
+                    <X className="h-3 w-3 opacity-60" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {unselectedMembers.length > 0 ? (
+            <div className={selectedMembers.length > 0 ? 'border-t border-slate-100 pt-2.5' : ''}>
+              <p className="mb-1.5 text-[11px] text-slate-400">탭해서 추가</p>
+              <div className="flex flex-wrap gap-1.5">
+                {unselectedMembers.map((m) => (
+                  <button
+                    key={m.userId}
+                    type="button"
+                    disabled={playing}
+                    onClick={() => toggleMember(m.userId)}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[12px] text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-50"
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-3 flex gap-1.5">
+            <button
+              type="button"
+              onClick={selectAll}
+              disabled={playing}
+              className="flex-1 rounded-md border border-slate-200 py-1.5 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              전체 선택
+            </button>
+            <button
+              type="button"
+              onClick={clearAll}
+              disabled={playing}
+              className="flex-1 rounded-md border border-slate-200 py-1.5 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              모두 해제
+            </button>
           </div>
         </div>
       ) : null}
@@ -302,8 +464,12 @@ export default function TeamShuffle({ members }: Props) {
       {/* 직접 입력 */}
       <div className={cx('rounded-xl border border-slate-200 bg-white p-4', members.length > 0 ? 'mt-3' : '')}>
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-700">직접 입력 {members.length > 0 ? '(외부 참가자)' : ''}</span>
-          <span className="text-[11px] text-slate-400">전체 {names.length}명</span>
+          <span className="text-sm font-bold text-slate-900">
+            직접 입력 {members.length > 0 ? <span className="text-[12px] font-normal text-slate-400">외부 참가자</span> : null}
+          </span>
+          <span className="flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-[12px] font-medium text-violet-800">
+            <Users className="h-3 w-3" />총 {total}명
+          </span>
         </div>
         <textarea
           value={manualRaw}
@@ -312,82 +478,141 @@ export default function TeamShuffle({ members }: Props) {
             reset()
           }}
           rows={3}
-          placeholder={'한 줄에 한 명씩 입력하세요\n예) 외부길드원, 친구1'}
+          placeholder={'한 줄에 한 명씩 (쉼표도 가능)'}
           className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 placeholder-slate-300 transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
         />
-        <p className="mt-1 text-[11px] text-slate-400">줄바꿈 또는 쉼표(,)로 구분돼요.</p>
       </div>
 
-      {/* 방식 + 팀 개수 */}
-      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-        <div className="mb-3 flex gap-1.5">
+      {/* 방식 + 나누기 기준 + 숫자 */}
+      <div className="mt-3 rounded-xl bg-slate-100 p-3.5">
+        <div className="mb-3 flex gap-2">
           <button
             type="button"
+            disabled={playing}
             onClick={() => {
               setMode('slot')
               reset()
             }}
             className={cx(
-              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition',
-              mode === 'slot' ? 'bg-violet-600 text-white' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-bold transition disabled:opacity-60',
+              mode === 'slot' ? 'bg-violet-600 text-white' : 'bg-white text-slate-500 hover:text-slate-700'
             )}
           >
-            <Shuffle className="h-3.5 w-3.5" />
+            <Shuffle className="h-4 w-4" />
             슬롯머신
           </button>
           <button
             type="button"
+            disabled={playing}
             onClick={() => {
               setMode('ladder')
               reset()
             }}
             className={cx(
-              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition',
-              mode === 'ladder' ? 'bg-violet-600 text-white' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-bold transition disabled:opacity-60',
+              mode === 'ladder' ? 'bg-violet-600 text-white' : 'bg-white text-slate-500 hover:text-slate-700'
             )}
           >
-            <Network className="h-3.5 w-3.5" />
+            <Network className="h-4 w-4" />
             사다리타기
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-slate-400">팀 개수</span>
-          <div className="flex flex-wrap gap-1">
-            {TEAM_COUNTS.map((n) => (
-              <button
-                key={n}
-                type="button"
-                disabled={spinning}
-                onClick={() => {
-                  setTeamCount(n)
-                  reset()
-                }}
-                className={cx(
-                  'rounded-md px-2.5 py-1 text-xs font-bold transition disabled:opacity-50',
-                  teamCount === n ? 'bg-violet-600 text-white' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1" />
+        <p className="mb-1.5 text-[12px] font-bold text-slate-500">나누기 기준</p>
+        <div className="mb-3 flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
           <button
             type="button"
-            onClick={run}
-            disabled={!canRun}
-            className="flex items-center gap-1.5 rounded-md bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700 disabled:opacity-50"
+            disabled={playing}
+            onClick={() => {
+              setSplitMode('count')
+              reset()
+            }}
+            className={cx(
+              'flex-1 rounded-md py-1.5 text-[12px] transition disabled:opacity-60',
+              splitMode === 'count' ? 'bg-violet-100 font-bold text-violet-800' : 'text-slate-500'
+            )}
           >
-            {teams || ladder ? <RotateCw className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} /> : <Shuffle className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} />}
-            {spinning ? '돌리는 중...' : teams || ladder ? '다시' : mode === 'slot' ? '팀 뽑기' : '사다리 타기'}
+            팀 개수로
+          </button>
+          <button
+            type="button"
+            disabled={playing}
+            onClick={() => {
+              setSplitMode('size')
+              reset()
+            }}
+            className={cx(
+              'flex-1 rounded-md py-1.5 text-[12px] transition disabled:opacity-60',
+              splitMode === 'size' ? 'bg-violet-100 font-bold text-violet-800' : 'text-slate-500'
+            )}
+          >
+            팀당 인원으로
           </button>
         </div>
 
-        {names.length < 2 ? (
-          <p className="mt-2 text-[11px] text-slate-400">참가자를 2명 이상 골라야 팀을 짤 수 있어요.</p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-[12px] font-bold text-slate-500">{numLabel}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {NUM_OPTIONS.map((n) => {
+              const on = numOptions === n
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={playing}
+                  onClick={() => {
+                    if (splitMode === 'count') setTeamCount(n)
+                    else setTeamSize(n)
+                    reset()
+                  }}
+                  className={cx(
+                    'flex h-8 w-8 items-center justify-center rounded-md text-[13px] transition disabled:opacity-60',
+                    on ? 'bg-violet-600 font-bold text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-violet-300'
+                  )}
+                >
+                  {n}
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex-1" />
+          {phase === 'playing' ? (
+            <button
+              type="button"
+              onClick={skipLadder}
+              className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] font-bold text-slate-600 transition hover:bg-slate-50"
+            >
+              <SkipForward className="h-3.5 w-3.5" />
+              건너뛰기
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={run}
+              disabled={!canRun}
+              className="flex items-center gap-1.5 rounded-md bg-violet-600 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-violet-700 disabled:opacity-50"
+            >
+              {teams ? <RotateCw className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} /> : <Shuffle className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} />}
+              {spinning ? '돌리는 중...' : teams ? '다시' : mode === 'slot' ? '팀 뽑기' : '사다리 타기'}
+            </button>
+          )}
+        </div>
+
+        {/* 안내 */}
+        {total < 2 ? (
+          <div className="mt-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="text-[12px] font-medium text-amber-700">참가자를 2명 이상 골라야 팀을 짤 수 있어요.</span>
+          </div>
         ) : (
-          <p className="mt-2 text-[11px] text-slate-400">{names.length}명을 {effTeams}개 팀으로 나눠요.</p>
+          <div className="mt-3 flex items-center gap-2 rounded-md bg-violet-50 px-3 py-2">
+            <Info className="h-4 w-4 shrink-0 text-violet-600" />
+            <span className="text-[12px] font-medium text-violet-700">
+              {splitMode === 'count'
+                ? total + '명을 ' + tc + '개 팀으로 나눠요 (' + sizes.join('·') + '명)'
+                : total + '명을 팀당 ' + teamSize + '명씩 → ' + tc + '팀 (' + sizes.join('·') + '명)'}
+            </span>
+          </div>
         )}
       </div>
 
@@ -399,60 +624,70 @@ export default function TeamShuffle({ members }: Props) {
         </div>
       ) : null}
 
-      {/* 사다리 그림 */}
+      {/* 사다리 */}
       {mode === 'ladder' && ladder ? (
-        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3">
-          <svg width={ladder.width} height={ladder.height} className="mx-auto block">
-            {Array.from({ length: ladder.cols }).map((_, c) => {
-              const x = ladder.marginX + c * ladder.colGap
-              return <line key={'v' + c} x1={x} y1={ladder.topY} x2={x} y2={ladder.bottomY} stroke="#e2e8f0" strokeWidth={2} />
-            })}
-            {ladder.rungs.map((row, r) =>
-              row.map((on, c) => {
-                if (!on) return null
-                const x1 = ladder.marginX + c * ladder.colGap
-                const x2 = ladder.marginX + (c + 1) * ladder.colGap
-                const y = ladder.topY + (r + 1) * ladder.rowGap
-                return <line key={'r' + r + '-' + c} x1={x1} y1={y} x2={x2} y2={y} stroke="#cbd5e1" strokeWidth={2} />
-              })
-            )}
-            {ladder.paths.map((d, i) => (
-              <path
-                key={'p' + i}
-                d={d}
-                fill="none"
-                stroke={COLORS[i % COLORS.length]}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ strokeDasharray: 2600, animation: 'ladderDraw 0.9s ease-out forwards', animationDelay: i * 0.12 + 's' }}
-              />
-            ))}
-            {ladderNames.map((nm, i) => {
-              const x = ladder.marginX + i * ladder.colGap
-              return (
-                <text key={'tn' + i} x={x} y={14} textAnchor="middle" fontSize={9} fontWeight={700} fill={COLORS[i % COLORS.length]}>
-                  {nm.length > 6 ? nm.slice(0, 6) : nm}
-                </text>
-              )
-            })}
-            {ladder.bottomTeam.map((tm, p) => {
-              const x = ladder.marginX + p * ladder.colGap
-              return (
-                <text key={'bt' + p} x={x} y={ladder.bottomY + 16} textAnchor="middle" fontSize={11} fontWeight={800} fill="#7c3aed">
-                  {tm}
-                </text>
-              )
-            })}
-          </svg>
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+          {phase === 'playing' ? (
+            <p className="mb-2 text-center text-[12px] font-bold text-violet-600">
+              사다리 타는 중... {doneCount} / {ladder.cols}
+            </p>
+          ) : null}
+          <div className="overflow-x-auto">
+            <svg width={ladder.width} height={ladder.height} className="mx-auto block">
+              {Array.from({ length: ladder.cols }).map((_, c) => {
+                const x = ladder.marginX + c * ladder.colGap
+                return <line key={'v' + c} x1={x} y1={ladder.topY} x2={x} y2={ladder.bottomY} stroke="#e2e8f0" strokeWidth={2} />
+              })}
+              {ladder.rungs.map((row, r) =>
+                row.map((on, c) => {
+                  if (!on) return null
+                  const x1 = ladder.marginX + c * ladder.colGap
+                  const x2 = ladder.marginX + (c + 1) * ladder.colGap
+                  const y = ladder.topY + (r + 1) * ladder.rowGap
+                  return <line key={'r' + r + '-' + c} x1={x1} y1={y} x2={x2} y2={y} stroke="#cbd5e1" strokeWidth={2} />
+                })
+              )}
+              {/* 완료된 참가자 경로 */}
+              {ladder.geo.map((g, i) => {
+                if (phase !== 'done' && i >= doneCount) return null
+                return (
+                  <path key={'done' + i} d={fullPath(g)} fill="none" stroke={COLORS[i % COLORS.length]} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+                )
+              })}
+              {/* 진행 중 경로 + 공 */}
+              {phase === 'playing' && drawn ? (
+                <path d={drawn} fill="none" stroke={ball ? ball.color : '#7c3aed'} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+              ) : null}
+              {ball ? <circle cx={ball.x} cy={ball.y} r={6} fill={ball.color} stroke="#fff" strokeWidth={2} /> : null}
+              {/* 위 이름 */}
+              {ladderNames.map((nm, i) => {
+                const x = ladder.marginX + i * ladder.colGap
+                return (
+                  <text key={'tn' + i} x={x} y={16} textAnchor="middle" fontSize={9} fontWeight={700} fill={COLORS[i % COLORS.length]}>
+                    {nm.length > 6 ? nm.slice(0, 6) : nm}
+                  </text>
+                )
+              })}
+              {/* 아래 팀 */}
+              {Array.from({ length: ladder.cols }).map((_, p) => {
+                const x = ladder.marginX + p * ladder.colGap
+                const h = TEAM_HEAD[(p % tc) % TEAM_HEAD.length]
+                return (
+                  <text key={'bt' + p} x={x} y={ladder.bottomY + 18} textAnchor="middle" fontSize={11} fontWeight={800} fill={h.chip}>
+                    {TEAM_LABELS[p % tc]}
+                  </text>
+                )
+              })}
+            </svg>
+          </div>
         </div>
       ) : null}
 
       {/* 결과 */}
-      {teams && !spinning ? (
+      {teams && !spinning && phase !== 'playing' ? (
         <div className="mt-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">팀 편성 결과</span>
+            <span className="text-[13px] font-bold text-slate-900">팀 편성 결과</span>
             <button
               type="button"
               onClick={copyTeams}
@@ -462,32 +697,35 @@ export default function TeamShuffle({ members }: Props) {
               {copied ? '복사됨' : '복사'}
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {teams.map((team, i) => (
-              <div key={i} className="rounded-lg border border-slate-200 bg-white p-2.5">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: COLORS[i % COLORS.length] }}>
-                    <span className="flex h-4 w-4 items-center justify-center rounded text-[10px] text-white" style={{ backgroundColor: COLORS[i % COLORS.length] }}>
-                      {TEAM_LABELS[i]}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {teams.map((team, i) => {
+              const h = TEAM_HEAD[i % TEAM_HEAD.length]
+              return (
+                <div key={i} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: h.bg }}>
+                    <span className="flex items-center gap-1.5 text-[13px] font-bold" style={{ color: h.fg }}>
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md text-[12px] font-bold text-white" style={{ backgroundColor: h.chip }}>
+                        {TEAM_LABELS[i]}
+                      </span>
+                      팀 {TEAM_LABELS[i]}
                     </span>
-                    팀 {TEAM_LABELS[i]}
-                  </span>
-                  <span className="text-[11px] text-slate-400">{team.length}명</span>
+                    <span className="text-[11px]" style={{ color: h.chip }}>{team.length}명</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 px-3 py-2.5">
+                    {team.map((nm, mi) => (
+                      <span
+                        key={mi}
+                        className="text-[13px] text-slate-800"
+                        style={{ animation: 'slotPop 0.3s ease-out both', animationDelay: (i * 0.08 + mi * 0.05) + 's' }}
+                      >
+                        {nm}
+                      </span>
+                    ))}
+                    {team.length === 0 ? <span className="text-[12px] text-slate-300">-</span> : null}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {team.map((nm, mi) => (
-                    <div
-                      key={mi}
-                      className="text-xs font-medium text-slate-800"
-                      style={{ animation: 'slotPop 0.3s ease-out both', animationDelay: (i * 0.1 + mi * 0.05) + 's' }}
-                    >
-                      {nm}
-                    </div>
-                  ))}
-                  {team.length === 0 ? <p className="text-[11px] text-slate-300">-</p> : null}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       ) : null}
