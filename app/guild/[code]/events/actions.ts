@@ -17,6 +17,16 @@ type CreateEventInput = {
   description: string
 }
 
+type UpdateEventInput = {
+  eventId: string
+  guildCode: string
+  title: string
+  eventType: string
+  scheduledDate: string
+  scheduledTime: string
+  description: string
+}
+
 export async function createEvent(input: CreateEventInput): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -72,6 +82,52 @@ export async function createEvent(input: CreateEventInput): Promise<ActionResult
   } catch {
     // 무시
   }
+
+  revalidatePath('/guild/' + input.guildCode + '/events')
+  return { ok: true }
+}
+
+export async function updateEvent(input: UpdateEventInput): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' }
+
+  if (!input.title.trim()) return { ok: false, error: '이벤트 제목을 입력해주세요.' }
+
+  const { data: ev } = await supabase
+    .from('guild_events')
+    .select('id, guild_id')
+    .eq('id', input.eventId)
+    .single()
+  if (!ev) return { ok: false, error: '이벤트를 찾을 수 없습니다.' }
+
+  const { data: membership } = await supabase
+    .from('guild_members')
+    .select('role')
+    .eq('guild_id', ev.guild_id)
+    .eq('user_id', user.id)
+    .single()
+  if (!membership) return { ok: false, error: '길드원만 수정할 수 있습니다.' }
+
+  // 수정은 마스터/부마만
+  const isStaff = membership.role === 'master' || membership.role === 'submaster'
+  if (!isStaff) return { ok: false, error: '마스터/부마만 이벤트를 수정할 수 있습니다.' }
+
+  const type = EVENT_TYPES.indexOf(input.eventType) !== -1 ? input.eventType : '기타'
+
+  const { error } = await supabase
+    .from('guild_events')
+    .update({
+      title: input.title.trim(),
+      description: input.description.trim() || null,
+      event_type: type,
+      scheduled_date: input.scheduledDate || null,
+      scheduled_time: input.scheduledTime || null,
+    })
+    .eq('id', input.eventId)
+
+  if (error) return { ok: false, error: '이벤트 수정 실패: ' + error.message }
 
   revalidatePath('/guild/' + input.guildCode + '/events')
   return { ok: true }
