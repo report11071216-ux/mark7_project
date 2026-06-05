@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import {
   Plus,
+  Pencil,
   CalendarDays,
   Users,
   Shuffle,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import {
   createEvent,
+  updateEvent,
   joinEvent,
   leaveEvent,
   setEventStatus,
@@ -93,7 +95,9 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
   const [error, setError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState('')
 
-  const [showCreate, setShowCreate] = useState(false)
+  // 만들기/수정 모달 (editId === '' 이면 만들기, 아니면 수정)
+  const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState('')
   const [title, setTitle] = useState('')
   const [eventType, setEventType] = useState('내전')
   const [date, setDate] = useState('')
@@ -112,21 +116,53 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
     setOpenId(openId === id ? '' : id)
   }
 
-  async function handleCreate() {
+  function openCreate() {
+    setEditId('')
+    setTitle('')
+    setEventType('내전')
+    setDate('')
+    setTime('')
+    setDesc('')
+    setError('')
+    setShowForm(true)
+  }
+
+  function openEdit(ev: GuildEvent) {
+    setEditId(ev.id)
+    setTitle(ev.title)
+    setEventType(EVENT_TYPES.indexOf(ev.eventType) !== -1 ? ev.eventType : '기타')
+    setDate(ev.scheduledDate || '')
+    setTime(ev.scheduledTime || '')
+    setDesc(ev.description || '')
+    setError('')
+    setShowForm(true)
+  }
+
+  async function handleSubmit() {
     if (!title.trim() || busy) return
     setBusy(true)
     setError('')
-    const res = await createEvent({
-      guildCode,
-      title: title.trim(),
-      eventType,
-      scheduledDate: date,
-      scheduledTime: time,
-      description: desc,
-    })
+    const res = editId
+      ? await updateEvent({
+          eventId: editId,
+          guildCode,
+          title: title.trim(),
+          eventType,
+          scheduledDate: date,
+          scheduledTime: time,
+          description: desc,
+        })
+      : await createEvent({
+          guildCode,
+          title: title.trim(),
+          eventType,
+          scheduledDate: date,
+          scheduledTime: time,
+          description: desc,
+        })
     setBusy(false)
     if (!res.ok) {
-      setError(res.error || '이벤트 생성에 실패했습니다.')
+      setError(res.error || (editId ? '수정에 실패했습니다.' : '이벤트 생성에 실패했습니다.'))
       return
     }
     window.location.reload()
@@ -222,7 +258,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
         <span className="text-sm text-slate-500">총 {events.length}개의 이벤트</span>
         {isStaff ? (
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={openCreate}
             className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -231,7 +267,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
         ) : null}
       </div>
 
-      {error ? (
+      {error && !showForm ? (
         <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
           {error}
         </p>
@@ -470,6 +506,16 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
 
                     {canManage ? (
                       <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
+                        {isStaff ? (
+                          <button
+                            onClick={() => openEdit(ev)}
+                            disabled={busy}
+                            className="flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            수정
+                          </button>
+                        ) : null}
                         {recruiting ? (
                           <button
                             onClick={() => handleStatus(ev.id, '마감')}
@@ -526,13 +572,15 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
         </div>
       )}
 
-      {showCreate ? (
+      {showForm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">이벤트 만들기</h3>
+              <h3 className="text-base font-bold text-slate-900">
+                {editId ? '이벤트 수정' : '이벤트 만들기'}
+              </h3>
               <button
-                onClick={() => setShowCreate(false)}
+                onClick={() => setShowForm(false)}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100"
                 aria-label="닫기"
               >
@@ -614,18 +662,18 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
 
             <div className="mt-5 flex gap-2">
               <button
-                onClick={() => setShowCreate(false)}
+                onClick={() => setShowForm(false)}
                 disabled={busy}
                 className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-bold text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
               >
                 취소
               </button>
               <button
-                onClick={handleCreate}
+                onClick={handleSubmit}
                 disabled={busy || !title.trim()}
                 className="flex-1 rounded-lg bg-violet-600 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-40"
               >
-                {busy ? '만드는 중...' : '만들기'}
+                {busy ? (editId ? '수정 중...' : '만드는 중...') : editId ? '수정' : '만들기'}
               </button>
             </div>
           </div>
