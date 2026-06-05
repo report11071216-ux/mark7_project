@@ -58,7 +58,8 @@ type DescBlock = { type: 'heading' | 'text' | 'divider'; text?: string }
 
 const EVENT_TYPES = ['내전', '레이드', '친목', '경쟁전', '기타']
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
-const TEAM_LABELS = ['A', 'B', 'C', 'D']
+const TEAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+const TEAM_COUNTS = [2, 3, 4, 5, 6, 7, 8]
 
 function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ')
@@ -213,6 +214,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
   const [teamCount, setTeamCount] = useState(2)
   const [teams, setTeams] = useState<EventParticipant[][] | null>(null)
   const [copied, setCopied] = useState(false)
+  const [excludedIds, setExcludedIds] = useState<string[]>([])
 
   // 슬롯머신 연출
   const [spinning, setSpinning] = useState(false)
@@ -237,6 +239,7 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
     setSpinning(false)
     setTeams(null)
     setCopied(false)
+    setExcludedIds([])
     setOpenId(openId === id ? '' : id)
   }
 
@@ -245,6 +248,11 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
     setSpinning(false)
     setTeams(null)
     setCopied(false)
+  }
+
+  function toggleExclude(id: string) {
+    resetTeams()
+    setExcludedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.concat(id)))
   }
 
   function openCreate() {
@@ -379,23 +387,24 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
     window.location.reload()
   }
 
-  function rollTeams(participants: EventParticipant[]) {
-    if (participants.length < 2 || spinning) return
+  function rollTeams(pool: EventParticipant[]) {
+    if (pool.length < 2 || spinning) return
     stopReel()
 
-    // 결과 먼저 확정
-    const shuffled = shuffle(participants)
+    // 결과 먼저 확정 (팀 개수는 인원 수를 넘지 않도록)
+    const tc = Math.min(teamCount, pool.length)
+    const shuffled = shuffle(pool)
     const result: EventParticipant[][] = []
-    for (let i = 0; i < teamCount; i++) result.push([])
+    for (let i = 0; i < tc; i++) result.push([])
     shuffled.forEach((p, i) => {
-      result[i % teamCount].push(p)
+      result[i % tc].push(p)
     })
 
     // 슬롯머신 연출
     setTeams(null)
     setCopied(false)
     setSpinning(true)
-    const names = participants.map((p) => p.name)
+    const names = pool.map((p) => p.name)
     const start = Date.now()
     const duration = 1500
 
@@ -476,6 +485,8 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
             const joined = ev.participants.some((p) => p.userId === currentUserId)
             const canManage = isStaff || ev.createdBy === currentUserId
             const recruiting = ev.status === '모집중'
+            const included = ev.participants.filter((p) => !excludedIds.includes(p.userId))
+            const effTeams = Math.min(teamCount, included.length)
 
             return (
               <div
@@ -604,14 +615,42 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
 
                     {ev.participants.length >= 2 ? (
                       <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                        <div className="mb-2 flex items-center gap-1.5">
+                          <Shuffle className="h-3.5 w-3.5 text-violet-600" />
+                          <span className="text-xs font-bold text-slate-700">팀 랜덤 돌리기</span>
+                        </div>
+
+                        {/* 참가자 포함/제외 */}
+                        <p className="mb-1.5 text-[11px] text-slate-400">
+                          체크 해제한 인원은 팀 뽑기에서 제외돼요 (예: 진행자/임원)
+                        </p>
+                        <div className="mb-3 flex flex-wrap gap-1.5">
+                          {ev.participants.map((p) => {
+                            const inc = !excludedIds.includes(p.userId)
+                            return (
+                              <button
+                                key={p.userId}
+                                type="button"
+                                disabled={spinning}
+                                onClick={() => toggleExclude(p.userId)}
+                                className={cx(
+                                  'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition disabled:opacity-50',
+                                  inc
+                                    ? 'border-violet-200 bg-violet-50 text-violet-700'
+                                    : 'border-slate-200 bg-white text-slate-400 line-through'
+                                )}
+                              >
+                                {inc ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                {p.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+
                         <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                            <Shuffle className="h-3.5 w-3.5 text-violet-600" />
-                            팀 랜덤 돌리기
-                          </span>
                           <span className="text-[11px] text-slate-400">팀 개수</span>
-                          <div className="flex gap-1">
-                            {[2, 3, 4].map((n) => (
+                          <div className="flex flex-wrap gap-1">
+                            {TEAM_COUNTS.map((n) => (
                               <button
                                 key={n}
                                 type="button"
@@ -634,8 +673,8 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                           <div className="flex-1" />
                           <button
                             type="button"
-                            onClick={() => rollTeams(ev.participants)}
-                            disabled={spinning}
+                            onClick={() => rollTeams(included)}
+                            disabled={spinning || included.length < 2}
                             className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
                           >
                             <Shuffle className={cx('h-3.5 w-3.5', spinning ? 'animate-spin' : '')} />
@@ -697,9 +736,13 @@ export default function EventsClient({ guildCode, currentUserId, isStaff, events
                               </div>
                             ))}
                           </div>
+                        ) : included.length < 2 ? (
+                          <p className="text-[11px] text-slate-400">
+                            팀을 나누려면 포함 인원이 2명 이상이어야 해요.
+                          </p>
                         ) : (
                           <p className="text-[11px] text-slate-400">
-                            "랜덤 돌리기"를 누르면 참가자를 {teamCount}개 팀으로 무작위로 나눠요.
+                            "랜덤 돌리기"를 누르면 포함된 {included.length}명을 {effTeams}개 팀으로 나눠요.
                           </p>
                         )}
                       </div>
