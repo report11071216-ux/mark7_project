@@ -4,6 +4,8 @@ import GuildInventory, {
   type InventoryItem,
   type StickerPack,
   type BackgroundItem,
+  type GuildCardEntry,
+  type MyCard,
 } from "@/components/guild/GuildInventory";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 export const dynamic = "force-dynamic";
@@ -122,6 +124,81 @@ export default async function GuildInventoryPage({ params }: Props) {
     }
   }
 
+  // ── 카드 보관함 데이터 ──
+  const [{ data: activeCards }, { data: gCards }, { data: donations }, { data: myCardRows }] =
+    await Promise.all([
+      supabase.from("attendance_cards").select("id, grade, name, image_url").eq("is_active", true),
+      supabase.from("guild_cards").select("card_id, count").eq("guild_id", guild.id),
+      supabase.from("guild_card_donations").select("card_id, qty, user_id").eq("guild_id", guild.id),
+      supabase.from("user_cards").select("card_id, count").eq("user_id", user.id),
+    ]);
+
+  // 길드 보유 수량 맵
+  const gCountMap: { [cardId: string]: number } = {};
+  for (const g of gCards ?? []) gCountMap[g.card_id] = g.count ?? 0;
+
+  // 기여자 집계 (카드별 → 유저별 합계)
+  const donorAgg: { [cardId: string]: { [userId: string]: number } } = {};
+  for (const d of donations ?? []) {
+    if (!donorAgg[d.card_id]) donorAgg[d.card_id] = {};
+    donorAgg[d.card_id][d.user_id] = (donorAgg[d.card_id][d.user_id] ?? 0) + (d.qty ?? 0);
+  }
+
+  // 기여자 이름 맵
+  const donorIds = Array.from(
+    new Set((donations ?? []).map((d) => d.user_id).filter(Boolean))
+  ) as string[];
+  const nameMap: { [userId: string]: string } = {};
+  if (donorIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", donorIds);
+    for (const p of profs ?? []) nameMap[p.id] = p.username ?? "이름없음";
+  }
+
+  const cards: GuildCardEntry[] = (activeCards ?? []).map((c) => {
+    const agg = donorAgg[c.id] ?? {};
+    const donors = Object.keys(agg)
+      .map((uid) => ({ name: nameMap[uid] ?? "알 수 없음", qty: agg[uid] }))
+      .sort((a, b) => b.qty - a.qty);
+    return {
+      cardId: c.id,
+      name: c.name,
+      grade: c.grade,
+      imageUrl: c.image_url,
+      guildCount: gCountMap[c.id] ?? 0,
+      donors,
+    };
+  });
+
+  // 내 카드 (기증용) — 메타는 attendance_cards에서 (비활성 포함)
+  const myIds = Array.from(
+    new Set((myCardRows ?? []).map((r) => r.card_id).filter(Boolean))
+  ) as string[];
+  const metaMap: { [cardId: string]: { grade: string; name: string; image_url: string | null } } = {};
+  if (myIds.length > 0) {
+    const { data: metas } = await supabase
+      .from("attendance_cards")
+      .select("id, grade, name, image_url")
+      .in("id", myIds);
+    for (const m of metas ?? []) {
+      metaMap[m.id] = { grade: m.grade, name: m.name, image_url: m.image_url };
+    }
+  }
+  const myCards: MyCard[] = (myCardRows ?? [])
+    .filter((r) => (r.count ?? 0) > 0)
+    .map((r) => {
+      const m = metaMap[r.card_id];
+      return {
+        cardId: r.card_id,
+        name: m?.name ?? "카드",
+        grade: m?.grade ?? "common",
+        imageUrl: m?.image_url ?? null,
+        count: r.count ?? 0,
+      };
+    });
+
   // ── 보관함 점유 칸 수: 길드샵 코스메틱 (확성기 제외) ──
   const usedSlots = rawPurchases.filter((p) => p.item_category !== "확성기").length;
   const vaultSlots = guild.vault_slots ?? 0;
@@ -140,6 +217,8 @@ export default async function GuildInventoryPage({ params }: Props) {
       backgroundItems={backgroundItems}
       usedSlots={usedSlots}
       vaultSlots={vaultSlots}
+      cards={cards}
+      myCards={myCards}
     />
   );
 }
