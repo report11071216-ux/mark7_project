@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronLeft, Swords, Upload, Loader2, Coins, TrendingUp, Gift } from "lucide-react";
+import { ChevronLeft, Swords, Upload, Loader2, Coins, TrendingUp, Gift, Sparkles } from "lucide-react";
 import { createRaidEntry } from "@/app/guild/[code]/raids/actions";
+import { RAID_PRESETS, type RaidPreset } from "@/lib/raid-presets";
 import toast from "react-hot-toast";
 
 type Props = {
@@ -25,6 +26,15 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
   const [rewardMaterials, setRewardMaterials] = useState("");
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const applyPreset = (preset: RaidPreset) => {
+    setTitle(preset.title);
+    setImageUrl(preset.imageUrl);
+    setGoldNormal(preset.goldNormal ? String(preset.goldNormal) : "");
+    setGoldHard(preset.goldHard ? String(preset.goldHard) : "");
+    setGoldNightmare(preset.goldNightmare ? String(preset.goldNightmare) : "");
+    toast.success(`'${preset.title}' 정보를 불러왔어요`);
+  };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,6 +113,29 @@ export default function RaidEntryForm({ guildCode, guildName }: Props) {
         <p className="text-xs text-slate-500 mb-5 leading-relaxed">
           레이드를 등록하면 레이드 위젯에 카드로 표시돼요. 카드를 누르면 수치와 공략을 볼 수 있어요.
         </p>
+
+        {/* 프리셋에서 가져오기 */}
+        <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50/60 p-3.5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+            <span className="text-xs font-bold text-violet-700">프리셋에서 가져오기</span>
+          </div>
+          <p className="text-[11px] text-violet-600/70 mb-2.5">
+            누르면 이름·이미지·골드가 자동으로 채워져요. 필요하면 직접 수정하세요.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {RAID_PRESETS.map((p) => (
+              <button
+                key={p.title}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-violet-200 text-[11px] font-medium text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition"
+              >
+                {p.title}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="space-y-4">
           {/* 레이드명 */}
