@@ -127,7 +127,7 @@ export default async function AdminDashboardPage() {
               {recentGuilds.map((g) => (
                 <Link
                   key={g.id}
-                  href={`/guild/${g.code}`}
+                  href={`/admin/guilds/${g.code}`}
                   className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-50 transition"
                 >
                   <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-700 text-sm font-bold shrink-0">
