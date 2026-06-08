@@ -41,7 +41,7 @@ export default function GuildAdminList({ guilds }: { guilds: AdminGuildRow[] }) 
     );
   });
 
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = filtered.slice().sort((a, b) => {
     if (sortKey === "name") return a.name.localeCompare(b.name);
     if (sortKey === "memberCount") return b.memberCount - a.memberCount;
     if (sortKey === "totalExp") return b.totalExp - a.totalExp;
@@ -114,7 +114,11 @@ export default function GuildAdminList({ guilds }: { guilds: AdminGuildRow[] }) 
               <span className="w-8" />
             </div>
             {sorted.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition">
+              <Link
+                key={g.id}
+                href={`/admin/guilds/${g.code}`}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition"
+              >
                 {/* 길드명 + 서버 */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center text-violet-700 text-sm font-bold shrink-0">
@@ -147,15 +151,14 @@ export default function GuildAdminList({ guilds }: { guilds: AdminGuildRow[] }) 
                 <span className="hidden sm:block w-28 text-sm text-slate-600 truncate">{g.masterName}</span>
                 {/* 생성일 */}
                 <span className="hidden sm:block w-24 text-right text-xs text-slate-400 font-mono">{fmtDate(g.createdAt)}</span>
-                {/* 이동 */}
-                <Link
-                  href={`/guild/${g.code}`}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition shrink-0"
-                  aria-label="길드로 이동"
+                {/* 상세 보기 아이콘 */}
+                <span
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 shrink-0"
+                  aria-hidden="true"
                 >
                   <ExternalLink className="w-4 h-4" />
-                </Link>
-              </div>
+                </span>
+              </Link>
             ))}
           </div>
         )}
