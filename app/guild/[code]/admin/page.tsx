@@ -142,6 +142,7 @@ export default async function GuildAdminPage({
     <MemberManager
       guildCode={guild.code}
       guildId={guild.id}
+      guildName={guild.name}
       myRole={myRole}
       members={adminMembers}
     />
