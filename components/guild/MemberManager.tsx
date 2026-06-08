@@ -4,7 +4,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Shield, ShieldOff, UserMinus, Crown, Loader2, X } from "lucide-react";
-import { setSubmasterRole, kickMember } from "@/app/guild/[code]/admin/member-actions";
+import { setSubmasterRole, kickMember, transferMaster } from "@/app/guild/[code]/admin/member-actions";
 import toast from "react-hot-toast";
 
 export type AdminMemberRow = {
@@ -18,6 +18,7 @@ export type AdminMemberRow = {
 type Props = {
   guildCode: string;
   guildId: string;
+  guildName: string;
   myRole: "master" | "submaster";
   members: AdminMemberRow[];
 };
@@ -26,36 +27,44 @@ type ConfirmAction =
   | { type: "promote"; member: AdminMemberRow }
   | { type: "demote"; member: AdminMemberRow }
   | { type: "kick"; member: AdminMemberRow }
+  | { type: "transfer"; member: AdminMemberRow }
   | null;
 
-function roleLabel(role: string) {
-  if (role === "master") return "마스터";
-  if (role === "submaster") return "부마스터";
-  return "길드원";
-}
-
-export default function MemberManager({ guildCode, guildId, myRole, members }: Props) {
+export default function MemberManager({ guildCode, guildId, guildName, myRole, members }: Props) {
   const router = useRouter();
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [typedName, setTypedName] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const isMaster = myRole === "master";
 
   // 역할 순서: 마스터 → 부마 → 멤버
-  const sorted = [...members].sort((a, b) => {
+  const sorted = members.slice().sort((a, b) => {
     const order = { master: 0, submaster: 1, member: 2 };
     return order[a.role] - order[b.role];
   });
 
+  function openConfirm(action: ConfirmAction) {
+    setTypedName("");
+    setConfirm(action);
+  }
+
   const runAction = () => {
     if (!confirm) return;
     const { type, member } = confirm;
+    // 양도는 길드명 정확히 입력해야만
+    if (type === "transfer" && typedName.trim() !== guildName) {
+      toast.error("길드명이 일치하지 않아요");
+      return;
+    }
     startTransition(async () => {
       let result;
       if (type === "promote") {
         result = await setSubmasterRole(guildCode, guildId, member.userId, true);
       } else if (type === "demote") {
         result = await setSubmasterRole(guildCode, guildId, member.userId, false);
+      } else if (type === "transfer") {
+        result = await transferMaster(guildCode, guildId, member.userId);
       } else {
         result = await kickMember(guildCode, guildId, member.userId);
       }
@@ -64,6 +73,7 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
         toast.success(
           type === "promote" ? "부마스터로 임명했어요"
           : type === "demote" ? "부마스터를 해제했어요"
+          : type === "transfer" ? `마스터를 ${member.name}님에게 넘겼어요`
           : "강퇴했어요"
         );
         setConfirm(null);
@@ -79,9 +89,12 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
     const n = confirm.member.name;
     if (confirm.type === "promote") return { title: "부마스터 임명", desc: `'${n}'님을 부마스터로 임명할까요?`, btn: "임명", danger: false };
     if (confirm.type === "demote") return { title: "부마스터 해제", desc: `'${n}'님을 길드원으로 되돌릴까요?`, btn: "해제", danger: false };
+    if (confirm.type === "transfer") return { title: "마스터 양도", desc: `'${n}'님에게 마스터를 넘기면 당신은 일반 길드원이 되고, 되돌리려면 새 마스터가 다시 넘겨줘야 해요.`, btn: "양도", danger: true };
     return { title: "멤버 강퇴", desc: `'${n}'님을 길드에서 내보낼까요? 출석·포인트 기록은 보존돼요.`, btn: "강퇴", danger: true };
   };
   const ct = confirmText();
+
+  const transferReady = confirm?.type === "transfer" ? typedName.trim() === guildName : true;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
@@ -92,7 +105,7 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
         <div className="flex-1">
           <h2 className="text-lg font-bold text-slate-900">멤버 관리</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            {isMaster ? "부마스터 임명·해제, 강퇴를 할 수 있어요." : "일반 길드원을 강퇴할 수 있어요."}
+            {isMaster ? "부마스터 임명·해제, 강퇴, 마스터 양도를 할 수 있어요." : "일반 길드원을 강퇴할 수 있어요."}
           </p>
         </div>
       </div>
@@ -108,6 +121,8 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
           const canKick =
             m.role !== "master" &&
             (isMaster || (myRole === "submaster" && m.role === "member"));
+          // 양도: 마스터만, 대상은 마스터 본인 제외 (부마·멤버 가능)
+          const canTransfer = isMaster && m.role !== "master";
 
           return (
             <div
@@ -148,7 +163,7 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
                 {canPromote && (
                   <button
                     type="button"
-                    onClick={() => setConfirm({ type: "promote", member: m })}
+                    onClick={() => openConfirm({ type: "promote", member: m })}
                     className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-violet-50 text-violet-600 text-xs font-bold hover:bg-violet-100 transition"
                   >
                     <Shield className="w-3.5 h-3.5" />
@@ -158,17 +173,28 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
                 {canDemote && (
                   <button
                     type="button"
-                    onClick={() => setConfirm({ type: "demote", member: m })}
+                    onClick={() => openConfirm({ type: "demote", member: m })}
                     className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition"
                   >
                     <ShieldOff className="w-3.5 h-3.5" />
                     부마 해제
                   </button>
                 )}
+                {canTransfer && (
+                  <button
+                    type="button"
+                    onClick={() => openConfirm({ type: "transfer", member: m })}
+                    className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition"
+                    title="이 멤버에게 마스터 양도"
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    양도
+                  </button>
+                )}
                 {canKick && (
                   <button
                     type="button"
-                    onClick={() => setConfirm({ type: "kick", member: m })}
+                    onClick={() => openConfirm({ type: "kick", member: m })}
                     className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition"
                   >
                     <UserMinus className="w-3.5 h-3.5" />
@@ -192,6 +218,21 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
               </button>
             </div>
             <p className="text-xs text-slate-500 mb-4">{ct.desc}</p>
+
+            {confirm.type === "transfer" && (
+              <div className="mb-4">
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5">
+                  확인을 위해 길드명 <span className="text-amber-700">{guildName}</span> 을(를) 입력하세요
+                </label>
+                <input
+                  value={typedName}
+                  onChange={(e) => setTypedName(e.target.value)}
+                  placeholder={guildName}
+                  className="w-full h-10 px-3 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                />
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button
                 type="button"
@@ -204,7 +245,7 @@ export default function MemberManager({ guildCode, guildId, myRole, members }: P
               <button
                 type="button"
                 onClick={runAction}
-                disabled={isPending}
+                disabled={isPending || !transferReady}
                 className={`flex-1 h-10 rounded-lg text-white text-sm font-bold transition disabled:opacity-60 flex items-center justify-center ${
                   ct.danger ? "bg-rose-600 hover:bg-rose-500" : "bg-violet-600 hover:bg-violet-500"
                 }`}
