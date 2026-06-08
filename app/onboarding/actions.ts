@@ -59,6 +59,7 @@ export async function createGuild(
     if (!existing) break;
     code = generateGuildCode();
   }
+  // member_count는 on_member_change 트리거가 자동 관리 → 여기서 직접 넣지 않음
   const { data: guild, error: guildError } = await supabase
     .from("guilds")
     .insert({
@@ -67,7 +68,6 @@ export async function createGuild(
       server,
       code,
       master_id: user.id,
-      member_count: 1,
       max_members: 50,
       is_recruiting: true,
       total_points: 0,
@@ -78,6 +78,7 @@ export async function createGuild(
     return { error: `길드 생성 실패: ${guildError?.message ?? "알 수 없는 오류"}` };
   }
   // 마스터 등록 + 기본 테마 생성은 on_guild_created 트리거가 자동 처리함
+  // member_count는 마스터 INSERT 시 on_member_change 트리거가 1로 올림
   redirect(`/guild/${guild.code}`);
 }
 
@@ -129,6 +130,7 @@ export async function joinGuild(
     return { error: GUILD_LIMIT_MSG };
   }
 
+  // member_count는 on_member_change 트리거가 INSERT 시 자동으로 +1 → 수동 update 제거
   const { error: memberError } = await supabase
     .from("guild_members")
     .insert({
@@ -140,10 +142,6 @@ export async function joinGuild(
   if (memberError) {
     return { error: `가입 실패: ${memberError.message}` };
   }
-  await supabase
-    .from("guilds")
-    .update({ member_count: (guild.member_count ?? 0) + 1 })
-    .eq("id", guild.id);
 
   // ── 환영 알림 (redirect 전에 발송) ──
   try {
