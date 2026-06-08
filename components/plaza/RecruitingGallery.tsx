@@ -22,7 +22,7 @@ export type RecruitGuild = {
   recruitMessage: string;
 };
 
-const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브"];
+const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브", "카단"];
 
 function gradeOf(exp: number) {
   if (exp >= 12000) return { label: "그랜드마스터", color: "#dc2626" };
