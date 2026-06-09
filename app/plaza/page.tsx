@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { getAttendanceDate } from "@/lib/attendance";
 import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
 import PlazaSidebar from "@/components/plaza/PlazaSidebar";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
@@ -40,7 +39,6 @@ function SectionHeader({
 
 export default async function PlazaPage() {
   const supabase = await createClient();
-  const today = getAttendanceDate();
 
   const [
     userResult,
@@ -67,7 +65,7 @@ export default async function PlazaPage() {
     supabase.from("patch_notes").select("title, tag, created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(1),
     supabase.from("platform_settings").select("value").eq("key", "plaza_hero").maybeSingle(),
     supabase.from("guild_members").select("*", { count: "exact", head: true }),
-    supabase.from("attendances").select("*", { count: "exact", head: true }).eq("attendance_date", today),
+    supabase.rpc("today_attendance_count"),
   ]);
 
   const user = userResult.data.user;
@@ -91,7 +89,7 @@ export default async function PlazaPage() {
     show_stats?: boolean;
   } | null;
   const memberTotal = memberCountResult.count ?? 0;
-  const todayAttendanceCount = todayAttendanceResult.count ?? 0;
+  const todayAttendanceCount = (todayAttendanceResult.data as number | null) ?? 0;
 
   // 길드 자랑 — 길드별 최신 1장만
   const seenShowcaseGuilds = new Set<string>();
