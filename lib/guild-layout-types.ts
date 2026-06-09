@@ -24,6 +24,7 @@ export type RankingMember = {
 export type OnlineMember = {
   user_id: string;
   last_seen_at: string | null;
+  title?: string | null;
   profiles: {
     username: string | null;
     avatar_url: string | null;
