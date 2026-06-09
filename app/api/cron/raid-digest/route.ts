@@ -71,12 +71,12 @@ export async function GET(request: Request) {
 
   // 길드별 발송
   let sent = 0;
-  for (const [guildId, list] of byGuild) {
+  for (const [guildId, list] of Array.from(byGuild.entries())) {
     const guildName = guildNameMap.get(guildId) ?? "우리 길드";
     const content = buildRaidDigestMessage({
       guildName,
       raids: list.map((r) => ({
-        time: (r.scheduled_time ?? "").slice(0, 5), // "20:30:00" → "20:30"
+        time: (r.scheduled_time ?? "").slice(0, 5),
         raidTitle: raidTitleMap.get(r.raid_id) ?? "레이드",
         difficulty: r.difficulty ?? "",
         skillLevel: r.skill_level ?? "",
