@@ -49,6 +49,7 @@ export default async function PlazaPage() {
     announcementResult,
     shopItemsResult,
     showcaseResult,
+    latestPatchResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -122,7 +123,7 @@ export default async function PlazaPage() {
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
   const [profileResult, membershipsResult, postAuthorsResult] = await Promise.all([
-    user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin, equipped_mark_id, equipped_card_id").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    user ? supabase.from("profiles").select("username, avatar_url, is_platform_admin, equipped_mark_id, equipped_card_id, last_patch_seen_at").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from("guild_members").select("role, points, guild_id").eq("user_id", user.id).limit(5) : Promise.resolve({ data: [] }),
     postAuthorIds.length > 0 ? supabase.from("profiles").select("id, username").in("id", postAuthorIds) : Promise.resolve({ data: [] }),
   ]);
@@ -133,6 +134,7 @@ export default async function PlazaPage() {
     is_platform_admin: boolean;
     equipped_mark_id: string | null;
     equipped_card_id: string | null;
+    last_patch_seen_at: string | null;
   } | null;
   const memberships = (membershipsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
@@ -242,6 +244,13 @@ export default async function PlazaPage() {
     image_url: s.image_url, category: s.category,
   }));
 
+  // 신규 패치노트 여부 (최신 글 시각 > 내가 마지막으로 본 시각)
+  const latestPatchAt = latestPatchResult.data?.[0]?.created_at ?? null;
+  const lastSeenAt = myProfile?.last_patch_seen_at ?? null;
+  const hasNewPatch = latestPatchAt
+    ? !lastSeenAt || new Date(latestPatchAt).getTime() > new Date(lastSeenAt).getTime()
+    : false;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 상단 헤더 */}
@@ -264,7 +273,7 @@ export default async function PlazaPage() {
               </p>
             </div>
           </div>
-          <PlazaSidebar shopHref={shopHref} />
+          <PlazaSidebar shopHref={shopHref} hasNewPatch={hasNewPatch} isAdmin={myProfile?.is_platform_admin === true} />
         </div>
       </div>
 
