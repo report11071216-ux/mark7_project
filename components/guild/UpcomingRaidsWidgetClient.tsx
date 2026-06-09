@@ -232,14 +232,14 @@ export default function UpcomingRaidsWidgetClient({
                         {dateLabel} {it.scheduledTime}
                       </span>
                       <span
-                        className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0"
                         style={{ backgroundColor: badge.bg, color: badge.color }}
                       >
                         {it.difficulty}
                       </span>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold shrink-0" style={{ color: textSecondary }}>
+                  <span className="text-[11px] font-mono shrink-0" style={{ color: textSecondary }}>
                     {it.participantCount}/{it.maxMembers}
                   </span>
                 </button>
