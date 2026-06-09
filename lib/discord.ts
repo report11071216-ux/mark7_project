@@ -134,3 +134,23 @@ export function buildJoinRequestMessage(
   }
   return msg;
 }
+
+// 📋 레이드 브리핑: 그날 예정된 레이드 목록 (cron 발송용)
+export function buildRaidDigestMessage(args: {
+  guildName: string;
+  raids: {
+    time: string;        // "20:30"
+    raidTitle: string;
+    difficulty: string;
+    skillLevel: string;
+    maxMembers: number;
+  }[];
+}): string {
+  const count = args.raids.length;
+  let msg = `📋 **오늘 ${args.guildName} 레이드 브리핑** — 총 ${count}개 일정\n`;
+  for (const r of args.raids) {
+    const parts = [r.raidTitle, r.difficulty, r.skillLevel].filter(Boolean);
+    msg += `\n🗓️ ${r.time} · ${parts.join(" · ")} (정원 ${r.maxMembers}명)`;
+  }
+  return msg;
+}
