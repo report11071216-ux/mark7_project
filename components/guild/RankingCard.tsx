@@ -1,10 +1,8 @@
 "use client";
-
 import { useState } from "react";
 import { Trophy } from "lucide-react";
 import { type RankingMember } from "@/lib/guild-layout-types";
 import ProfileCardModal from "@/components/ProfileCardModal";
-
 type Props = {
   rankingMembers: RankingMember[];
   textPrimary: string;
@@ -12,12 +10,10 @@ type Props = {
   cardBg: string;
   cardBorder: string;
 };
-
 export default function RankingCard({
   rankingMembers, textPrimary, primaryColor, cardBg, cardBorder,
 }: Props) {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-
   return (
     <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
       <div className="flex items-center gap-1.5 px-3 py-2" style={{ backgroundColor: primaryColor }}>
@@ -44,13 +40,19 @@ export default function RankingCard({
                   : <span className="text-[8px] font-bold" style={{ color: primaryColor }}>{name[0]?.toUpperCase()}</span>
                 }
               </div>
-              <span className="text-[11px] truncate flex-1 text-left" style={{ color: textPrimary }}>{name}</span>
+              <span className="flex items-center gap-1 flex-1 min-w-0">
+                <span className="text-[11px] truncate text-left" style={{ color: textPrimary }}>{name}</span>
+                {m.title ? (
+                  <span className="shrink-0 text-[9px] px-1 py-0.5 rounded font-bold" style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>
+                    {m.title}
+                  </span>
+                ) : null}
+              </span>
               <span className="text-[10px] font-bold shrink-0" style={{ color: primaryColor }}>{m.points}P</span>
             </button>
           );
         })}
       </div>
-
       <ProfileCardModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
     </div>
   );
