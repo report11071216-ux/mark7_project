@@ -8,6 +8,7 @@ import CardStyleSelector from "@/components/guild/CardStyleSelector";
 import RecruitEditor from "@/components/guild/RecruitEditor";
 import JoinRequestManager, { type JoinRequest } from "@/components/guild/JoinRequestManager";
 import MemberManager, { type AdminMemberRow } from "@/components/guild/MemberManager";
+import PermissionGuide from "@/components/guild/PermissionGuide";
 import AdminTabs from "@/components/guild/AdminTabs";
 import { Megaphone } from "lucide-react";
 import type { WebhookSettingsInput } from "@/app/actions/guild-actions";
@@ -138,14 +139,17 @@ export default async function GuildAdminPage({
     </div>
   );
 
-  const membersTab = (
-    <MemberManager
-      guildCode={guild.code}
-      guildId={guild.id}
-      guildName={guild.name}
-      myRole={myRole}
-      members={adminMembers}
-    />
+ const membersTab = (
+    <div className="space-y-6">
+      <PermissionGuide />
+      <MemberManager
+        guildCode={guild.code}
+        guildId={guild.id}
+        guildName={guild.name}
+        myRole={myRole}
+        members={adminMembers}
+      />
+    </div>
   );
 
   const recruitTab = (
