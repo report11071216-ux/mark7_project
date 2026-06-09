@@ -23,7 +23,6 @@ const GUILD_CATEGORIES = ["길드 마크", "길드 프로필카드", "길드 닉
 const ACTIVITY_CATEGORIES = ["개인 프로필카드", "개인 마크", "개인 닉네임 효과"];
 const MEGAPHONE_DURATIONS = [1, 3, 6, 12];
 
-// 어떤 이미지를 자르는 중인지
 type CropTarget = "thumb" | "frame" | null;
 
 export default function ShopItemManager({ items }: { items: ShopItem[] }) {
@@ -41,7 +40,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
   const [uploadingFrame, setUploadingFrame] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // 크롭 모달 상태
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget>(null);
 
@@ -54,19 +52,21 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
     setCategory(type === "guild" ? "길드 마크" : "개인 프로필카드");
   };
 
-  // Blob을 Storage에 업로드
+  // Blob/File을 Storage에 업로드 (확장자·타입을 원본 따라감)
   const uploadBlob = async (
     blob: Blob,
     setUrl: (u: string) => void,
-    setBusy: (b: boolean) => void
+    setBusy: (b: boolean) => void,
+    ext: string = "jpg",
+    contentType: string = "image/jpeg"
   ) => {
     setBusy(true);
     const supabase = createClient();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const { error } = await supabase.storage
       .from("shop-items")
-      .upload(fileName, blob, { contentType: "image/jpeg" });
+      .upload(fileName, blob, { contentType });
 
     if (error) {
       toast.error("업로드 실패: " + error.message);
@@ -80,7 +80,16 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
     toast.success("이미지 업로드 완료");
   };
 
-  // 파일 선택 → 검증 후 크롭 모달 열기
+  // GIF 원본을 그대로 업로드 (크롭/변환 건너뜀)
+  const uploadGifDirect = async (file: File, target: CropTarget) => {
+    if (target === "thumb") {
+      await uploadBlob(file, setImageUrl, setUploading, "gif", "image/gif");
+    } else if (target === "frame") {
+      await uploadBlob(file, setFrameUrl, setUploadingFrame, "gif", "image/gif");
+    }
+  };
+
+  // 파일 선택 → GIF면 바로 업로드, 아니면 크롭 모달
   const pickFile = (e: React.ChangeEvent<HTMLInputElement>, target: CropTarget) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -88,17 +97,25 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
       toast.error("이미지 파일만 업로드할 수 있어요");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("5MB 이하 이미지만 업로드할 수 있어요");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("20MB 이하 이미지만 업로드할 수 있어요");
       return;
     }
+
+    // GIF는 크롭하면 정지되므로 원본 그대로 업로드
+    if (file.type === "image/gif") {
+      toast("GIF는 자르지 않고 원본 그대로 올라가요. 정사각형 GIF를 권장해요.", { icon: "🎬" });
+      uploadGifDirect(file, target);
+      e.target.value = "";
+      return;
+    }
+
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropTarget(target);
     e.target.value = "";
   };
 
-  // 크롭 완료 → 대상에 맞게 업로드
   const handleCropped = async (blob: Blob) => {
     if (cropTarget === "thumb") {
       await uploadBlob(blob, setImageUrl, setUploading);
@@ -174,7 +191,6 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
     }
   };
 
-  // 크롭 비율: 프레임=16:6 가로배너, 썸네일=1:1 정사각
   const cropAspect = cropTarget === "frame" ? 16 / 6 : 1;
   const cropTitle = cropTarget === "frame" ? "프레임 자르기 (가로 배너)" : "썸네일 자르기 (정사각)";
 
@@ -282,7 +298,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
           {/* 썸네일 이미지 */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">
-              상점 썸네일 이미지 <span className="text-slate-400 font-normal">(정사각 1:1)</span>
+              상점 썸네일 이미지 <span className="text-slate-400 font-normal">(정사각 1:1 · GIF 가능)</span>
             </label>
             <label className={`flex items-center justify-center gap-2 h-10 rounded-lg ring-1 ring-slate-200 text-sm cursor-pointer transition ${
               uploading ? "bg-slate-100 text-slate-400" : "hover:bg-slate-50 text-slate-600"
@@ -290,10 +306,15 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
               {uploading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
               ) : (
-                <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (5MB 이하)"}</>
+                <><Upload className="w-4 h-4" />{imageUrl ? "이미지 변경" : "이미지 선택 (20MB 이하)"}</>
               )}
               <input type="file" accept="image/*" onChange={(e) => pickFile(e, "thumb")} disabled={uploading} className="hidden" />
             </label>
+            {imageUrl && (
+              <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden ring-1 ring-slate-200">
+                <img src={imageUrl} alt="썸네일 미리보기" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
 
           {/* 프레임 이미지 — 프로필카드 카테고리일 때만 */}
@@ -308,7 +329,7 @@ export default function ShopItemManager({ items }: { items: ShopItem[] }) {
                 {uploadingFrame ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />업로드 중...</>
                 ) : (
-                  <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택 (5MB 이하)"}</>
+                  <><Image className="w-4 h-4" />{frameUrl ? "프레임 변경" : "프레임 이미지 선택 (20MB 이하)"}</>
                 )}
                 <input type="file" accept="image/*" onChange={(e) => pickFile(e, "frame")} disabled={uploadingFrame} className="hidden" />
               </label>
