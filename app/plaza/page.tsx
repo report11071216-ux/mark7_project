@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
+import { getAttendanceDate } from "@/lib/attendance";
 import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
 import PlazaSidebar from "@/components/plaza/PlazaSidebar";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
@@ -13,7 +14,7 @@ import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
-import PatchNotePreview from "@/components/plaza/PatchNotePreview";
+import PlazaHero from "@/components/plaza/PlazaHero";
 import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -39,6 +40,7 @@ function SectionHeader({
 
 export default async function PlazaPage() {
   const supabase = await createClient();
+  const today = getAttendanceDate();
 
   const [
     userResult,
@@ -50,6 +52,9 @@ export default async function PlazaPage() {
     shopItemsResult,
     showcaseResult,
     latestPatchResult,
+    heroResult,
+    memberCountResult,
+    todayAttendanceResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -59,7 +64,10 @@ export default async function PlazaPage() {
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(4),
     supabase.from("guild_showcases").select("id, image_url, guild_id, created_at, guilds(code, name)").order("created_at", { ascending: false }).limit(40),
-    supabase.from("patch_notes").select("created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(1),
+    supabase.from("patch_notes").select("title, tag, created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(1),
+    supabase.from("platform_settings").select("value").eq("key", "plaza_hero").maybeSingle(),
+    supabase.from("guild_members").select("*", { count: "exact", head: true }),
+    supabase.from("attendances").select("*", { count: "exact", head: true }).eq("attendance_date", today),
   ]);
 
   const user = userResult.data.user;
@@ -73,6 +81,17 @@ export default async function PlazaPage() {
   const annRaw = announcementResult.data?.value as { message: string; link: string; active: boolean } | null;
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
+
+  // 히어로 배너 설정 + 통계
+  const heroSetting = (heroResult.data?.value ?? null) as {
+    active?: boolean;
+    image_url?: string;
+    title?: string;
+    subtitle?: string;
+    show_stats?: boolean;
+  } | null;
+  const memberTotal = memberCountResult.count ?? 0;
+  const todayAttendanceCount = todayAttendanceResult.count ?? 0;
 
   // 길드 자랑 — 길드별 최신 1장만
   const seenShowcaseGuilds = new Set<string>();
@@ -244,12 +263,16 @@ export default async function PlazaPage() {
     image_url: s.image_url, category: s.category,
   }));
 
-  // 신규 패치노트 여부 (최신 글 시각 > 내가 마지막으로 본 시각)
-  const latestPatchAt = latestPatchResult.data?.[0]?.created_at ?? null;
+  // 신규 패치노트 여부 + 최신 패치노트 정보
+  const latestPatchRow = latestPatchResult.data?.[0] ?? null;
+  const latestPatchAt = latestPatchRow?.created_at ?? null;
   const lastSeenAt = myProfile?.last_patch_seen_at ?? null;
   const hasNewPatch = latestPatchAt
     ? !lastSeenAt || new Date(latestPatchAt).getTime() > new Date(lastSeenAt).getTime()
     : false;
+  const latestPatch = latestPatchRow
+    ? { title: latestPatchRow.title as string, tag: latestPatchRow.tag as string }
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -296,12 +319,15 @@ export default async function PlazaPage() {
       <MegaphoneTicker />
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
-        {/* 패치노트 미리보기 */}
-        <div className="mb-5 max-w-md">
-          <Suspense fallback={<div className="h-[58px] rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />}>
-            <PatchNotePreview />
-          </Suspense>
-        </div>
+        {/* 히어로 배너 */}
+        <PlazaHero
+          setting={heroSetting}
+          guildCount={totalGuildCount ?? 0}
+          memberCount={memberTotal}
+          todayAttendance={todayAttendanceCount}
+          latestPatch={latestPatch}
+          isLoggedIn={!!user}
+        />
 
         {/* 길드 만들기 CTA */}
         {canCreateGuild && (
