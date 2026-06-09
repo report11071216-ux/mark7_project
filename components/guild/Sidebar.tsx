@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, ClipboardList, CalendarDays, Users, MessageCircle,
-  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout, BookOpen, PartyPopper,
+  Settings, LogOut, Shield, Trophy, Menu, X, ShoppingBag, Package, Sprout, BookOpen, PartyPopper, Megaphone,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useState } from "react";
@@ -21,6 +21,7 @@ interface SidebarProps {
   memberCount: number;
   primaryColor?: string;
   backgroundColor?: string;
+  hasNewPatch?: boolean;
 }
 
 function darkTint(hex: string, keep: number) {
@@ -44,7 +45,7 @@ function hexToRgba(hex: string, a: number) {
 export function Sidebar({
   guildCode, guildName, guildLogoUrl,
   userRole, userName, userAvatarUrl, memberCount,
-  primaryColor,
+  primaryColor, hasNewPatch = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -84,6 +85,7 @@ export function Sidebar({
 
   const isPlazaActive = pathname.startsWith("/plaza");
   const isGuideActive = pathname.startsWith("/guide");
+  const isPatchActive = pathname.startsWith("/patch-notes");
 
   const roleLabel =
     userRole === "master" ? "마스터" :
@@ -132,6 +134,16 @@ export function Sidebar({
           <Trophy className="w-4 h-4 shrink-0" style={{ color: isPlazaActive ? accent : textMuted }} />
           <span className="flex-1">광장</span>
           <span className="text-[10px] font-mono uppercase" style={{ color: textMuted }}>랭킹</span>
+        </Link>
+        <Link
+          href="/patch-notes"
+          onClick={onClick}
+          className={linkBase}
+          style={menuLinkStyle(isPatchActive)}
+        >
+          <Megaphone className="w-4 h-4 shrink-0" style={{ color: isPatchActive ? accent : textMuted }} />
+          <span className="flex-1">업데이트</span>
+          {hasNewPatch && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />}
         </Link>
         <Link
           href="/guide"
@@ -260,10 +272,11 @@ export function Sidebar({
         </Link>
         <button
           onClick={() => setDrawerOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors relative"
           style={{ color: textMuted }}
         >
           <Menu className="w-5 h-5" />
+          {hasNewPatch && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />}
         </button>
       </header>
 
