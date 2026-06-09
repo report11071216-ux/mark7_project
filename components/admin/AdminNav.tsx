@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,8 +12,9 @@ import {
   Smile,
   Image,
   Sparkles,
+  ImagePlus,
+  FileText,
 } from "lucide-react";
-
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/guilds", label: "길드 목록", icon: Shield },
@@ -24,10 +24,11 @@ const NAV_ITEMS = [
   { href: "/admin/stickers", label: "이모티콘팩", icon: Smile },
   { href: "/admin/backgrounds", label: "길드 배경", icon: Image },
   { href: "/admin/cards", label: "출석 카드", icon: Sparkles },
+  { href: "/admin/plaza-hero", label: "광장 배너", icon: ImagePlus },
+  { href: "/admin/patch-notes", label: "패치노트 관리", icon: FileText },
   { href: "/admin/settings", label: "플랫폼 설정", icon: SlidersHorizontal },
   { href: "/admin/announcement", label: "공지 배너", icon: Megaphone },
 ];
-
 export default function AdminNav() {
   const pathname = usePathname();
   return (
