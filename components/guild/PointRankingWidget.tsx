@@ -1,19 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
-
 type Member = {
   user_id: string;
   points: number;
   role: string;
+  title?: string | null;
   profiles: { username: string | null; avatar_url: string | null } | null;
 };
-
 type Props = { members: Member[] };
-
 export default function PointRankingWidget({ members }: Props) {
   const sorted = [...members].sort((a, b) => (b.points ?? 0) - (a.points ?? 0)).slice(0, 10);
   const medals = ["🥇", "🥈", "🥉"];
-
   return (
     <Card className="p-5 bg-zinc-900/50 border-zinc-800 backdrop-blur">
       <div className="flex items-center gap-2 mb-4">
@@ -47,8 +44,15 @@ export default function PointRankingWidget({ members }: Props) {
                 {m.profiles?.username?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
-            <span className="flex-1 text-sm font-medium text-zinc-200 truncate">
-              {m.profiles?.username ?? "Unknown"}
+            <span className="flex-1 min-w-0 flex items-center gap-1.5">
+              <span className="text-sm font-medium text-zinc-200 truncate">
+                {m.profiles?.username ?? "Unknown"}
+              </span>
+              {m.title ? (
+                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-zinc-700/60 text-zinc-300">
+                  {m.title}
+                </span>
+              ) : null}
             </span>
             <span className={
               "text-sm font-bold font-mono shrink-0 " +
