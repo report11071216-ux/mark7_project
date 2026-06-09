@@ -207,39 +207,39 @@ export default function UpcomingRaidsWidgetClient({
                 <button
                   type="button"
                   onClick={() => setDetail(it)}
-                  className={`flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-opacity hover:opacity-90 ${
+                  className={`flex w-full items-center gap-2.5 rounded-md p-2 text-left transition-opacity hover:opacity-90 ${
                     it.completed ? "opacity-60" : ""
                   }`}
                   style={{ backgroundColor: surface }}
                 >
                   {it.raidImage ? (
-                    <img src={it.raidImage} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                    <img src={it.raidImage} alt="" className="w-9 h-9 rounded object-cover shrink-0" />
                   ) : (
                     <div
-                      className="w-8 h-8 rounded shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                      className="w-9 h-9 rounded shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
                       style={{ backgroundColor: accent }}
                     >
                       {it.raidTitle.charAt(0)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium truncate" style={{ color: textPrimary }}>
-                      {it.completed ? "✓ " : ""}
-                      {it.raidTitle}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono" style={{ color: accent }}>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-bold truncate" style={{ color: textPrimary }}>
+                        {it.completed ? "✓ " : ""}
+                        {it.raidTitle}
+                      </span>
+                      <span className="text-xs font-bold font-mono shrink-0" style={{ color: accent }}>
                         {dateLabel} {it.scheduledTime}
                       </span>
                       <span
-                        className="px-1 rounded text-[9px]"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
                         style={{ backgroundColor: badge.bg, color: badge.color }}
                       >
                         {it.difficulty}
                       </span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono shrink-0" style={{ color: textSecondary }}>
+                  <span className="text-xs font-mono font-bold shrink-0" style={{ color: textSecondary }}>
                     {it.participantCount}/{it.maxMembers}
                   </span>
                 </button>
