@@ -58,6 +58,7 @@ export default async function PlazaPage() {
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
     supabase.from("shop_items").select("id, shop_type, category, name, price, image_url, duration_hours").eq("is_active", true).order("created_at", { ascending: false }).limit(4),
     supabase.from("guild_showcases").select("id, image_url, guild_id, created_at, guilds(code, name)").order("created_at", { ascending: false }).limit(40),
+    supabase.from("patch_notes").select("created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(1),
   ]);
 
   const user = userResult.data.user;
