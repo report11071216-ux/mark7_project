@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPatchTagMeta } from "@/lib/patch-note-tags";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import MarkRead from "./MarkRead";
 
 export const revalidate = 60;
 
@@ -26,6 +27,7 @@ export default async function PatchNotesPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 px-4 py-8">
+      <MarkRead />
       <div className="mx-auto max-w-2xl">
         <Link href="/plaza" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 mb-6">
           <ArrowLeft className="w-4 h-4" />
