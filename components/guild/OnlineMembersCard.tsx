@@ -46,6 +46,7 @@ export default function OnlineMembersCard({
             const markUrl = m.profiles?.mark_url ?? null;
             const avatar = markUrl ?? m.profiles?.avatar_url ?? null;
             const name = m.profiles?.username ?? "?";
+            const title = m.title ?? null;
 
             // 카드배경 장착 — 가로 배너 (REF 1)
             if (cardUrl) {
@@ -70,7 +71,14 @@ export default function OnlineMembersCard({
                         : <div className="w-full h-full bg-white/15 flex items-center justify-center text-sm font-bold text-white">{name[0]?.toUpperCase()}</div>
                       }
                     </div>
-                    <span className="text-sm font-bold text-white truncate drop-shadow-[0_1px_5px_rgba(0,0,0,1)]">{name}</span>
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm font-bold text-white truncate drop-shadow-[0_1px_5px_rgba(0,0,0,1)]">{name}</span>
+                      {title ? (
+                        <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold bg-white/25 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,1)]">
+                          {title}
+                        </span>
+                      ) : null}
+                    </span>
                   </div>
                 </button>
               );
@@ -92,6 +100,11 @@ export default function OnlineMembersCard({
                   }
                 </div>
                 <span className="text-sm font-medium truncate" style={{ color: textPrimary }}>{name}</span>
+                {title ? (
+                  <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ backgroundColor: primaryColor + "22", color: primaryColor }}>
+                    {title}
+                  </span>
+                ) : null}
                 <span className="ml-auto w-2 h-2 rounded-full bg-green-400 shrink-0" />
               </button>
             );
