@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useTransition } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 import toast from "react-hot-toast";
-import { uploadHeroImage, saveHero } from "./actions";
+import { saveHero } from "./actions";
 import { ImagePlus, Loader2 } from "lucide-react";
 
 type HeroValue = {
@@ -25,20 +26,41 @@ export default function PlazaHeroEditor({ initial }: { initial: HeroValue }) {
       toast.error("이미지 파일만 가능해요.");
       return;
     }
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error("이미지는 5MB 이하만 가능해요.");
+    if (f.size > 20 * 1024 * 1024) {
+      toast.error("이미지는 20MB 이하만 가능해요.");
       return;
     }
+
     setUploading(true);
-    const fd = new FormData();
-    fd.append("image", f);
-    const res = await uploadHeroImage(fd);
-    setUploading(false);
-    if (res.ok) {
-      setForm((prev) => ({ ...prev, image_url: res.url }));
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const ext = (f.name.split(".").pop() || "png").toLowerCase();
+      const path = `hero/${Date.now()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("plaza-banners")
+        .upload(path, f, { contentType: f.type, upsert: false });
+
+      if (upErr) {
+        toast.error(`업로드 실패: ${upErr.message}`);
+        setUploading(false);
+        return;
+      }
+
+      const { data: pub } = supabase.storage
+        .from("plaza-banners")
+        .getPublicUrl(path);
+
+      setForm((prev) => ({ ...prev, image_url: pub.publicUrl }));
       toast.success("이미지가 업로드되었어요. 저장을 눌러 반영하세요.");
-    } else {
-      toast.error(res.error);
+    } catch (err: any) {
+      toast.error(`업로드 중 오류: ${err?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -75,7 +97,7 @@ export default function PlazaHeroEditor({ initial }: { initial: HeroValue }) {
               <div className="flex gap-5 mt-4 text-sm">
                 <span className="font-bold">67<span className="text-white/70 text-xs ml-0.5">개 길드</span></span>
                 <span className="font-bold">176<span className="text-white/70 text-xs ml-0.5">명</span></span>
-                <span className="font-bold">42<span className="text-white/70 text-xs ml-0.5">명 출석</span></span>
+                <span className="font-bold">42<span className="text-white/70 text-xs ml-0.5">회 출석</span></span>
               </div>
             )}
           </div>
@@ -101,7 +123,7 @@ export default function PlazaHeroEditor({ initial }: { initial: HeroValue }) {
           ) : (
             <>
               <ImagePlus className="w-7 h-7" />
-              <span className="text-sm font-medium">이미지 선택 (최대 5MB)</span>
+              <span className="text-sm font-medium">이미지 선택 (최대 20MB · GIF 가능)</span>
             </>
           )}
         </button>
@@ -109,7 +131,8 @@ export default function PlazaHeroEditor({ initial }: { initial: HeroValue }) {
           <p className="text-xs text-zinc-500 mt-2 break-all">현재 이미지: {form.image_url}</p>
         )}
         <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-          가로로 긴 이미지를 권장해요 (예: 1600×400). 저작권 자유 이미지만 사용하세요.
+          가로로 긴 이미지를 권장해요 (예: 1600×400). 저작권 자유 이미지만 사용하세요.<br />
+          GIF는 용량이 클수록 광장 로딩이 느려질 수 있어요.
         </p>
       </div>
 
