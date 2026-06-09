@@ -151,9 +151,10 @@ export default async function GuildHomePage({ params }: Props) {
         : null,
     }));
 
-  const onlineMembers = members.map((m) => ({
+ const onlineMembers = members.map((m) => ({
     user_id: m.user_id,
     last_seen_at: m.profiles?.last_seen_at ?? null,
+    title: m.title ?? null,
     profiles: m.profiles
       ? {
           username: m.profiles.username ?? null,
