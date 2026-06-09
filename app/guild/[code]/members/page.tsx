@@ -33,7 +33,7 @@ export default async function MembersPage({ params }: { params: { code: string }
       .maybeSingle(),
     supabase
       .from("guild_members")
-      .select("user_id, role, points, joined_at")
+      .select("user_id, role, points, joined_at, title")
       .eq("guild_id", guild.id),
   ]);
 
@@ -42,6 +42,9 @@ export default async function MembersPage({ params }: { params: { code: string }
 
   const members = (memberRows ?? []) as any[];
   const userIds = members.map((m) => m.user_id);
+
+  // 현재 유저의 길드 내 역할 (직위 설정 권한 판단용)
+  const myRole = (members.find((m) => m.user_id === user.id)?.role as string) ?? "member";
 
   // 프로필 (대표 캐릭터 + 코스메틱)
   let profileRows: any[] = [];
@@ -150,6 +153,7 @@ export default async function MembersPage({ params }: { params: { code: string }
       role: cls ? getClassRole(cls) : null,
       itemLevel: Number.isFinite(ilvl as number) ? (ilvl as number) : null,
       guildRole: (m.role as string) || "member",
+      title: (m.title as string) || null,
       points: Number(m.points) || 0,
       joinedAt: (m.joined_at as string) || "",
       attendanceCount: attendanceCount[m.user_id] || 0,
@@ -161,6 +165,9 @@ export default async function MembersPage({ params }: { params: { code: string }
   });
   return (
     <MembersList
+      guildCode={guild.code}
+      guildId={guild.id}
+      myRole={myRole}
       guildName={guild.name}
       memberCount={rows.length}
       members={rows}
