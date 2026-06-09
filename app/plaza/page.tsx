@@ -13,6 +13,7 @@ import TopRankCompact from "@/components/plaza/TopRankCompact";
 import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
+import PatchNotePreview from "@/components/plaza/PatchNotePreview";
 import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -285,6 +286,13 @@ export default async function PlazaPage() {
       <MegaphoneTicker />
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
+        {/* 패치노트 미리보기 */}
+        <div className="mb-5 max-w-md">
+          <Suspense fallback={<div className="h-[58px] rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />}>
+            <PatchNotePreview />
+          </Suspense>
+        </div>
+
         {/* 길드 만들기 CTA */}
         {canCreateGuild && (
           <Link
