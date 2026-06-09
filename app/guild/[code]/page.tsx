@@ -38,7 +38,7 @@ export default async function GuildHomePage({ params }: Props) {
     { data: showcaseToday },
   ] = await Promise.all([
     supabase.from("attendances").select("attendance_date").eq("guild_id", guild.id).eq("user_id", user.id).order("attendance_date", { ascending: false }).limit(60),
-    supabase.from("guild_members").select("user_id, points, role, joined_at, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
+    supabase.from("guild_members").select("user_id, points, role, joined_at, title, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
     supabase.from("posts").select("id, title, created_at, is_notice, author:profiles(username)").eq("guild_id", guild.id).order("is_notice", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     supabase.from("raids").select("id, title, image_url, gold_normal, gold_hard, gold_nightmare, sort_order").eq("guild_id", guild.id).order("sort_order", { ascending: true }).order("created_at", { ascending: false }).limit(12),
     supabase.from("guild_themes").select("layout_config, welcome_message, primary_color, background_color, banner_url, equipped_background_url, card_style").eq("guild_id", guild.id).maybeSingle(),
@@ -140,6 +140,7 @@ export default async function GuildHomePage({ params }: Props) {
     .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
     .map((m) => ({
       user_id: m.user_id, points: m.points ?? 0, role: m.role,
+      title: m.title ?? null,
       profiles: m.profiles
         ? {
             username: m.profiles.username ?? null,
