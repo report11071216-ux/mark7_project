@@ -42,9 +42,9 @@ type Props = {
 };
 
 function diffBadge(diff: string): { bg: string; color: string } {
-  if (diff === "하드") return { bg: "rgba(239,68,68,0.16)", color: "#f87171" };
-  if (diff === "나메") return { bg: "rgba(139,92,246,0.16)", color: "#a78bfa" };
-  return { bg: "rgba(234,179,8,0.16)", color: "#eab308" };
+  if (diff === "하드") return { bg: "#fce8e8", color: "#c0392b" };
+  if (diff === "나메") return { bg: "#efeafe", color: "#6d3fc4" };
+  return { bg: "#fdf3d6", color: "#9a6a06" };
 }
 
 function roleBadge(role: "dealer" | "support" | null): { label: string; bg: string; color: string } | null {
@@ -224,11 +224,11 @@ export default function UpcomingRaidsWidgetClient({
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-bold truncate" style={{ color: textPrimary }}>
+                      <span className="text-sm font-medium truncate" style={{ color: textPrimary }}>
                         {it.completed ? "✓ " : ""}
                         {it.raidTitle}
                       </span>
-                      <span className="text-xs font-bold font-mono shrink-0" style={{ color: accent }}>
+                      <span className="text-xs font-medium font-mono shrink-0" style={{ color: accent }}>
                         {dateLabel} {it.scheduledTime}
                       </span>
                       <span
