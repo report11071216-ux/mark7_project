@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Users, ArrowDownUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Users, ArrowDownUp, Pencil, Check, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { setMemberTitle } from "@/app/guild/[code]/members/actions";
 
 export type MemberRow = {
   userId: string;
@@ -10,6 +13,7 @@ export type MemberRow = {
   role: "dealer" | "support" | null;
   itemLevel: number | null;
   guildRole: string;
+  title: string | null;
   points: number;
   joinedAt: string;
   attendanceCount: number;
@@ -22,6 +26,9 @@ export type MemberRow = {
 type SortKey = "points" | "itemLevel" | "joinedAt";
 
 type Props = {
+  guildCode: string;
+  guildId: string;
+  myRole: string;
   guildName: string;
   memberCount: number;
   members: MemberRow[];
@@ -53,13 +60,22 @@ function joinedLabel(iso: string): string {
 }
 
 export default function MembersList({
+  guildCode,
+  guildId,
+  myRole,
   guildName,
   memberCount,
   members,
   primaryColor,
   backgroundColor,
 }: Props) {
+  const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey>("points");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const canEditTitle = myRole === "master" || myRole === "submaster";
 
   const isLight = isLightColor(backgroundColor);
   const textPrimary = isLight ? "#111827" : "#ffffff";
@@ -73,7 +89,6 @@ export default function MembersList({
   const sorted = [...members].sort((a, b) => {
     if (sortKey === "points") return b.points - a.points;
     if (sortKey === "itemLevel") return (b.itemLevel ?? 0) - (a.itemLevel ?? 0);
-    // joinedAt: 먼저 가입한 순(오래된 순)
     return (a.joinedAt || "").localeCompare(b.joinedAt || "");
   });
 
@@ -82,6 +97,31 @@ export default function MembersList({
     { key: "itemLevel", label: "아이템레벨" },
     { key: "joinedAt", label: "가입순" },
   ];
+
+  function startEdit(m: MemberRow) {
+    setEditing(m.userId);
+    setDraft(m.title ?? "");
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setDraft("");
+  }
+
+  async function saveTitle(targetUserId: string) {
+    if (saving) return;
+    setSaving(true);
+    const res = await setMemberTitle(guildCode, guildId, targetUserId, draft);
+    setSaving(false);
+    if (res.ok) {
+      toast.success(draft.trim() ? "직위가 설정됐어요" : "직위를 해제했어요");
+      setEditing(null);
+      setDraft("");
+      router.refresh();
+    } else {
+      toast.error(res.error ?? "설정 실패");
+    }
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor }}>
@@ -125,23 +165,20 @@ export default function MembersList({
             {sorted.map((m, idx) => {
               const rankColor = idx === 0 ? accent : textTertiary;
               const initial = m.name.charAt(0);
+              const isEditingThis = editing === m.userId;
               return (
                 <div
                   key={m.userId}
                   className="relative flex items-center gap-3 rounded-xl border px-4 py-3 overflow-hidden"
                   style={{ backgroundColor: cardBg, borderColor: cardBorder }}
                 >
-                  {/* 카드배경 코스메틱 (은은하게) */}
                   {m.cardBgUrl ? (
-                    <>
-                      <div
-                        className="absolute inset-0 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${m.cardBgUrl})`, opacity: isLight ? 0.08 : 0.18 }}
-                      />
-                    </>
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${m.cardBgUrl})`, opacity: isLight ? 0.08 : 0.18 }}
+                    />
                   ) : null}
 
-                  {/* 순위 */}
                   <div
                     className="relative font-mono text-sm font-bold w-5 text-center shrink-0"
                     style={{ color: rankColor }}
@@ -149,14 +186,9 @@ export default function MembersList({
                     {idx + 1}
                   </div>
 
-                  {/* 아바타 (장착 마크 우선) */}
                   <div className="relative shrink-0">
                     {m.markUrl ? (
-                      <img
-                        src={m.markUrl}
-                        alt=""
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
+                      <img src={m.markUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
@@ -167,10 +199,11 @@ export default function MembersList({
                     )}
                   </div>
 
-                  {/* 이름 + 직업/가입일 */}
                   <div className="relative min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-medium truncate" style={{ color: m.nicknameColor ?? textPrimary }}>{m.name}</span>
+
+                      {/* 역할 뱃지 (마스터/부마만) */}
                       {m.guildRole !== "member" ? (
                         <span
                           className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold"
@@ -183,14 +216,71 @@ export default function MembersList({
                           {roleLabel(m.guildRole)}
                         </span>
                       ) : null}
+
+                      {/* 직위 뱃지 (있을 때) */}
+                      {m.title ? (
+                        <span
+                          className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold"
+                          style={{ backgroundColor: chipBg, color: textSecondary }}
+                        >
+                          {m.title}
+                        </span>
+                      ) : null}
+
+                      {/* 직위 설정 버튼 (마스터/부마만) */}
+                      {canEditTitle && !isEditingThis ? (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(m)}
+                          className="shrink-0 p-0.5 rounded hover:opacity-70 transition-opacity"
+                          style={{ color: textTertiary }}
+                          title="직위 설정"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      ) : null}
                     </div>
-                    <div className="text-xs truncate" style={{ color: textSecondary }}>
-                      {m.characterClass || "캐릭터 미연동"}
-                      {m.joinedAt ? ` · ${joinedLabel(m.joinedAt)} 가입` : ""}
-                    </div>
+
+                    {/* 인라인 직위 편집 */}
+                    {isEditingThis ? (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <input
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          maxLength={20}
+                          placeholder="직위 입력 (예: 사장)"
+                          className="text-xs px-2 py-1 rounded-md outline-none flex-1 min-w-0"
+                          style={{ backgroundColor: chipBg, color: textPrimary, border: `1px solid ${cardBorder}` }}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveTitle(m.userId)}
+                          disabled={saving}
+                          className="shrink-0 p-1 rounded-md"
+                          style={{ backgroundColor: accent + "22", color: accent }}
+                          title="저장"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="shrink-0 p-1 rounded-md"
+                          style={{ backgroundColor: chipBg, color: textSecondary }}
+                          title="취소"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs truncate" style={{ color: textSecondary }}>
+                        {m.characterClass || "캐릭터 미연동"}
+                        {m.joinedAt ? ` · ${joinedLabel(m.joinedAt)} 가입` : ""}
+                      </div>
+                    )}
                   </div>
 
-                  {/* 스탯 칩 */}
                   <div className="relative flex gap-1.5 shrink-0 flex-wrap justify-end">
                     <span className="text-[11px] font-mono px-2 py-1 rounded-md" style={{ backgroundColor: chipBg, color: textPrimary }}>
                       Lv {m.itemLevel != null ? Math.floor(m.itemLevel).toLocaleString() : "—"}
