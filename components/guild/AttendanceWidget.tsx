@@ -5,7 +5,6 @@ import { getMsUntilNextReset, formatTimeUntilReset } from "@/lib/attendance";
 import { Check, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 import CardDrawModal from "./CardDrawModal";
-
 type Props = {
   guildCode: string;
   alreadyAttended: boolean;
@@ -16,7 +15,6 @@ type Props = {
   textSecondary?: string;
   surface?: string;
 };
-
 type DrawnCard = {
   id: string;
   grade: string;
@@ -25,7 +23,6 @@ type DrawnCard = {
   isNew: boolean;
   ticketEarned: boolean;
 };
-
 export default function AttendanceWidget({
   guildCode,
   alreadyAttended: initialAttended,
@@ -37,23 +34,31 @@ export default function AttendanceWidget({
   surface = "#27272a",
 }: Props) {
   const [attended, setAttended] = useState(initialAttended);
+  const [localStreak, setLocalStreak] = useState(streak);
   const [isPending, startTransition] = useTransition();
   const [timeLeft, setTimeLeft] = useState("");
   const [drawnCard, setDrawnCard] = useState<DrawnCard | null>(null);
-
   useEffect(() => {
     const update = () => setTimeLeft(formatTimeUntilReset(getMsUntilNextReset()));
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
   }, []);
-
   const handleCheck = () => {
     startTransition(async () => {
       const result = await checkAttendance(guildCode);
       if (result.success) {
         setAttended(true);
-        toast.success(`출석 완료! +${result.points}P 획득`);
+        const newStreak = result.streak ?? 0;
+        setLocalStreak(newStreak);
+        // 마일스톤 달성 → 특별 축하, 그 외 → 일반 출석 토스트
+        if (result.streakReward && result.streakReward > 0) {
+          toast.success(`🎉 ${newStreak}일 연속 달성! 보상 뽑기권 +1 🎟️`, { duration: 5000 });
+        } else if (newStreak > 1) {
+          toast.success(`출석 완료! +${result.points}P · 🔥 ${newStreak}일 연속`);
+        } else {
+          toast.success(`출석 완료! +${result.points}P 획득`);
+        }
         // 카드 뽑힘 → 연출 모달
         if (result.card) {
           setDrawnCard(result.card as DrawnCard);
@@ -63,7 +68,6 @@ export default function AttendanceWidget({
       }
     });
   };
-
   return (
     <>
       <div className="space-y-2">
@@ -74,7 +78,9 @@ export default function AttendanceWidget({
           </div>
           <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: accent + "26" }}>
             <p className="text-[10px] mb-0.5" style={{ color: accent }}>연속</p>
-            <p className="text-base font-bold" style={{ color: accent }}>{streak}일</p>
+            <p className="text-base font-bold" style={{ color: accent }}>
+              {localStreak > 0 ? `🔥 ${localStreak}일` : `${localStreak}일`}
+            </p>
           </div>
         </div>
         <div
@@ -110,7 +116,6 @@ export default function AttendanceWidget({
           )}
         </button>
       </div>
-
       <CardDrawModal card={drawnCard} onClose={() => setDrawnCard(null)} />
     </>
   );
