@@ -29,12 +29,14 @@ export default async function GuildLayout({
     { data: themeRow },
     { data: rawMembers },
     { data: rawMessages },
+    { data: latestPatch },
   ] = await Promise.all([
     supabase.from("guild_members").select("role").eq("guild_id", guild.id).eq("user_id", user.id).maybeSingle(),
-    supabase.from("profiles").select("username, avatar_url, equipped_mark_id").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("username, avatar_url, equipped_mark_id, last_patch_seen_at").eq("id", user.id).maybeSingle(),
     supabase.from("guild_themes").select("equipped_mark_id, primary_color, background_color").eq("guild_id", guild.id).maybeSingle(),
     supabase.from("guild_members").select("user_id, profiles(id, username, avatar_url)").eq("guild_id", guild.id),
     supabase.from("guild_messages").select("id, user_id, content, created_at").eq("guild_id", guild.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("patch_notes").select("created_at").eq("is_published", true).order("created_at", { ascending: false }).limit(1),
   ]);
 
   if (!membership) {
@@ -94,6 +96,13 @@ export default async function GuildLayout({
   const primaryColor = themeRow?.primary_color ?? "#7c3aed";
   const backgroundColor = themeRow?.background_color ?? "#09090b";
 
+  // 신규 패치노트 여부 (최신 글 시각 > 내가 마지막으로 본 시각)
+  const latestPatchAt = latestPatch?.[0]?.created_at ?? null;
+  const lastSeenAt = profile?.last_patch_seen_at ?? null;
+  const hasNewPatch = latestPatchAt
+    ? !lastSeenAt || new Date(latestPatchAt).getTime() > new Date(lastSeenAt).getTime()
+    : false;
+
   const chatMembers = (rawMembers ?? []).map((m: any) => ({
     user_id: m.user_id,
     username: m.profiles?.username ?? "익명",
@@ -122,6 +131,7 @@ export default async function GuildLayout({
         userAvatarUrl={userAvatarUrl}
         primaryColor={primaryColor}
         backgroundColor={backgroundColor}
+        hasNewPatch={hasNewPatch}
       />
       <main className="flex-1 overflow-x-hidden pt-14 pb-16 md:pt-0 md:pb-0">
         {children}
