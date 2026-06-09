@@ -13,6 +13,7 @@ export type RankingMember = {
   user_id: string;
   points: number;
   role: string;
+  title?: string | null;
   profiles: {
     username: string | null;
     avatar_url: string | null;
