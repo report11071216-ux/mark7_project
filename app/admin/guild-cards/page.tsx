@@ -7,7 +7,7 @@ export default async function AdminGuildCardsPage() {
   await requireAdmin();
   const supabase = await createClient();
   const { data: cards } = await supabase
-    .from("guild_cards")
+    .from("guild_nameplate_cards")
     .select("id, name, description, image_url, design, price, is_active, created_at")
     .order("created_at", { ascending: false });
 
