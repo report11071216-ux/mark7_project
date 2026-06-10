@@ -2,13 +2,14 @@ import styles from "./GuildCard.module.css";
 
 type GuildCardProps = {
   guildName: string;
-  server: string;
-  masterName?: string;
-  memberCount?: number;
-  points?: number;
+  server?: string | null;
   grade?: string;
   markUrl?: string | null;
   imageUrl?: string | null;
+  tierLabel?: string;
+  tierColor?: string;
+  memberCount?: number;
+  maxMembers?: number;
   className?: string;
 };
 
@@ -22,21 +23,17 @@ const GRADE_LABEL: { [key: string]: string } = {
   legend: "LEGEND",
 };
 
-function formatNum(n?: number) {
-  if (typeof n !== "number") return "0";
-  return n.toLocaleString("ko-KR");
-}
-
 export default function GuildCard(props: GuildCardProps) {
   const {
     guildName,
     server,
-    masterName,
-    memberCount,
-    points,
     grade,
     markUrl,
     imageUrl,
+    tierLabel,
+    tierColor,
+    memberCount,
+    maxMembers,
     className,
   } = props;
 
@@ -53,12 +50,21 @@ export default function GuildCard(props: GuildCardProps) {
     .filter(Boolean)
     .join(" ");
 
+  let memberText = "";
+  if (typeof memberCount === "number") {
+    memberText =
+      typeof maxMembers === "number"
+        ? memberCount + "/" + maxMembers
+        : String(memberCount);
+  }
+
+  const bgStyle = imageUrl
+    ? { backgroundImage: "url(" + imageUrl + ")" }
+    : undefined;
+
   return (
     <div className={rootClass}>
-      <div
-        className={styles.bg}
-        style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
-      />
+      <div className={styles.bg} style={bgStyle} />
       <div className={styles.ov} />
 
       {markUrl ? (
@@ -79,25 +85,31 @@ export default function GuildCard(props: GuildCardProps) {
                 <span>{initial}</span>
               )}
             </div>
-            <div>
+            <div className={styles.nameWrap}>
               <div className={styles.name}>{guildName}</div>
-              <div className={styles.srv}>{server}</div>
+              {server ? <div className={styles.srv}>{server}</div> : null}
             </div>
           </div>
           <div className={styles.chip}>{label}</div>
         </div>
 
         <div className={styles.bot}>
-          <div className={styles.mst}>
-            {masterName ? (
+          <div className={styles.tier}>
+            {tierLabel ? (
               <>
-                길드마스터 <b>{masterName}</b>
+                <span
+                  className={styles.tierDot}
+                  style={{ background: tierColor || "#94a3b8" }}
+                />
+                {tierLabel}
               </>
             ) : null}
           </div>
-          <div className={styles.stat}>
-            멤버 {formatNum(memberCount)} · <b>{formatNum(points)}P</b>
-          </div>
+          {memberText ? (
+            <div className={styles.member}>
+              멤버 <b>{memberText}</b>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
