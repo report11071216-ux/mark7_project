@@ -27,7 +27,7 @@ export default function TrendingGuildsMarquee({ items }: { items: TrendingItem[]
   const loop = items.concat(items);
 
   // 한 바퀴 시간(초): 카드 수에 비례 (카드당 4초, 최소 24초)
-  const duration = Math.max(items.length * 4, 24);
+  const duration = Math.max(items.length * 8, 48);
 
   function pause() {
     if (trackRef.current) trackRef.current.style.animationPlayState = "paused";
