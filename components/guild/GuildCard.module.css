@@ -13,14 +13,25 @@
   z-index: 0;
   background-color: #1c2348;
   background-image: linear-gradient(125deg, #3b2f6b 0%, #1c2348 50%, #0f2e3a 100%);
-  background-size: cover;
+  background-size: 200% 200%;
   background-position: center;
+}
+.bgShift {
+  animation: bgShift var(--bgshift-speed, 8s) ease-in-out infinite;
 }
 .ov {
   position: absolute;
   inset: 0;
   z-index: 1;
   background: linear-gradient(120deg, rgba(7,9,18,0.80) 0%, rgba(7,9,18,0.45) 55%, rgba(7,9,18,0.78) 100%);
+}
+.noise {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: var(--noise-opacity, 0.05);
+  background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 1px, transparent 1px, transparent 3px);
 }
 .water {
   position: absolute;
@@ -33,13 +44,19 @@
   opacity: 0.10;
   pointer-events: none;
 }
+.glow {
+  box-shadow: 0 0 var(--glow-strength, 18px) 1px var(--glow-color, rgba(127,119,221,0.45));
+}
+.breathe {
+  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite;
+}
 .holo {
   position: absolute;
   inset: 0;
   z-index: 4;
   background: conic-gradient(from 0deg, rgba(255,0,128,0.20), rgba(0,200,255,0.20), rgba(120,255,80,0.20), rgba(255,210,0,0.20), rgba(255,0,128,0.20));
   mix-blend-mode: screen;
-  animation: holo 7s linear infinite;
+  animation: holo var(--holo-speed, 7s) linear infinite;
   pointer-events: none;
 }
 .glass {
@@ -57,8 +74,65 @@
   height: 100%;
   z-index: 5;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent);
-  animation: shine 3.2s ease-in-out infinite;
+  animation: shine var(--shine-speed, 3.2s) ease-in-out infinite;
   pointer-events: none;
+}
+.streak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12%;
+  height: 100%;
+  z-index: 5;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  animation: shine var(--streak-speed, 4s) ease-in-out infinite;
+  pointer-events: none;
+}
+.tilt {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: linear-gradient(70deg, transparent 40%, rgba(255,255,255,0.22) 50%, transparent 60%);
+  animation: tilt var(--tilt-speed, 5s) ease-in-out infinite;
+  pointer-events: none;
+}
+.borderFlow {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: 14px;
+  padding: 2px;
+  background: linear-gradient(135deg, #a78bfa, #5dcaa5, #f0997b, #a78bfa, #5dcaa5);
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderFlow var(--borderflow-speed, 4s) linear infinite;
+  pointer-events: none;
+}
+.glint {
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 60%;
+  height: 60%;
+  z-index: 4;
+  background: radial-gradient(circle, var(--glint-color, rgba(255,255,255,0.5)) 0%, transparent 70%);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.sparkle {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1.5px);
+  background-size: 90px 90px, 120px 120px, 70px 70px;
+  background-position: 10px 20px, 60px 50px, 100px 10px;
+  animation: sparkle 2.2s ease-in-out infinite;
 }
 .ct {
   position: relative;
@@ -106,31 +180,6 @@
 .member { font-size: 11px; color: rgba(255,255,255,0.80); }
 .member b { font-size: 14px; font-weight: 500; color: #fff; }
 
-.g_rare { box-shadow: inset 0 0 0 2px #5dcaa5; }
-.g_rare .chip { background: rgba(93,202,165,0.25); color: #9fe1cb; }
-
-.g_unique { box-shadow: 0 0 18px 1px rgba(127,119,221,0.45); }
-.g_unique::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  border-radius: 14px;
-  padding: 2px;
-  background: linear-gradient(135deg, #a78bfa, #5dcaa5, #f0997b, #a78bfa);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-.g_unique .chip { background: rgba(167,139,250,0.28); color: #cecbf6; }
-
-.g_epic { box-shadow: inset 0 0 0 2px rgba(250,199,117,0.85); }
-.g_epic .chip { background: rgba(250,199,117,0.28); color: #fac775; }
-
-.g_legend { animation: pulse 2.4s ease-in-out infinite; }
-.g_legend .chip { background: rgba(250,199,117,0.30); color: #fde68a; }
-
 @keyframes shine {
   0% { transform: translateX(-160%) skewX(-18deg); }
   60%, 100% { transform: translateX(420%) skewX(-18deg); }
@@ -140,6 +189,26 @@
   100% { filter: hue-rotate(360deg); }
 }
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 10px 1px rgba(250,199,117,0.30), inset 0 0 0 2px rgba(250,199,117,0.55); }
-  50% { box-shadow: 0 0 26px 5px rgba(250,199,117,0.55), inset 0 0 0 2px rgba(250,199,117,0.95); }
+  0%, 100% { box-shadow: 0 0 10px 1px var(--pulse-soft), inset 0 0 0 2px var(--pulse-mid); }
+  50% { box-shadow: 0 0 26px 5px var(--pulse-strong), inset 0 0 0 2px var(--pulse-full); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 8px 0px var(--glow-color, rgba(127,119,221,0.30)); }
+  50% { box-shadow: 0 0 26px 4px var(--glow-color, rgba(127,119,221,0.55)); }
+}
+@keyframes bgShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes borderFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes tilt {
+  0%, 100% { opacity: 0; transform: translateX(-20%); }
+  50% { opacity: 1; transform: translateX(20%); }
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
