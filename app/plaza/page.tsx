@@ -2,15 +2,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/ranking";
-import { Trophy, ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
+import { ShoppingBag, Gamepad2, Megaphone, ArrowRight, Sparkles, Plus } from "lucide-react";
 import PlazaSidebar from "@/components/plaza/PlazaSidebar";
 import MegaphoneTicker from "@/components/plaza/MegaphoneTicker";
 import BoardPreview, { type PlazaPost } from "@/components/plaza/BoardPreview";
 import RecruitingGuilds, { type RecruitingGuild } from "@/components/plaza/RecruitingGuilds";
 import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
-import TopRankCompact from "@/components/plaza/TopRankCompact";
-import type { RankedGuild } from "@/components/plaza/PodiumTop3";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 import PlazaHero from "@/components/plaza/PlazaHero";
@@ -43,7 +41,6 @@ export default async function PlazaPage() {
   const [
     userResult,
     recruitingResult,
-    weeklyRankingResult,
     rawPostsResult,
     totalCountResult,
     announcementResult,
@@ -56,7 +53,6 @@ export default async function PlazaPage() {
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
-    supabase.from("weekly_guild_ranking").select("id, code, name, logo_url, weekly_points").order("weekly_points", { ascending: false }).limit(5),
     supabase.from("posts").select("id, title, category, is_notice, view_count, created_at, guild_id, author_id").is("guild_id", null).order("created_at", { ascending: false }).limit(30),
     supabase.from("guilds").select("*", { count: "exact", head: true }),
     supabase.from("platform_settings").select("value").eq("key", "plaza_announcement").maybeSingle(),
@@ -70,7 +66,6 @@ export default async function PlazaPage() {
 
   const user = userResult.data.user;
   const recruitingRaw = recruitingResult.data;
-  const weeklyRaw = weeklyRankingResult.data;
   const rawPosts = rawPostsResult.data;
   const totalGuildCount = totalCountResult.count;
   const shopRaw = shopItemsResult.data;
@@ -107,22 +102,12 @@ export default async function PlazaPage() {
     });
   }
 
-  // 좋아요 카운트 + 주간 랭킹 로고/정보/등급 (서로 독립 → 병렬)
+  // 좋아요 카운트
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
-  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
 
-  const [likeRowsResult, weeklyDisplayResult, weeklyGuildInfoResult, weeklyThemeResult] = await Promise.all([
+  const [likeRowsResult] = await Promise.all([
     plazaPostIds.length > 0
       ? supabase.from("post_likes").select("post_id").in("post_id", plazaPostIds)
-      : Promise.resolve({ data: [] }),
-    weeklyGuildIds.length > 0
-      ? supabase.from("guilds_display").select("id, display_logo_url").in("id", weeklyGuildIds)
-      : Promise.resolve({ data: [] }),
-    weeklyGuildIds.length > 0
-      ? supabase.from("guilds").select("id, server, member_count, total_exp").in("id", weeklyGuildIds)
-      : Promise.resolve({ data: [] }),
-    weeklyGuildIds.length > 0
-      ? supabase.from("guild_themes").select("guild_id, card_grade").in("guild_id", weeklyGuildIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -131,39 +116,6 @@ export default async function PlazaPage() {
     const pid = (row as any).post_id as string;
     likeCountMap[pid] = (likeCountMap[pid] ?? 0) + 1;
   }
-
-  let weeklyLogoMap = new Map<string, string | null>();
-  for (const g of weeklyDisplayResult.data ?? []) {
-    weeklyLogoMap.set(g.id, g.display_logo_url);
-  }
-
-  let weeklyInfoMap = new Map<string, { server: string | null; member_count: number; total_exp: number }>();
-  for (const g of weeklyGuildInfoResult.data ?? []) {
-    weeklyInfoMap.set((g as any).id, {
-      server: (g as any).server ?? null,
-      member_count: (g as any).member_count ?? 0,
-      total_exp: (g as any).total_exp ?? 0,
-    });
-  }
-
-  let weeklyGradeMap = new Map<string, string>();
-  for (const t of weeklyThemeResult.data ?? []) {
-    weeklyGradeMap.set((t as any).guild_id, ((t as any).card_grade as string) ?? "free");
-  }
-
-  const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => {
-    const info = weeklyInfoMap.get(g.id);
-    return {
-      id: g.id, code: g.code, name: g.name,
-      logo_url: weeklyLogoMap.get(g.id) ?? g.logo_url,
-      points: g.weekly_points ?? 0,
-      member_count: info?.member_count ?? 0,
-      master_name: "",
-      server: info?.server ?? null,
-      exp: info?.total_exp ?? 0,
-      grade: weeklyGradeMap.get(g.id) ?? "free",
-    };
-  });
 
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
@@ -419,11 +371,6 @@ export default async function PlazaPage() {
 
           {/* 중앙 */}
           <div className="flex-1 min-w-0 space-y-6">
-            <section>
-              <SectionHeader icon={Trophy} title="주간 길드 랭킹" />
-              <TopRankCompact guilds={topRankings} />
-            </section>
-
             <BoardPreview posts={plazaPosts} />
 
             <section>
