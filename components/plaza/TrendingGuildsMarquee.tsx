@@ -19,6 +19,7 @@ export type TrendingItem = {
   tags: string[];
   recruitMessage: string;
   discordUrl: string;
+  design: { [effect: string]: any } | null;
 };
 
 export default function TrendingGuildsMarquee({
@@ -78,6 +79,7 @@ export default function TrendingGuildsMarquee({
                 tierColor={g.tierColor}
                 memberCount={g.memberCount}
                 maxMembers={g.maxMembers}
+                design={g.design}
               />
             </div>
             {g.description ? (
