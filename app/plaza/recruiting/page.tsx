@@ -21,17 +21,14 @@ export default async function RecruitingPage() {
   const guilds = guildsRaw ?? [];
   const guildIds = guilds.map((g) => g.id);
 
-  // 최근 7일 출석 있는 길드만 (죽은 길드 자동 제외)
+  // 최근 7일 활동 있는 길드만 (RLS 우회 RPC — attendances 직접 조회 대신)
   let activeGuildIds = new Set<string>();
   if (guildIds.length > 0) {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const { data: recentAtt } = await supabase
-      .from("attendances")
-      .select("guild_id")
-      .in("guild_id", guildIds)
-      .gte("attendance_date", sevenDaysAgo);
-    for (const a of recentAtt ?? []) {
-      if (a.guild_id) activeGuildIds.add(a.guild_id);
+    const { data: activityRows } = await supabase.rpc("trending_guild_activity", {
+      days_back: 7,
+    });
+    for (const r of (activityRows ?? []) as any[]) {
+      if (r.guild_id) activeGuildIds.add(r.guild_id as string);
     }
   }
 
@@ -88,7 +85,7 @@ export default async function RecruitingPage() {
   const rankMap = new Map<string, number>();
   (allForRank ?? []).forEach((g, i) => rankMap.set(g.id, i + 1));
 
-  // 등급 디자인 설정
+  // 등급 디자인 설정 (장착 카드 노출은 별도지만, 갤러리 호환 위해 유지)
   const designs = await getCardGradeDesigns();
 
   const items: RecruitGuild[] = guilds
