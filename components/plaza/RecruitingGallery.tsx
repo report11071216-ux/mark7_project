@@ -24,6 +24,8 @@ export type RecruitGuild = {
   grade: string;
 };
 
+type GradeDesigns = { [grade: string]: { [effect: string]: any } };
+
 const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브", "카단"];
 
 function gradeOf(exp: number) {
@@ -37,7 +39,15 @@ function gradeOf(exp: number) {
   return { label: "브론즈", color: "#b45309" };
 }
 
-export default function RecruitingGallery({ guilds, isLoggedIn }: { guilds: RecruitGuild[]; isLoggedIn: boolean }) {
+export default function RecruitingGallery({
+  guilds,
+  isLoggedIn,
+  designs,
+}: {
+  guilds: RecruitGuild[];
+  isLoggedIn: boolean;
+  designs: GradeDesigns;
+}) {
   const [serverFilter, setServerFilter] = useState("전체");
   const [sort, setSort] = useState("activity");
   const [selected, setSelected] = useState<RecruitGuild | null>(null);
@@ -139,6 +149,7 @@ export default function RecruitingGallery({ guilds, isLoggedIn }: { guilds: Recr
                   tierColor={grade.color}
                   memberCount={g.memberCount}
                   maxMembers={g.maxMembers}
+                  design={designs[g.grade] ?? null}
                 />
               </button>
             );
