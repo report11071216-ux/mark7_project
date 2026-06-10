@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCardGradeDesigns } from "@/lib/card-designs";
 import Link from "next/link";
 import { Users, ArrowLeft } from "lucide-react";
 import RecruitingGallery, { type RecruitGuild } from "@/components/plaza/RecruitingGallery";
@@ -87,6 +88,9 @@ export default async function RecruitingPage() {
   const rankMap = new Map<string, number>();
   (allForRank ?? []).forEach((g, i) => rankMap.set(g.id, i + 1));
 
+  // 등급 디자인 설정
+  const designs = await getCardGradeDesigns();
+
   const items: RecruitGuild[] = guilds
     .filter((g) => activeGuildIds.has(g.id))
     .map((g) => ({
@@ -129,7 +133,7 @@ export default async function RecruitingPage() {
       </div>
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
-        <RecruitingGallery guilds={items} isLoggedIn={!!user} />
+        <RecruitingGallery guilds={items} isLoggedIn={!!user} designs={designs} />
       </div>
     </div>
   );
