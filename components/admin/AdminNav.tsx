@@ -14,6 +14,7 @@ import {
   Sparkles,
   ImagePlus,
   FileText,
+  CreditCard,
 } from "lucide-react";
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/admin/members", label: "회원 목록", icon: Users },
   { href: "/admin/guardian", label: "가디언 토벌", icon: Swords },
   { href: "/admin/shop", label: "상품 관리", icon: ShoppingBag },
+  { href: "/admin/guild-cards", label: "명함 카드", icon: CreditCard },
   { href: "/admin/stickers", label: "이모티콘팩", icon: Smile },
   { href: "/admin/backgrounds", label: "길드 배경", icon: Image },
   { href: "/admin/cards", label: "출석 카드", icon: Sparkles },
