@@ -4,6 +4,7 @@ import {
   isTodayKST,
   type CalendarContent,
   type RewardItem,
+  type RewardSubItem,
 } from "@/lib/lostark";
 import { createClient } from "@/lib/supabase/server";
 import { Map, Skull, Aperture, Swords, Gamepad2 } from "lucide-react";
@@ -20,11 +21,29 @@ const GRADE_BORDER: { [key: string]: string } = {
 
 type Weakness = { name: string; color: string };
 
-function RewardIcons({ items }: { items: RewardItem[] }) {
+// RewardItems(중첩 구조)에서 오늘 받을 수 있는 보상만 평탄화해서 추출
+function flattenTodayRewards(rewardItems: RewardItem[] | null): RewardSubItem[] {
+  if (!rewardItems || rewardItems.length === 0) return [];
+  const out: RewardSubItem[] = [];
+  const seen = new Set<string>();
+  for (const group of rewardItems) {
+    for (const item of group.Items ?? []) {
+      // StartTimes가 null이면 상시 보상, 있으면 오늘 포함될 때만
+      const todayOk = !item.StartTimes || item.StartTimes.some((t) => isTodayKST(t));
+      if (!todayOk) continue;
+      if (seen.has(item.Name)) continue;
+      seen.add(item.Name);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
+function RewardIcons({ items }: { items: RewardSubItem[] }) {
   if (!items || items.length === 0) return null;
   return (
-    <div className="flex gap-1 mt-1">
-      {items.slice(0, 4).map((item, i) => (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {items.slice(0, 5).map((item, i) => (
         <div key={i} className="relative group">
           <img
             src={item.Icon}
@@ -50,7 +69,7 @@ function ContentRow({
 }: {
   icon: string | null;
   name: string;
-  rewards?: RewardItem[];
+  rewards?: RewardSubItem[];
   sub?: string;
   badge?: string;
   badgeColor?: string;
@@ -141,13 +160,6 @@ export default async function GameContentWidgets() {
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드") && todayOnly(c));
   const chaosGates = calendar.filter((c) => c.CategoryName?.includes("카오스") && todayOnly(c));
 
-  // ── 임시 디버그: 모험섬 보상 데이터가 API에서 오는지 확인 ──
-  console.log("=== 모험섬 디버그 ===");
-  console.log("모험섬 개수:", adventures.length);
-  console.log("첫 모험섬 전체:", JSON.stringify(adventures[0] ?? null));
-  console.log("첫 모험섬 RewardItems:", JSON.stringify(adventures[0]?.RewardItems ?? null));
-  console.log("필드보스 RewardItems:", JSON.stringify(fieldBosses[0]?.RewardItems ?? null));
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
@@ -163,21 +175,21 @@ export default async function GameContentWidgets() {
         {/* 모험섬 */}
         <Column icon={Map} iconColor="text-blue-500" label="모험 섬" empty={adventures.length === 0}>
           {adventures.slice(0, 4).map((c, i) => (
-            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} rewards={c.RewardItems} />
+            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} rewards={flattenTodayRewards(c.RewardItems)} />
           ))}
         </Column>
 
         {/* 필드보스 */}
         <Column icon={Skull} iconColor="text-rose-500" label="필드 보스" empty={fieldBosses.length === 0}>
           {fieldBosses.slice(0, 2).map((c, i) => (
-            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} rewards={c.RewardItems} sub="정각마다 출현" />
+            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} rewards={flattenTodayRewards(c.RewardItems)} sub="정각마다 출현" />
           ))}
         </Column>
 
         {/* 카오스게이트 */}
         <Column icon={Aperture} iconColor="text-violet-500" label="카오스게이트" empty={chaosGates.length === 0}>
           {chaosGates.slice(0, 2).map((c, i) => (
-            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} sub="매시간 50분 진행" />
+            <ContentRow key={i} icon={c.ContentsIcon ?? null} name={c.ContentsName} rewards={flattenTodayRewards(c.RewardItems)} sub="매시간 50분 진행" />
           ))}
         </Column>
 
