@@ -1,145 +1,124 @@
-.card {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 6.5;
-  border-radius: 14px;
-  overflow: hidden;
-  color: #fff;
-  isolation: isolate;
-}
-.bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-color: #1c2348;
-  background-image: linear-gradient(125deg, #3b2f6b 0%, #1c2348 50%, #0f2e3a 100%);
-  background-size: cover;
-  background-position: center;
-}
-.ov {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(120deg, rgba(7,9,18,0.80) 0%, rgba(7,9,18,0.45) 55%, rgba(7,9,18,0.78) 100%);
-}
-.water {
-  position: absolute;
-  right: -10px;
-  bottom: -20px;
-  z-index: 3;
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
-  opacity: 0.10;
-  pointer-events: none;
-}
-.holo {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  background: conic-gradient(from 0deg, rgba(255,0,128,0.20), rgba(0,200,255,0.20), rgba(120,255,80,0.20), rgba(255,210,0,0.20), rgba(255,0,128,0.20));
-  mix-blend-mode: screen;
-  animation: holo 7s linear infinite;
-  pointer-events: none;
-}
-.glass {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.26) 48%, transparent 62%);
-  pointer-events: none;
-}
-.shine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 46%;
-  height: 100%;
-  z-index: 5;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent);
-  animation: shine 3.2s ease-in-out infinite;
-  pointer-events: none;
-}
-.ct {
-  position: relative;
-  z-index: 6;
-  height: 100%;
-  padding: 13px 17px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.id { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.12);
-  border: 1.5px solid rgba(250,199,117,0.75);
-  color: #fde68a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 500;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.markImg { width: 100%; height: 100%; object-fit: cover; }
-.nameWrap { min-width: 0; }
-.name { font-size: 16px; font-weight: 500; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.srv { font-size: 11px; color: rgba(255,255,255,0.72); margin-top: 2px; }
-.chip {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 9px;
-  border-radius: 999px;
-  letter-spacing: 0.04em;
-  background: rgba(255,255,255,0.16);
-  color: #fff;
-  flex-shrink: 0;
-}
-.bot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-.tier { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,0.85); }
-.tierDot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.member { font-size: 11px; color: rgba(255,255,255,0.80); }
-.member b { font-size: 14px; font-weight: 500; color: #fff; }
+import styles from "./GuildCard.module.css";
 
-.g_rare { box-shadow: inset 0 0 0 2px #5dcaa5; }
-.g_rare .chip { background: rgba(93,202,165,0.25); color: #9fe1cb; }
+type GuildCardProps = {
+  guildName: string;
+  server?: string | null;
+  grade?: string;
+  markUrl?: string | null;
+  imageUrl?: string | null;
+  tierLabel?: string;
+  tierColor?: string;
+  memberCount?: number;
+  maxMembers?: number;
+  statText?: string;
+  className?: string;
+};
 
-.g_unique { box-shadow: 0 0 18px 1px rgba(127,119,221,0.45); }
-.g_unique::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  border-radius: 14px;
-  padding: 2px;
-  background: linear-gradient(135deg, #a78bfa, #5dcaa5, #f0997b, #a78bfa);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-.g_unique .chip { background: rgba(167,139,250,0.28); color: #cecbf6; }
+const VALID_GRADES = ["free", "rare", "unique", "epic", "legend"];
 
-.g_epic { box-shadow: inset 0 0 0 2px rgba(250,199,117,0.85); }
-.g_epic .chip { background: rgba(250,199,117,0.28); color: #fac775; }
+const GRADE_LABEL: { [key: string]: string } = {
+  free: "FREE",
+  rare: "RARE",
+  unique: "UNIQUE",
+  epic: "EPIC",
+  legend: "LEGEND",
+};
 
-.g_legend { animation: pulse 2.4s ease-in-out infinite; }
-.g_legend .chip { background: rgba(250,199,117,0.30); color: #fde68a; }
+export default function GuildCard(props: GuildCardProps) {
+  const {
+    guildName,
+    server,
+    grade,
+    markUrl,
+    imageUrl,
+    tierLabel,
+    tierColor,
+    memberCount,
+    maxMembers,
+    statText,
+    className,
+  } = props;
 
-@keyframes shine {
-  0% { transform: translateX(-160%) skewX(-18deg); }
-  60%, 100% { transform: translateX(420%) skewX(-18deg); }
-}
-@keyframes holo {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
-}
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 10px 1px rgba(250,199,117,0.30), inset 0 0 0 2px rgba(250,199,117,0.55); }
-  50% { box-shadow: 0 0 26px 5px rgba(250,199,117,0.55), inset 0 0 0 2px rgba(250,199,117,0.95); }
+  const g = grade && VALID_GRADES.includes(grade) ? grade : "free";
+  const label = GRADE_LABEL[g];
+
+  const showChip = g !== "free";
+  const showShine = g === "epic";
+  const showHolo = g === "legend";
+  const showGlass = g === "legend";
+
+  const initial = guildName ? guildName.slice(0, 1) : "?";
+
+  const rootClass = [styles.card, styles["g_" + g], className]
+    .filter(Boolean)
+    .join(" ");
+
+  let memberText = "";
+  if (typeof memberCount === "number") {
+    memberText =
+      typeof maxMembers === "number"
+        ? memberCount + "/" + maxMembers
+        : String(memberCount);
+  }
+
+  const bgStyle = imageUrl
+    ? { backgroundImage: "url(" + imageUrl + ")" }
+    : undefined;
+
+  return (
+    <div className={rootClass}>
+      <div className={styles.bg} style={bgStyle} />
+      <div className={styles.ov} />
+
+      {markUrl ? (
+        <img src={markUrl} alt="" aria-hidden="true" className={styles.water} />
+      ) : null}
+
+      {showHolo ? <div className={styles.holo} /> : null}
+      {showGlass ? <div className={styles.glass} /> : null}
+      {showShine ? <div className={styles.shine} /> : null}
+
+      <div className={styles.ct}>
+        <div className={styles.top}>
+          <div className={styles.id}>
+            <div className={styles.mark}>
+              {markUrl ? (
+                <img src={markUrl} alt="" className={styles.markImg} />
+              ) : (
+                <span>{initial}</span>
+              )}
+            </div>
+            <div className={styles.nameWrap}>
+              <div className={styles.name}>{guildName}</div>
+              {server ? <div className={styles.srv}>{server}</div> : null}
+            </div>
+          </div>
+          {showChip ? <div className={styles.chip}>{label}</div> : null}
+        </div>
+
+        <div className={styles.bot}>
+          <div className={styles.tier}>
+            {tierLabel ? (
+              <>
+                <span
+                  className={styles.tierDot}
+                  style={{ background: tierColor || "#94a3b8" }}
+                />
+                {tierLabel}
+              </>
+            ) : null}
+          </div>
+          {statText ? (
+            <div className={styles.member}>
+              <b>{statText}</b>
+            </div>
+          ) : memberText ? (
+            <div className={styles.member}>
+              멤버 <b>{memberText}</b>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }
