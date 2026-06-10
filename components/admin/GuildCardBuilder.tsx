@@ -113,7 +113,7 @@ export default function GuildCardBuilder({ cards }: { cards: CardRow[] }) {
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      toast.error("카드 이름을 입력하세요");
+      toast.error("상품 이름을 입력하세요");
       return;
     }
     const priceNum = parseInt(price, 10);
@@ -172,7 +172,9 @@ export default function GuildCardBuilder({ cards }: { cards: CardRow[] }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">카드 이름</label>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">
+                상품 이름 <span className="text-slate-400 font-normal">(상점 표시용)</span>
+              </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -300,18 +302,18 @@ export default function GuildCardBuilder({ cards }: { cards: CardRow[] }) {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">미리보기</p>
           <div className="rounded-xl overflow-hidden">
             <GuildCard
-              guildName={name || "미리보기 길드"}
+              guildName="우리 길드"
               server="루페온 서버"
               grade="custom"
               imageUrl={imageUrl || null}
               tierLabel="마스터"
               tierColor="#9333ea"
-              statText={price ? parseInt(price, 10).toLocaleString() + "P" : "미리보기"}
+              statText="멤버 32"
               design={design}
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-            왼쪽 효과·배경이 실시간으로 반영돼요.
+            실제 카드에는 <b>구매한 길드의 이름·서버·마크</b>가 자동으로 들어가요. 위 "우리 길드"는 예시예요.
           </p>
         </div>
       </div>
@@ -329,17 +331,20 @@ export default function GuildCardBuilder({ cards }: { cards: CardRow[] }) {
             {cards.map((c) => (
               <div key={c.id} className="rounded-xl ring-1 ring-slate-200 overflow-hidden">
                 <GuildCard
-                  guildName={c.name}
-                  server=" "
+                  guildName="우리 길드"
+                  server="예시 서버"
                   grade="custom"
                   imageUrl={c.image_url}
-                  statText={c.price.toLocaleString() + "P"}
+                  tierLabel="마스터"
+                  tierColor="#9333ea"
+                  statText="멤버 32"
                   design={c.design}
                 />
                 <div className="flex items-center justify-between px-3 py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-900 truncate">{c.name}</p>
-                    <span className={"text-xs font-bold " + (c.is_active ? "text-emerald-600" : "text-slate-400")}>
+                    <span className="text-xs font-bold text-slate-500">{c.price.toLocaleString()}P</span>
+                    <span className={"text-xs font-bold ml-2 " + (c.is_active ? "text-emerald-600" : "text-slate-400")}>
                       {c.is_active ? "판매중" : "숨김"}
                     </span>
                   </div>
