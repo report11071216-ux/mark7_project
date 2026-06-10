@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Users, X, Eye, UserPlus, MessageSquare, Diamond } from "lucide-react";
+import { Users, X, Eye, UserPlus, MessageSquare, Diamond, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { requestJoinGuild } from "@/app/actions/join-request-actions";
 import GuildCard from "@/components/guild/GuildCard";
@@ -21,10 +21,9 @@ export type RecruitGuild = {
   tags: string[];
   discordUrl: string;
   recruitMessage: string;
-  grade: string;
+  cardImageUrl: string | null;
+  cardDesign: { [effect: string]: any } | null;
 };
-
-type GradeDesigns = { [grade: string]: { [effect: string]: any } };
 
 const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브", "카단"];
 
@@ -42,14 +41,12 @@ function gradeOf(exp: number) {
 export default function RecruitingGallery({
   guilds,
   isLoggedIn,
-  designs,
 }: {
   guilds: RecruitGuild[];
   isLoggedIn: boolean;
-  designs: GradeDesigns;
 }) {
   const [serverFilter, setServerFilter] = useState("전체");
-  const [sort, setSort] = useState("activity");
+  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<RecruitGuild | null>(null);
   const [joinMessage, setJoinMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -60,14 +57,18 @@ export default function RecruitingGallery({
     if (serverFilter !== "전체") {
       list = list.filter((g) => g.server === serverFilter);
     }
-    const sorted = [...list];
-    if (sort === "members") {
-      sorted.sort((a, b) => (b.maxMembers - b.memberCount) - (a.maxMembers - a.memberCount));
-    } else if (sort === "activity") {
-      sorted.sort((a, b) => b.totalExp - a.totalExp);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((g) => {
+        const inName = g.name.toLowerCase().includes(q);
+        const inTags = g.tags.some((t) => t.toLowerCase().includes(q));
+        const inMsg = g.recruitMessage.toLowerCase().includes(q);
+        return inName || inTags || inMsg;
+      });
     }
-    return sorted;
-  }, [guilds, serverFilter, sort]);
+    // 정렬은 서버에서 활동순으로 이미 끝났으니 그대로 유지
+    return list;
+  }, [guilds, serverFilter, query]);
 
   const selectedGrade = selected ? gradeOf(selected.totalExp) : null;
   const alreadyRequested = selected ? requestedIds.includes(selected.id) : false;
@@ -97,8 +98,18 @@ export default function RecruitingGallery({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1.5 flex-wrap flex-1">
+      {/* 검색 + 서버 필터 */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="길드명, 태그, 모집 내용으로 검색"
+            className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+          />
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
           {SERVERS.map((s) => (
             <button
               key={s}
@@ -114,78 +125,107 @@ export default function RecruitingGallery({
             </button>
           ))}
         </div>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="h-8 px-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white"
-        >
-          <option value="activity">활동성순</option>
-          <option value="recent">최신순</option>
-          <option value="members">자리 많은순</option>
-        </select>
       </div>
 
       {filtered.length === 0 ? (
         <div className="py-20 text-center">
           <Users className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">현재 조건에 맞는 모집중인 길드가 없어요</p>
+          <p className="text-slate-400 text-sm">
+            {query.trim() ? "검색 결과가 없어요" : "현재 조건에 맞는 모집중인 길드가 없어요"}
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="space-y-2.5">
           {filtered.map((g) => {
             const grade = gradeOf(g.totalExp);
+            const requested = requestedIds.includes(g.id);
             return (
-              <button
+              <div
                 key={g.id}
-                onClick={() => setSelected(g)}
-                className="block text-left transition hover:-translate-y-0.5"
+                className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm"
               >
-                <GuildCard
-                  guildName={g.name}
-                  server={g.server ? g.server + " 서버" : undefined}
-                  grade={g.grade}
-                  markUrl={g.logoUrl}
-                  tierLabel={grade.label}
-                  tierColor={grade.color}
-                  memberCount={g.memberCount}
-                  maxMembers={g.maxMembers}
-                  design={designs[g.grade] ?? null}
-                />
-              </button>
+                {/* 명함 카드 */}
+                <button
+                  onClick={() => setSelected(g)}
+                  className="w-full md:w-[300px] shrink-0 block transition hover:-translate-y-0.5"
+                >
+                  <GuildCard
+                    guildName={g.name}
+                    server={g.server ? g.server + " 서버" : undefined}
+                    grade="custom"
+                    markUrl={g.logoUrl}
+                    imageUrl={g.cardImageUrl}
+                    tierLabel={grade.label}
+                    tierColor={grade.color}
+                    memberCount={g.memberCount}
+                    maxMembers={g.maxMembers}
+                    design={g.cardDesign}
+                  />
+                </button>
+
+                {/* 정보 + 액션 */}
+                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                  {g.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {g.tags.slice(0, 4).map((t) => (
+                        <span key={t} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {g.recruitMessage ? (
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{g.recruitMessage}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400">{g.description || "함께할 길드원을 모집해요"}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(g)}
+                      className="h-9 px-5 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition flex items-center gap-1.5"
+                    >
+                      <UserPlus className="w-4 h-4" /> 가입 신청
+                    </button>
+                    <Link
+                      href={"/guild/" + g.code}
+                      className="h-9 px-4 rounded-lg border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition flex items-center gap-1.5"
+                    >
+                      <Eye className="w-4 h-4" /> 둘러보기
+                    </Link>
+                    {requested ? (
+                      <span className="text-xs font-bold text-emerald-600">신청 완료</span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
+      {/* 가입 모달 */}
       {selected && selectedGrade ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={closeModal} />
           <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-xl max-h-[90vh] flex flex-col">
-            <div className="relative h-24 bg-slate-900 flex items-end p-4 shrink-0">
-              <button onClick={closeModal} className="absolute top-3 right-3 text-white/70 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-xl bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-violet-400/40">
-                  {selected.logoUrl ? (
-                    <img src={selected.logoUrl} alt={selected.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xl font-bold text-violet-300">{selected.name.charAt(0)}</span>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold text-white">{selected.name}</p>
-                    {selected.server ? (
-                      <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.5 rounded">{selected.server}</span>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Diamond className="w-3.5 h-3.5" style={{ color: selectedGrade.color }} />
-                    <span className="text-xs font-bold" style={{ color: selectedGrade.color }}>{selectedGrade.label} 길드</span>
-                  </div>
-                </div>
-              </div>
+            <button onClick={closeModal} className="absolute top-3 right-3 z-10 text-white/80 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <GuildCard
+                guildName={selected.name}
+                server={selected.server ? selected.server + " 서버" : undefined}
+                grade="custom"
+                markUrl={selected.logoUrl}
+                imageUrl={selected.cardImageUrl}
+                tierLabel={selectedGrade.label}
+                tierColor={selectedGrade.color}
+                memberCount={selected.memberCount}
+                maxMembers={selected.maxMembers}
+                design={selected.cardDesign}
+              />
             </div>
 
             <div className="p-5 space-y-4 overflow-y-auto">
