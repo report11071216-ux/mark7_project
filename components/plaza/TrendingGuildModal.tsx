@@ -59,6 +59,7 @@ export default function TrendingGuildModal({
             tierColor={guild.tierColor}
             memberCount={guild.memberCount}
             maxMembers={guild.maxMembers}
+            design={guild.design}
           />
         </div>
 
