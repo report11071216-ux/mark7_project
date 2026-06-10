@@ -1,28 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import ShopItemManager, { type ShopItem } from "@/components/admin/ShopItemManager";
-import CardGradePriceManager from "@/components/admin/CardGradePriceManager";
-import CardDesignEditor from "@/components/admin/CardDesignEditor";
 export const dynamic = "force-dynamic";
 export default async function AdminShopPage() {
   await requireAdmin();
   const supabase = await createClient();
-  const [{ data: items }, { data: priceRow }, { data: designRow }] = await Promise.all([
-    supabase
-      .from("shop_items")
-      .select("id, shop_type, category, name, description, price, image_url, duration_hours, is_active, created_at")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "card_grade_prices")
-      .maybeSingle(),
-    supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "card_grade_designs")
-      .maybeSingle(),
-  ]);
+  const { data: items } = await supabase
+    .from("shop_items")
+    .select("id, shop_type, category, name, description, price, image_url, duration_hours, is_active, created_at")
+    .order("created_at", { ascending: false });
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
     id: it.id,
     shop_type: it.shop_type,
@@ -35,16 +21,6 @@ export default async function AdminShopPage() {
     is_active: it.is_active,
   }));
 
-  const pricesRaw = (priceRow?.value ?? {}) as { [key: string]: number };
-  const cardGradePrices = {
-    rare: pricesRaw.rare ?? 1000,
-    unique: pricesRaw.unique ?? 3000,
-    epic: pricesRaw.epic ?? 6000,
-    legend: pricesRaw.legend ?? 12000,
-  };
-
-  const cardGradeDesigns = (designRow?.value ?? {}) as { [grade: string]: any };
-
   return (
     <div className="space-y-6">
       <div>
@@ -53,8 +29,6 @@ export default async function AdminShopPage() {
           포인트 상점에 진열할 상품을 등록하고 관리합니다.
         </p>
       </div>
-      <CardGradePriceManager initial={cardGradePrices} />
-      <CardDesignEditor initial={cardGradeDesigns} />
       <ShopItemManager items={shopItems} />
     </div>
   );
