@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { CreditCard, Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Lock, CreditCard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import GuildCard from "@/components/guild/GuildCard";
 
@@ -14,6 +14,7 @@ type Props = {
   currentGrade: string;
   guildPoints: number;
   prices: { [key: string]: number };
+  canBuy: boolean;
 };
 
 const GRADES = [
@@ -24,7 +25,7 @@ const GRADES = [
 ];
 
 export default function CardGradeShop(props: Props) {
-  const { guildId, guildName, server, currentGrade, guildPoints, prices } = props;
+  const { guildId, guildName, server, currentGrade, guildPoints, prices, canBuy } = props;
   const router = useRouter();
 
   const [preview, setPreview] = useState(currentGrade);
@@ -70,20 +71,16 @@ export default function CardGradeShop(props: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6">
+    <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5 mb-6">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-          <CreditCard className="w-5 h-5 text-violet-600" />
+        <div className="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center shrink-0">
+          <CreditCard className="w-5 h-5 text-cyan-600" />
         </div>
-        <div className="flex-1">
-          <h2 className="text-lg font-bold text-slate-900">명함 등급</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            길드 포인트로 명함 등급을 올리면 모집·광장에서 더 화려하게 노출돼요.
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-bold text-slate-900">길드 명함 등급</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            길드 포인트로 명함을 꾸미면 모집·광장에서 더 화려하게 노출돼요.
           </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-[11px] text-slate-400">보유 길드 포인트</p>
-          <p className="text-base font-bold text-violet-600">{guildPoints.toLocaleString("ko-KR")}P</p>
         </div>
       </div>
 
@@ -95,7 +92,7 @@ export default function CardGradeShop(props: Props) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {GRADES.map((g) => {
           const price = prices[g.key] ?? 0;
           const isCurrent = currentGrade === g.key;
@@ -107,43 +104,50 @@ export default function CardGradeShop(props: Props) {
               onMouseLeave={() => setPreview(currentGrade)}
               className={
                 "rounded-xl border p-3 transition " +
-                (isCurrent ? "border-violet-300 bg-violet-50/40" : "border-slate-200 bg-white")
+                (isCurrent ? "border-cyan-300 bg-cyan-50/40" : "border-slate-200 bg-white")
               }
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-bold text-slate-900">{g.label}</span>
                 {isCurrent ? (
-                  <span className="text-[11px] font-bold text-violet-600 inline-flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-cyan-600 inline-flex items-center gap-1">
                     <Check className="w-3.5 h-3.5" /> 적용중
                   </span>
                 ) : (
                   <span className="text-xs font-bold text-slate-700">{price.toLocaleString("ko-KR")}P</span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 mb-2.5 leading-snug">{g.desc}</p>
-              <button
-                type="button"
-                disabled={isCurrent || buying !== null}
-                onClick={() => handleBuy(g.key)}
-                className={
-                  "w-full h-8 rounded-lg text-xs font-bold transition inline-flex items-center justify-center gap-1.5 disabled:opacity-50 " +
-                  (isCurrent
-                    ? "bg-slate-100 text-slate-400"
-                    : canAfford
-                    ? "bg-violet-600 text-white hover:bg-violet-700"
-                    : "bg-slate-100 text-slate-400")
-                }
-              >
-                {buying === g.key ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : isCurrent ? (
-                  "적용중"
-                ) : canAfford ? (
-                  "구매"
-                ) : (
-                  "포인트 부족"
-                )}
-              </button>
+              <p className="text-[11px] text-slate-500 mb-2.5 leading-snug min-h-[28px]">{g.desc}</p>
+
+              {!canBuy ? (
+                <div className="w-full h-8 rounded-lg bg-slate-100 text-slate-400 text-xs font-bold flex items-center justify-center gap-1">
+                  <Lock className="w-3.5 h-3.5" /> 마스터·부마만
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isCurrent || buying !== null}
+                  onClick={() => handleBuy(g.key)}
+                  className={
+                    "w-full h-8 rounded-lg text-xs font-bold transition inline-flex items-center justify-center gap-1.5 disabled:opacity-50 " +
+                    (isCurrent
+                      ? "bg-slate-100 text-slate-400"
+                      : canAfford
+                      ? "bg-cyan-600 text-white hover:bg-cyan-500"
+                      : "bg-slate-100 text-slate-400")
+                  }
+                >
+                  {buying === g.key ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : isCurrent ? (
+                    "적용중"
+                  ) : canAfford ? (
+                    "구매"
+                  ) : (
+                    "포인트 부족"
+                  )}
+                </button>
+              )}
             </div>
           );
         })}
