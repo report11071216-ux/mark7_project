@@ -1,15 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCardGradeDesigns } from "@/lib/card-designs";
 import { Flame } from "lucide-react";
 import TrendingGuildsMarquee, { type TrendingItem } from "@/components/plaza/TrendingGuildsMarquee";
-
-const GRADE_RANK: { [key: string]: number } = {
-  legend: 5,
-  epic: 4,
-  unique: 3,
-  rare: 2,
-  free: 1,
-};
 
 function tierOf(exp: number) {
   if (exp >= 12000) return { label: "그랜드마스터", color: "#dc2626" };
@@ -42,8 +33,8 @@ export default async function TrendingGuilds() {
   const activeIds = Array.from(activityCount.keys());
   if (activeIds.length === 0) return null;
 
-  // 모집중 길드만 (모집 정보 포함) + 테마(등급/마크) + 디자인 설정 병렬
-  const [guildResult, themeResult, designs] = await Promise.all([
+  // 모집중 길드 + 테마(장착 카드/마크) 병렬
+  const [guildResult, themeResult] = await Promise.all([
     supabase
       .from("guilds")
       .select("id, code, name, logo_url, server, description, member_count, max_members, total_exp, is_recruiting, recruit_tags, recruit_message, recruit_discord_url")
@@ -51,21 +42,35 @@ export default async function TrendingGuilds() {
       .eq("is_recruiting", true),
     supabase
       .from("guild_themes")
-      .select("guild_id, card_grade, equipped_mark_id")
+      .select("guild_id, equipped_guild_card_id, equipped_mark_id")
       .in("guild_id", activeIds),
-    getCardGradeDesigns(),
   ]);
 
   const guildRows = guildResult.data ?? [];
   if (guildRows.length === 0) return null;
 
-  let gradeMap = new Map<string, string>();
+  // 장착 카드 + 마크 매핑
+  let equippedCardMap = new Map<string, string>();
   let markPurchaseMap = new Map<string, string>();
   for (const t of themeResult.data ?? []) {
     const gid = (t as any).guild_id as string;
-    gradeMap.set(gid, ((t as any).card_grade as string) ?? "free");
+    const cardId = (t as any).equipped_guild_card_id as string | null;
+    if (cardId) equippedCardMap.set(gid, cardId);
     const mp = (t as any).equipped_mark_id as string | null;
     if (mp) markPurchaseMap.set(gid, mp);
+  }
+
+  // 장착 카드 디자인/이미지 조회
+  let cardDataMap = new Map<string, { design: any; imageUrl: string | null }>();
+  const cardIds = Array.from(new Set(Array.from(equippedCardMap.values())));
+  if (cardIds.length > 0) {
+    const { data: npCards } = await supabase
+      .from("guild_nameplate_cards")
+      .select("id, design, image_url")
+      .in("id", cardIds);
+    for (const c of npCards ?? []) {
+      cardDataMap.set(c.id, { design: c.design ?? {}, imageUrl: c.image_url });
+    }
   }
 
   // 마크 이미지: purchases → shop_items.image_url
@@ -101,13 +106,10 @@ export default async function TrendingGuilds() {
     }
   }
 
-  // 정렬: 명함 등급 높은순 → 활동량순 → 경험치순
+  // 정렬: 활동량순 → 경험치순 (평등하게)
   const sorted = guildRows
     .slice()
     .sort((a, b) => {
-      const ga = GRADE_RANK[gradeMap.get(a.id) ?? "free"] ?? 1;
-      const gb = GRADE_RANK[gradeMap.get(b.id) ?? "free"] ?? 1;
-      if (gb !== ga) return gb - ga;
       const aa = activityCount.get(a.id) ?? 0;
       const ab = activityCount.get(b.id) ?? 0;
       if (ab !== aa) return ab - aa;
@@ -119,13 +121,14 @@ export default async function TrendingGuilds() {
 
   const items: TrendingItem[] = sorted.map((g) => {
     const tier = tierOf(g.total_exp ?? 0);
-    const grade = gradeMap.get(g.id) ?? "free";
+    const cardId = equippedCardMap.get(g.id);
+    const cardData = cardId ? cardDataMap.get(cardId) : null;
     return {
       id: g.id,
       code: g.code,
       name: g.name,
       server: g.server ?? null,
-      grade: grade,
+      grade: "custom",
       markUrl: markUrlByGuild.get(g.id) ?? g.logo_url,
       tierLabel: tier.label,
       tierColor: tier.color,
@@ -135,7 +138,8 @@ export default async function TrendingGuilds() {
       tags: (g.recruit_tags ?? []) as string[],
       recruitMessage: g.recruit_message ?? "",
       discordUrl: g.recruit_discord_url ?? "",
-      design: (designs as any)[grade] ?? null,
+      design: cardData?.design ?? null,
+      imageUrl: cardData?.imageUrl ?? null,
     };
   });
 
