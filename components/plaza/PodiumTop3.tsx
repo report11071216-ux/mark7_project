@@ -14,6 +14,7 @@ export type RankedGuild = {
   points: number;
   server?: string | null;
   exp?: number | null;
+  grade?: string;
 };
 
 // 등급 8단계 (누적 경험치 기준)
