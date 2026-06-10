@@ -1,10 +1,16 @@
 const BASE = "https://developer-lostark.game.onstove.com";
 
 // ─── Calendar Types ───
-export type RewardItem = {
+export type RewardSubItem = {
   Name: string;
   Icon: string;
   Grade: string;
+  StartTimes: string[] | null;
+};
+
+export type RewardItem = {
+  ItemLevel: number;
+  Items: RewardSubItem[];
 };
 
 export type CalendarContent = {
