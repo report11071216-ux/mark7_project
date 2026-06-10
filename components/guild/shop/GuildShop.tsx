@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X, Eye, Sparkles, Ticket } from "lucide-react";
 import { purchaseItem, buyCardPack } from "@/app/guild/[code]/shop/actions";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
+import CardGradeShop from "@/components/guild/CardGradeShop";
 import toast from "react-hot-toast";
 
 export type ShopItem = {
@@ -30,12 +31,15 @@ type Props = {
   megaphoneItems: MegaphoneItem[];
   cardPackPrice: number;
   cardPackActive: boolean;
+  guildServer: string | null;
+  cardGrade: string;
+  cardGradePrices: { [key: string]: number };
 };
 
 export default function GuildShop({
   guildCode, guildId, guildName, guildPoints, myPoints,
   isStaff, items, ownedItemIds, megaphoneItems,
-  cardPackPrice, cardPackActive,
+  cardPackPrice, cardPackActive, guildServer, cardGrade, cardGradePrices,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
@@ -201,6 +205,19 @@ export default function GuildShop({
               </div>
             </div>
           </div>
+        )}
+
+        {/* 길드 명함 등급 (길드샵 상단) */}
+        {tab === "guild" && (
+          <CardGradeShop
+            guildId={guildId}
+            guildName={guildName}
+            server={guildServer}
+            currentGrade={cardGrade}
+            guildPoints={guildPoints}
+            prices={cardGradePrices}
+            canBuy={isStaff}
+          />
         )}
 
         {/* 길드샵 구경 안내 (일반 길드원) */}
