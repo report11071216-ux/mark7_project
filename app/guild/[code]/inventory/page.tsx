@@ -7,6 +7,7 @@ import GuildInventory, {
   type GuildCardEntry,
   type MyCard,
 } from "@/components/guild/GuildInventory";
+import { type OwnedNameplate } from "@/components/guild/NameplateVault";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 export const dynamic = "force-dynamic";
 type Props = { params: { code: string } };
@@ -15,7 +16,7 @@ export default async function GuildInventoryPage({ params }: Props) {
   const code = params.code.toUpperCase();
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("guilds").select("id, name, code, vault_slots").eq("code", code).single(),
+    supabase.from("guilds").select("id, name, code, vault_slots, server, member_count, max_members").eq("code", code).single(),
   ]);
   if (!user || !guild) notFound();
   const { data: membership } = await supabase
@@ -34,7 +35,7 @@ export default async function GuildInventoryPage({ params }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("guild_themes")
-      .select("equipped_mark_id, equipped_sticker_sets, equipped_background_url")
+      .select("equipped_mark_id, equipped_sticker_sets, equipped_background_url, equipped_guild_card_id")
       .eq("guild_id", guild.id)
       .maybeSingle(),
   ]);
@@ -124,7 +125,7 @@ export default async function GuildInventoryPage({ params }: Props) {
     }
   }
 
-  // ── 카드 보관함 데이터 ──
+  // ── 카드 보관함 데이터 (출석 카드 도감) ──
   const [{ data: activeCards }, { data: gCards }, { data: donations }, { data: myCardRows }] =
     await Promise.all([
       supabase.from("attendance_cards").select("id, grade, name, image_url").eq("is_active", true),
@@ -133,18 +134,15 @@ export default async function GuildInventoryPage({ params }: Props) {
       supabase.from("user_cards").select("card_id, count").eq("user_id", user.id),
     ]);
 
-  // 길드 보유 수량 맵
   const gCountMap: { [cardId: string]: number } = {};
   for (const g of gCards ?? []) gCountMap[g.card_id] = g.count ?? 0;
 
-  // 기여자 집계 (카드별 → 유저별 합계)
   const donorAgg: { [cardId: string]: { [userId: string]: number } } = {};
   for (const d of donations ?? []) {
     if (!donorAgg[d.card_id]) donorAgg[d.card_id] = {};
     donorAgg[d.card_id][d.user_id] = (donorAgg[d.card_id][d.user_id] ?? 0) + (d.qty ?? 0);
   }
 
-  // 기여자 이름 맵
   const donorIds = Array.from(
     new Set((donations ?? []).map((d) => d.user_id).filter(Boolean))
   ) as string[];
@@ -172,7 +170,6 @@ export default async function GuildInventoryPage({ params }: Props) {
     };
   });
 
-  // 내 카드 (기증용) — 메타는 attendance_cards에서 (비활성 포함)
   const myIds = Array.from(
     new Set((myCardRows ?? []).map((r) => r.card_id).filter(Boolean))
   ) as string[];
@@ -199,6 +196,57 @@ export default async function GuildInventoryPage({ params }: Props) {
       };
     });
 
+  // ── 명함 카드 (보유 + 장착) ──
+  const equippedNameplateId = (themeRow as any)?.equipped_guild_card_id ?? null;
+  const { data: ownedRows } = await supabase
+    .from("guild_owned_nameplates")
+    .select("card_id, purchased_at")
+    .eq("guild_id", guild.id)
+    .order("purchased_at", { ascending: false });
+
+  const ownedCardIds = Array.from(
+    new Set((ownedRows ?? []).map((r) => r.card_id).filter(Boolean))
+  ) as string[];
+
+  let ownedNameplates: OwnedNameplate[] = [];
+  if (ownedCardIds.length > 0) {
+    const { data: npCards } = await supabase
+      .from("guild_nameplate_cards")
+      .select("id, name, image_url, design")
+      .in("id", ownedCardIds);
+    const npMap = new Map((npCards ?? []).map((c) => [c.id, c]));
+    // 구매 최신순 유지
+    for (const r of ownedRows ?? []) {
+      const c = npMap.get(r.card_id);
+      if (!c) continue;
+      ownedNameplates.push({
+        cardId: c.id,
+        name: c.name,
+        imageUrl: c.image_url,
+        design: (c.design ?? {}) as { [effect: string]: any },
+      });
+    }
+  }
+
+  // 길드 마크 이미지 URL (equipped_mark_id → purchases → shop_items.image_url)
+  let markUrl: string | null = null;
+  const equippedMarkPurchaseId = themeRow?.equipped_mark_id ?? null;
+  if (equippedMarkPurchaseId) {
+    const { data: markPurchase } = await supabase
+      .from("purchases")
+      .select("item_id")
+      .eq("id", equippedMarkPurchaseId)
+      .maybeSingle();
+    if (markPurchase?.item_id) {
+      const { data: markItem } = await supabase
+        .from("shop_items")
+        .select("image_url")
+        .eq("id", markPurchase.item_id)
+        .maybeSingle();
+      markUrl = markItem?.image_url ?? null;
+    }
+  }
+
   // ── 보관함 점유 칸 수: 길드샵 코스메틱 (확성기 제외) ──
   const usedSlots = rawPurchases.filter((p) => p.item_category !== "확성기").length;
   const vaultSlots = guild.vault_slots ?? 0;
@@ -219,6 +267,12 @@ export default async function GuildInventoryPage({ params }: Props) {
       vaultSlots={vaultSlots}
       cards={cards}
       myCards={myCards}
+      guildServer={guild.server ?? null}
+      guildMarkUrl={markUrl}
+      memberCount={guild.member_count ?? 0}
+      maxMembers={guild.max_members ?? 50}
+      ownedNameplates={ownedNameplates}
+      equippedNameplateId={equippedNameplateId}
     />
   );
 }
