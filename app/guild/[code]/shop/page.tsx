@@ -9,7 +9,7 @@ export default async function GuildShopPage({ params }: Props) {
   const code = params.code.toUpperCase();
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("guilds").select("id, name, code, total_points").eq("code", code).single(),
+    supabase.from("guilds").select("id, name, code, server, total_points").eq("code", code).single(),
   ]);
   if (!user || !guild) notFound();
   const { data: membership } = await supabase
@@ -19,7 +19,7 @@ export default async function GuildShopPage({ params }: Props) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!membership) notFound();
-  const [{ data: items }, { data: myPurchases }, { data: guildPurchases }, { data: megaphonePurchases }, { data: packSetting }] = await Promise.all([
+  const [{ data: items }, { data: myPurchases }, { data: guildPurchases }, { data: megaphonePurchases }, { data: packSetting }, { data: theme }, { data: priceRow }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours")
@@ -45,6 +45,16 @@ export default async function GuildShopPage({ params }: Props) {
       .from("platform_settings")
       .select("value")
       .eq("key", "card_pack")
+      .maybeSingle(),
+    supabase
+      .from("guild_themes")
+      .select("card_grade")
+      .eq("guild_id", guild.id)
+      .maybeSingle(),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "card_grade_prices")
       .maybeSingle(),
   ]);
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
@@ -110,11 +120,15 @@ export default async function GuildShopPage({ params }: Props) {
   const cardPackPrice = packRaw?.price ?? 10;
   const cardPackActive = packRaw?.active ?? false;
 
+  const cardGrade = (theme?.card_grade as string) ?? "free";
+  const cardGradePrices = (priceRow?.value ?? {}) as { [key: string]: number };
+
   return (
     <GuildShop
       guildCode={guild.code}
       guildId={guild.id}
       guildName={guild.name}
+      guildServer={guild.server ?? null}
       guildPoints={guild.total_points ?? 0}
       myPoints={membership.points ?? 0}
       myRole={membership.role}
@@ -124,6 +138,8 @@ export default async function GuildShopPage({ params }: Props) {
       megaphoneItems={megaphoneItems}
       cardPackPrice={cardPackPrice}
       cardPackActive={cardPackActive}
+      cardGrade={cardGrade}
+      cardGradePrices={cardGradePrices}
     />
   );
 }
