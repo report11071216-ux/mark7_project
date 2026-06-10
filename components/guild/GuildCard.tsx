@@ -10,6 +10,7 @@ type GuildCardProps = {
   tierColor?: string;
   memberCount?: number;
   maxMembers?: number;
+  statText?: string;
   className?: string;
 };
 
@@ -34,6 +35,7 @@ export default function GuildCard(props: GuildCardProps) {
     tierColor,
     memberCount,
     maxMembers,
+    statText,
     className,
   } = props;
 
@@ -105,7 +107,11 @@ export default function GuildCard(props: GuildCardProps) {
               </>
             ) : null}
           </div>
-          {memberText ? (
+          {statText ? (
+            <div className={styles.member}>
+              <b>{statText}</b>
+            </div>
+          ) : memberText ? (
             <div className={styles.member}>
               멤버 <b>{memberText}</b>
             </div>
