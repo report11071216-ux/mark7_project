@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ShoppingBag, Coins, User, Lock, Check, Clock, Loader2, X, Eye, Sparkles, Ticket } from "lucide-react";
 import { purchaseItem, buyCardPack } from "@/app/guild/[code]/shop/actions";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
-import CardGradeShop from "@/components/guild/CardGradeShop";
+import NameplateShop, { type NameplateProduct } from "@/components/guild/shop/NameplateShop";
 import toast from "react-hot-toast";
 
 export type ShopItem = {
@@ -32,14 +32,18 @@ type Props = {
   cardPackPrice: number;
   cardPackActive: boolean;
   guildServer: string | null;
-  cardGrade: string;
-  cardGradePrices: { [key: string]: number };
+  guildMarkUrl: string | null;
+  memberCount: number;
+  maxMembers: number;
+  nameplateProducts: NameplateProduct[];
+  ownedNameplateIds: string[];
 };
 
 export default function GuildShop({
   guildCode, guildId, guildName, guildPoints, myPoints,
   isStaff, items, ownedItemIds, megaphoneItems,
-  cardPackPrice, cardPackActive, guildServer, cardGrade, cardGradePrices,
+  cardPackPrice, cardPackActive, guildServer, guildMarkUrl,
+  memberCount, maxMembers, nameplateProducts, ownedNameplateIds,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"activity" | "guild">("activity");
@@ -207,16 +211,19 @@ export default function GuildShop({
           </div>
         )}
 
-        {/* 길드 명함 등급 (길드샵 상단) */}
+        {/* 길드 명함 카드 (길드샵 상단) */}
         {tab === "guild" && (
-          <CardGradeShop
+          <NameplateShop
             guildId={guildId}
             guildName={guildName}
-            server={guildServer}
-            currentGrade={cardGrade}
+            guildServer={guildServer}
+            markUrl={guildMarkUrl}
+            memberCount={memberCount}
+            maxMembers={maxMembers}
             guildPoints={guildPoints}
-            prices={cardGradePrices}
-            canBuy={isStaff}
+            isStaff={isStaff}
+            products={nameplateProducts}
+            ownedCardIds={ownedNameplateIds}
           />
         )}
 
