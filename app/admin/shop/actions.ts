@@ -21,7 +21,6 @@ export async function createShopItem(input: CreateItemInput) {
   if (input.price < 0) {
     return { success: false, error: "가격이 올바르지 않습니다" };
   }
-  // 프로필카드인데 프레임 이미지를 안 올렸으면 썸네일을 프레임으로 사용
   const isProfileCard = input.category.includes("프로필카드");
   const finalFrameUrl =
     input.frame_url || (isProfileCard ? input.image_url : "") || null;
@@ -89,6 +88,39 @@ export async function saveCardGradePrices(prices: CardGradePrices) {
     .from("platform_settings")
     .upsert(
       { key: "card_grade_prices", value: prices },
+      { onConflict: "key" }
+    );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  revalidatePath("/admin/shop");
+  return { success: true };
+}
+
+// 명함 등급 디자인 저장 (한 등급 단위)
+export async function saveCardGradeDesign(grade: string, design: any) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  if (!["free", "rare", "unique", "epic", "legend"].includes(grade)) {
+    return { success: false, error: "잘못된 등급이에요" };
+  }
+
+  // 기존 전체 설정을 읽고 해당 등급만 교체 (다른 등급 보존)
+  const { data: row } = await supabase
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "card_grade_designs")
+    .maybeSingle();
+
+  const current = (row?.value ?? {}) as { [k: string]: any };
+  current[grade] = design;
+
+  const { error } = await supabase
+    .from("platform_settings")
+    .upsert(
+      { key: "card_grade_designs", value: current },
       { onConflict: "key" }
     );
 
