@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCardGradeDesigns } from "@/lib/card-designs";
 import { Flame } from "lucide-react";
 import TrendingGuildsMarquee, { type TrendingItem } from "@/components/plaza/TrendingGuildsMarquee";
 
@@ -41,8 +42,8 @@ export default async function TrendingGuilds() {
   const activeIds = Array.from(activityCount.keys());
   if (activeIds.length === 0) return null;
 
-  // 모집중 길드만 (모집 정보 포함) + 테마(등급/마크) 병렬
-  const [guildResult, themeResult] = await Promise.all([
+  // 모집중 길드만 (모집 정보 포함) + 테마(등급/마크) + 디자인 설정 병렬
+  const [guildResult, themeResult, designs] = await Promise.all([
     supabase
       .from("guilds")
       .select("id, code, name, logo_url, server, description, member_count, max_members, total_exp, is_recruiting, recruit_tags, recruit_message, recruit_discord_url")
@@ -52,6 +53,7 @@ export default async function TrendingGuilds() {
       .from("guild_themes")
       .select("guild_id, card_grade, equipped_mark_id")
       .in("guild_id", activeIds),
+    getCardGradeDesigns(),
   ]);
 
   const guildRows = guildResult.data ?? [];
@@ -117,12 +119,13 @@ export default async function TrendingGuilds() {
 
   const items: TrendingItem[] = sorted.map((g) => {
     const tier = tierOf(g.total_exp ?? 0);
+    const grade = gradeMap.get(g.id) ?? "free";
     return {
       id: g.id,
       code: g.code,
       name: g.name,
       server: g.server ?? null,
-      grade: gradeMap.get(g.id) ?? "free",
+      grade: grade,
       markUrl: markUrlByGuild.get(g.id) ?? g.logo_url,
       tierLabel: tier.label,
       tierColor: tier.color,
@@ -132,6 +135,7 @@ export default async function TrendingGuilds() {
       tags: (g.recruit_tags ?? []) as string[],
       recruitMessage: g.recruit_message ?? "",
       discordUrl: g.recruit_discord_url ?? "",
+      design: (designs as any)[grade] ?? null,
     };
   });
 
