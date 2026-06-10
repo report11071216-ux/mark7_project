@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
 import { Flame } from "lucide-react";
-import GuildCard from "@/components/guild/GuildCard";
+import TrendingGuildsMarquee, { type TrendingItem } from "@/components/plaza/TrendingGuildsMarquee";
 
 const GRADE_RANK: { [key: string]: number } = {
   legend: 5,
@@ -25,20 +24,16 @@ function tierOf(exp: number) {
 export default async function TrendingGuilds() {
   const supabase = await createClient();
 
-  // 최근 7일 출석으로 활동량 집계
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0];
-  const { data: att } = await supabase
-    .from("attendances")
-    .select("guild_id")
-    .gte("attendance_date", sevenDaysAgo);
+  // 최근 7일 활동량 집계 (RLS 우회 RPC)
+  const { data: activityRows } = await supabase.rpc("trending_guild_activity", {
+    days_back: 7,
+  });
 
   let activityCount = new Map<string, number>();
-  for (const a of att ?? []) {
-    const gid = (a as any).guild_id as string | null;
+  for (const r of (activityRows ?? []) as any[]) {
+    const gid = r.guild_id as string | null;
     if (!gid) continue;
-    activityCount.set(gid, (activityCount.get(gid) ?? 0) + 1);
+    activityCount.set(gid, Number(r.activity_count) || 0);
   }
 
   const activeIds = Array.from(activityCount.keys());
@@ -128,6 +123,24 @@ export default async function TrendingGuilds() {
 
   if (sorted.length === 0) return null;
 
+  const items: TrendingItem[] = sorted.map((g) => {
+    const exp = expMap.get(g.id) ?? 0;
+    const tier = tierOf(exp);
+    return {
+      id: g.id,
+      code: g.code,
+      name: g.name,
+      server: serverMap.get(g.id) ?? null,
+      grade: gradeMap.get(g.id) ?? "free",
+      markUrl: markUrlByGuild.get(g.id) ?? g.display_logo_url,
+      tierLabel: tier.label,
+      tierColor: tier.color,
+      memberCount: g.member_count ?? 0,
+      maxMembers: g.max_members ?? 50,
+      description: g.description ?? "",
+    };
+  });
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -135,40 +148,7 @@ export default async function TrendingGuilds() {
         <h2 className="text-base font-bold text-slate-900">지금 뜨는 길드</h2>
         <div className="flex-1 h-px bg-slate-200 ml-2" />
       </div>
-
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {sorted.map((g) => {
-          const exp = expMap.get(g.id) ?? 0;
-          const tier = tierOf(exp);
-          const server = serverMap.get(g.id) ?? null;
-          const markUrl = markUrlByGuild.get(g.id) ?? g.display_logo_url;
-          return (
-            <Link
-              key={g.id}
-              href={"/guild/" + g.code}
-              className="w-[300px] shrink-0 group"
-            >
-              <div className="transition group-hover:-translate-y-0.5">
-                <GuildCard
-                  guildName={g.name}
-                  server={server ? server + " 서버" : undefined}
-                  grade={gradeMap.get(g.id)}
-                  markUrl={markUrl}
-                  tierLabel={tier.label}
-                  tierColor={tier.color}
-                  memberCount={g.member_count ?? 0}
-                  maxMembers={g.max_members ?? 50}
-                />
-              </div>
-              {g.description ? (
-                <p className="text-xs text-slate-500 mt-1.5 px-0.5 truncate">
-                  {g.description}
-                </p>
-              ) : null}
-            </Link>
-          );
-        })}
-      </div>
+      <TrendingGuildsMarquee items={items} />
     </section>
   );
 }
