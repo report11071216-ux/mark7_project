@@ -34,13 +34,18 @@ export default async function RecruitingPage() {
     }
   }
 
-  // 장착 마크 조회: guild_themes.equipped_mark_id → purchases.item_id → shop_items.image_url
+  // 장착 마크 + 카드 등급 조회: guild_themes → purchases → shop_items.image_url
   let markUrlMap = new Map<string, string | null>();
+  let gradeMap = new Map<string, string>();
   if (guildIds.length > 0) {
     const { data: themes } = await supabase
       .from("guild_themes")
-      .select("guild_id, equipped_mark_id")
+      .select("guild_id, equipped_mark_id, card_grade")
       .in("guild_id", guildIds);
+
+    for (const t of themes ?? []) {
+      gradeMap.set(t.guild_id, ((t as any).card_grade as string) ?? "free");
+    }
 
     const purchaseIds = (themes ?? [])
       .map((t) => t.equipped_mark_id)
@@ -98,6 +103,7 @@ export default async function RecruitingPage() {
       tags: (g.recruit_tags ?? []) as string[],
       discordUrl: g.recruit_discord_url ?? "",
       recruitMessage: g.recruit_message ?? "",
+      grade: gradeMap.get(g.id) ?? "free",
     }));
 
   return (
