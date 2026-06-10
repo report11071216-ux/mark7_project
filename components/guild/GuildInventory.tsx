@@ -8,6 +8,7 @@ import { buyGuildCapacity } from "@/app/guild/[code]/admin/growth-actions";
 import { donateCard } from "@/app/guild/[code]/inventory/actions";
 import { GUILD_COSTS } from "@/lib/guild-grade";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
+import NameplateVault, { type OwnedNameplate } from "@/components/guild/NameplateVault";
 import toast from "react-hot-toast";
 
 export type InventoryItem = {
@@ -70,9 +71,15 @@ type Props = {
   vaultSlots: number;
   cards: GuildCardEntry[];
   myCards: MyCard[];
+  guildServer: string | null;
+  guildMarkUrl: string | null;
+  memberCount: number;
+  maxMembers: number;
+  ownedNameplates: OwnedNameplate[];
+  equippedNameplateId: string | null;
 };
 
-type TabKey = "all" | "background" | "sticker" | "cosmetic" | "megaphone" | "cards";
+type TabKey = "all" | "background" | "sticker" | "cosmetic" | "megaphone" | "cards" | "nameplate";
 
 function megaStatus(item: MegaphoneItem): "ready" | "active" | "expired" {
   if (!item.activated_at) return "ready";
@@ -92,7 +99,8 @@ function gradeStyle(g: string): { label: string; color: string; bg: string } {
 }
 
 export default function GuildInventory({
-  guildCode, guildId, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems, usedSlots, vaultSlots, cards, myCards,
+  guildCode, guildId, guildName, items, isStaff, equippedMarkId, stickerPacks, megaphoneItems, backgroundItems, usedSlots, vaultSlots, cards, myCards,
+  guildServer, guildMarkUrl, memberCount, maxMembers, ownedNameplates, equippedNameplateId,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -126,6 +134,7 @@ export default function GuildInventory({
   const TABS: { key: TabKey; label: string; count: number }[] = [
     { key: "all", label: "전체", count: bgCount + stickerPacks.length + cosmetics.length + megaCount },
     { key: "cards", label: "카드 보관함", count: collectedTypes },
+    { key: "nameplate", label: "명함 카드", count: ownedNameplates.length },
     { key: "background", label: "길드 배경", count: bgCount },
     { key: "sticker", label: "이모티콘팩", count: stickerPacks.length },
     { key: "cosmetic", label: "코스메틱", count: cosmetics.length },
@@ -243,8 +252,8 @@ export default function GuildInventory({
           </div>
         </div>
 
-        {/* 보관함 슬롯 현황 (카드 보관함 탭에서는 숨김) */}
-        {tab !== "cards" && (
+        {/* 보관함 슬롯 현황 (카드 보관함·명함 카드 탭에서는 숨김) */}
+        {tab !== "cards" && tab !== "nameplate" && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
@@ -292,7 +301,7 @@ export default function GuildInventory({
           })}
         </div>
 
-        {!isStaff && tab !== "cards" && (
+        {!isStaff && tab !== "cards" && tab !== "nameplate" && (
           <div className="rounded-lg bg-white border border-slate-200 px-4 py-2.5 mb-6">
             <p className="text-xs text-slate-500">
               길드 보관함은 누구나 볼 수 있어요. 아이템 사용·관리는 마스터·부마스터만 가능합니다.
@@ -300,7 +309,19 @@ export default function GuildInventory({
           </div>
         )}
 
-        {tab === "cards" ? (
+        {tab === "nameplate" ? (
+          <NameplateVault
+            guildId={guildId}
+            guildName={guildName}
+            guildServer={guildServer}
+            markUrl={guildMarkUrl}
+            memberCount={memberCount}
+            maxMembers={maxMembers}
+            owned={ownedNameplates}
+            equippedCardId={equippedNameplateId}
+            isStaff={isStaff}
+          />
+        ) : tab === "cards" ? (
           <div className="space-y-5">
             {/* 도감 진행도 */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5">
