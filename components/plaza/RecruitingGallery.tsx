@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Shield, Users, Diamond, X, Eye, UserPlus, MessageSquare } from "lucide-react";
+import { Users, X, Eye, UserPlus, MessageSquare, Diamond } from "lucide-react";
 import toast from "react-hot-toast";
 import { requestJoinGuild } from "@/app/actions/join-request-actions";
+import GuildCard from "@/components/guild/GuildCard";
 
 export type RecruitGuild = {
   id: string;
@@ -20,6 +21,7 @@ export type RecruitGuild = {
   tags: string[];
   discordUrl: string;
   recruitMessage: string;
+  grade: string;
 };
 
 const SERVERS = ["전체", "루페온", "실리안", "아만", "카마인", "카제로스", "아브렐슈드", "니나브", "카단"];
@@ -119,50 +121,25 @@ export default function RecruitingGallery({ guilds, isLoggedIn }: { guilds: Recr
           <p className="text-slate-400 text-sm">현재 조건에 맞는 모집중인 길드가 없어요</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {filtered.map((g) => {
             const grade = gradeOf(g.totalExp);
             return (
               <button
                 key={g.id}
                 onClick={() => setSelected(g)}
-                className="text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-violet-300 hover:shadow-sm transition flex flex-col gap-2.5"
+                className="block text-left transition hover:-translate-y-0.5"
               >
-                <div className="flex items-start gap-2.5">
-                  <div className="w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden">
-                    {g.logoUrl ? (
-                      <img src={g.logoUrl} alt={g.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Shield className="w-5 h-5 text-violet-300" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-bold text-slate-900 truncate">{g.name}</p>
-                    {g.server ? (
-                      <span className="inline-block text-[10px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded mt-0.5">
-                        {g.server}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Diamond className="w-3.5 h-3.5" style={{ color: grade.color }} />
-                  <span className="text-[11px] font-bold" style={{ color: grade.color }}>{grade.label}</span>
-                </div>
-
-                <p className="text-xs text-slate-500 leading-snug line-clamp-2 min-h-[2rem]">
-                  {g.description || "소개가 아직 없어요"}
-                </p>
-
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-xs text-slate-400 inline-flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5" /> {g.memberCount}/{g.maxMembers}
-                  </span>
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    모집중
-                  </span>
-                </div>
+                <GuildCard
+                  guildName={g.name}
+                  server={g.server ? g.server + " 서버" : undefined}
+                  grade={g.grade}
+                  markUrl={g.logoUrl}
+                  tierLabel={grade.label}
+                  tierColor={grade.color}
+                  memberCount={g.memberCount}
+                  maxMembers={g.maxMembers}
+                />
               </button>
             );
           })}
@@ -182,7 +159,7 @@ export default function RecruitingGallery({ guilds, isLoggedIn }: { guilds: Recr
                   {selected.logoUrl ? (
                     <img src={selected.logoUrl} alt={selected.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Shield className="w-7 h-7 text-violet-300" />
+                    <span className="text-xl font-bold text-violet-300">{selected.name.charAt(0)}</span>
                   )}
                 </div>
                 <div>
