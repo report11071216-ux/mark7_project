@@ -5,7 +5,6 @@ import GuildAppearanceEditor from "@/components/guild/GuildAppearanceEditor";
 import DeleteGuildSection from "@/components/guild/DeleteGuildSection";
 import WebhookSettings from "@/components/guild/WebhookSettings";
 import CardStyleSelector from "@/components/guild/CardStyleSelector";
-import CardGradeShop from "@/components/guild/CardGradeShop";
 import RecruitEditor from "@/components/guild/RecruitEditor";
 import JoinRequestManager, { type JoinRequest } from "@/components/guild/JoinRequestManager";
 import MemberManager, { type AdminMemberRow } from "@/components/guild/MemberManager";
@@ -27,7 +26,7 @@ export default async function GuildAdminPage({
   if (!user) redirect("/login");
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, code, name, server, total_points, notification_settings, is_recruiting, description, recruit_tags, recruit_discord_url, recruit_message, discord_widget_id")
+    .select("id, code, name, notification_settings, is_recruiting, description, recruit_tags, recruit_discord_url, recruit_message, discord_widget_id")
     .eq("code", code)
     .maybeSingle();
   if (!guild) notFound();
@@ -45,18 +44,9 @@ export default async function GuildAdminPage({
 
   const { data: theme } = await supabase
     .from("guild_themes")
-    .select("primary_color, background_color, welcome_message, banner_url, card_style, equipped_background_url, card_grade")
+    .select("primary_color, background_color, welcome_message, banner_url, card_style, equipped_background_url")
     .eq("guild_id", guild.id)
     .maybeSingle();
-
-  // 명함 등급 가격표
-  const { data: priceRow } = await supabase
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "card_grade_prices")
-    .maybeSingle();
-  const cardGradePrices = (priceRow?.value ?? {}) as { [key: string]: number };
-
   const ns = (guild.notification_settings ?? {}) as any;
   const webhookInitial: WebhookSettingsInput = {
     default_url: ns.default_url ?? "",
@@ -139,14 +129,6 @@ export default async function GuildAdminPage({
         initialBg={theme?.background_color ?? "#09090b"}
         initialWelcome={theme?.welcome_message ?? ""}
         initialBanner={theme?.banner_url ?? ""}
-      />
-      <CardGradeShop
-        guildId={guild.id}
-        guildName={guild.name}
-        server={guild.server ?? null}
-        currentGrade={theme?.card_grade ?? "free"}
-        guildPoints={guild.total_points ?? 0}
-        prices={cardGradePrices}
       />
       <CardStyleSelector
         guildId={guild.id}
