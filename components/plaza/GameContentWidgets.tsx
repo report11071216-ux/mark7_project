@@ -141,6 +141,13 @@ export default async function GameContentWidgets() {
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드") && todayOnly(c));
   const chaosGates = calendar.filter((c) => c.CategoryName?.includes("카오스") && todayOnly(c));
 
+  // ── 임시 디버그: 모험섬 보상 데이터가 API에서 오는지 확인 ──
+  console.log("=== 모험섬 디버그 ===");
+  console.log("모험섬 개수:", adventures.length);
+  console.log("첫 모험섬 전체:", JSON.stringify(adventures[0] ?? null));
+  console.log("첫 모험섬 RewardItems:", JSON.stringify(adventures[0]?.RewardItems ?? null));
+  console.log("필드보스 RewardItems:", JSON.stringify(fieldBosses[0]?.RewardItems ?? null));
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
