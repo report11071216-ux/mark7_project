@@ -28,7 +28,6 @@ function flattenTodayRewards(rewardItems: RewardItem[] | null): RewardSubItem[] 
   const seen = new Set<string>();
   for (const group of rewardItems) {
     for (const item of group.Items ?? []) {
-      // StartTimes가 null이면 상시 보상, 있으면 오늘 포함될 때만
       const todayOk = !item.StartTimes || item.StartTimes.some((t) => isTodayKST(t));
       if (!todayOk) continue;
       if (seen.has(item.Name)) continue;
@@ -159,6 +158,9 @@ export default async function GameContentWidgets() {
   const adventures = calendar.filter((c) => c.CategoryName?.includes("모험") && todayOnly(c));
   const fieldBosses = calendar.filter((c) => c.CategoryName?.includes("필드") && todayOnly(c));
   const chaosGates = calendar.filter((c) => c.CategoryName?.includes("카오스") && todayOnly(c));
+
+  // ── 임시 디버그: 카오스게이트 목록 확인 ──
+  console.log("카오스게이트 목록:", JSON.stringify(chaosGates.map((c) => ({ name: c.ContentsName, level: c.MinItemLevel }))));
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
