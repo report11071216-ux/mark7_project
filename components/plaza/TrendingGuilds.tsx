@@ -24,6 +24,8 @@ function tierOf(exp: number) {
 export default async function TrendingGuilds() {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   // 최근 7일 활동량 집계 (RLS 우회 RPC)
   const { data: activityRows } = await supabase.rpc("trending_guild_activity", {
     days_back: 7,
@@ -39,31 +41,21 @@ export default async function TrendingGuilds() {
   const activeIds = Array.from(activityCount.keys());
   if (activeIds.length === 0) return null;
 
-  // 길드 기본 정보 (뷰 → RLS 우회) + 서버/경험치 (guilds) + 테마(등급/마크) 병렬
-  const [displayResult, serverExpResult, themeResult] = await Promise.all([
-    supabase
-      .from("guilds_display")
-      .select("id, code, name, display_logo_url, description, member_count, max_members")
-      .in("id", activeIds),
+  // 모집중 길드만 (모집 정보 포함) + 테마(등급/마크) 병렬
+  const [guildResult, themeResult] = await Promise.all([
     supabase
       .from("guilds")
-      .select("id, server, total_exp")
-      .in("id", activeIds),
+      .select("id, code, name, logo_url, server, description, member_count, max_members, total_exp, is_recruiting, recruit_tags, recruit_message, recruit_discord_url")
+      .in("id", activeIds)
+      .eq("is_recruiting", true),
     supabase
       .from("guild_themes")
       .select("guild_id, card_grade, equipped_mark_id")
       .in("guild_id", activeIds),
   ]);
 
-  const displayRows = displayResult.data ?? [];
-  if (displayRows.length === 0) return null;
-
-  let serverMap = new Map<string, string | null>();
-  let expMap = new Map<string, number>();
-  for (const g of serverExpResult.data ?? []) {
-    serverMap.set((g as any).id, (g as any).server ?? null);
-    expMap.set((g as any).id, (g as any).total_exp ?? 0);
-  }
+  const guildRows = guildResult.data ?? [];
+  if (guildRows.length === 0) return null;
 
   let gradeMap = new Map<string, string>();
   let markPurchaseMap = new Map<string, string>();
@@ -108,7 +100,7 @@ export default async function TrendingGuilds() {
   }
 
   // 정렬: 명함 등급 높은순 → 활동량순 → 경험치순
-  const sorted = displayRows
+  const sorted = guildRows
     .slice()
     .sort((a, b) => {
       const ga = GRADE_RANK[gradeMap.get(a.id) ?? "free"] ?? 1;
@@ -117,27 +109,29 @@ export default async function TrendingGuilds() {
       const aa = activityCount.get(a.id) ?? 0;
       const ab = activityCount.get(b.id) ?? 0;
       if (ab !== aa) return ab - aa;
-      return (expMap.get(b.id) ?? 0) - (expMap.get(a.id) ?? 0);
+      return (b.total_exp ?? 0) - (a.total_exp ?? 0);
     })
     .slice(0, 10);
 
   if (sorted.length === 0) return null;
 
   const items: TrendingItem[] = sorted.map((g) => {
-    const exp = expMap.get(g.id) ?? 0;
-    const tier = tierOf(exp);
+    const tier = tierOf(g.total_exp ?? 0);
     return {
       id: g.id,
       code: g.code,
       name: g.name,
-      server: serverMap.get(g.id) ?? null,
+      server: g.server ?? null,
       grade: gradeMap.get(g.id) ?? "free",
-      markUrl: markUrlByGuild.get(g.id) ?? g.display_logo_url,
+      markUrl: markUrlByGuild.get(g.id) ?? g.logo_url,
       tierLabel: tier.label,
       tierColor: tier.color,
       memberCount: g.member_count ?? 0,
       maxMembers: g.max_members ?? 50,
       description: g.description ?? "",
+      tags: (g.recruit_tags ?? []) as string[],
+      recruitMessage: g.recruit_message ?? "",
+      discordUrl: g.recruit_discord_url ?? "",
     };
   });
 
@@ -148,7 +142,7 @@ export default async function TrendingGuilds() {
         <h2 className="text-base font-bold text-slate-900">지금 뜨는 길드</h2>
         <div className="flex-1 h-px bg-slate-200 ml-2" />
       </div>
-      <TrendingGuildsMarquee items={items} />
+      <TrendingGuildsMarquee items={items} isLoggedIn={!!user} />
     </section>
   );
 }
