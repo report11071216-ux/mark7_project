@@ -2,11 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import ShopItemManager, { type ShopItem } from "@/components/admin/ShopItemManager";
 import CardGradePriceManager from "@/components/admin/CardGradePriceManager";
+import CardDesignEditor from "@/components/admin/CardDesignEditor";
 export const dynamic = "force-dynamic";
 export default async function AdminShopPage() {
   await requireAdmin();
   const supabase = await createClient();
-  const [{ data: items }, { data: priceRow }] = await Promise.all([
+  const [{ data: items }, { data: priceRow }, { data: designRow }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours, is_active, created_at")
@@ -15,6 +16,11 @@ export default async function AdminShopPage() {
       .from("platform_settings")
       .select("value")
       .eq("key", "card_grade_prices")
+      .maybeSingle(),
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "card_grade_designs")
       .maybeSingle(),
   ]);
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
@@ -37,6 +43,8 @@ export default async function AdminShopPage() {
     legend: pricesRaw.legend ?? 12000,
   };
 
+  const cardGradeDesigns = (designRow?.value ?? {}) as { [grade: string]: any };
+
   return (
     <div className="space-y-6">
       <div>
@@ -46,6 +54,7 @@ export default async function AdminShopPage() {
         </p>
       </div>
       <CardGradePriceManager initial={cardGradePrices} />
+      <CardDesignEditor initial={cardGradeDesigns} />
       <ShopItemManager items={shopItems} />
     </div>
   );
