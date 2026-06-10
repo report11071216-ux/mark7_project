@@ -20,6 +20,7 @@ export type TrendingItem = {
   recruitMessage: string;
   discordUrl: string;
   design: { [effect: string]: any } | null;
+  imageUrl?: string | null;
 };
 
 export default function TrendingGuildsMarquee({
@@ -54,6 +55,7 @@ export default function TrendingGuildsMarquee({
         ref={trackRef}
         style={{
           display: "flex",
+          alignItems: "flex-start",
           gap: 12,
           width: "max-content",
           animation: `trending-scroll ${duration}s linear infinite`,
@@ -67,7 +69,7 @@ export default function TrendingGuildsMarquee({
             aria-hidden={i >= items.length}
             tabIndex={i >= items.length ? -1 : 0}
             className="text-left"
-            style={{ width: 300, flexShrink: 0, display: "block" }}
+            style={{ width: 300, flexShrink: 0, display: "block", alignSelf: "flex-start" }}
           >
             <div>
               <GuildCard
@@ -75,6 +77,7 @@ export default function TrendingGuildsMarquee({
                 server={g.server ? g.server + " 서버" : undefined}
                 grade={g.grade}
                 markUrl={g.markUrl}
+                imageUrl={g.imageUrl ?? null}
                 tierLabel={g.tierLabel}
                 tierColor={g.tierColor}
                 memberCount={g.memberCount}
