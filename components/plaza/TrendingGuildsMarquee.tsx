@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import Link from "next/link";
+import { useRef, useState } from "react";
 import GuildCard from "@/components/guild/GuildCard";
+import TrendingGuildModal from "./TrendingGuildModal";
 
 export type TrendingItem = {
   id: string;
@@ -16,17 +16,24 @@ export type TrendingItem = {
   memberCount: number;
   maxMembers: number;
   description: string;
+  tags: string[];
+  recruitMessage: string;
+  discordUrl: string;
 };
 
-export default function TrendingGuildsMarquee({ items }: { items: TrendingItem[] }) {
+export default function TrendingGuildsMarquee({
+  items,
+  isLoggedIn,
+}: {
+  items: TrendingItem[];
+  isLoggedIn: boolean;
+}) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<TrendingItem | null>(null);
 
   if (items.length === 0) return null;
 
-  // 무한 흐름용: 목록을 두 번 이어붙임
   const loop = items.concat(items);
-
-  // 한 바퀴 시간(초): 카드 수에 비례 (카드당 4초, 최소 24초)
   const duration = Math.max(items.length * 8, 48);
 
   function pause() {
@@ -44,7 +51,6 @@ export default function TrendingGuildsMarquee({ items }: { items: TrendingItem[]
     >
       <div
         ref={trackRef}
-        className="trending-track"
         style={{
           display: "flex",
           gap: 12,
@@ -53,11 +59,13 @@ export default function TrendingGuildsMarquee({ items }: { items: TrendingItem[]
         }}
       >
         {loop.map((g, i) => (
-          <Link
+          <button
             key={g.id + "-" + i}
-            href={"/guild/" + g.code}
+            type="button"
+            onClick={() => setSelected(g)}
             aria-hidden={i >= items.length}
             tabIndex={i >= items.length ? -1 : 0}
+            className="text-left"
             style={{ width: 300, flexShrink: 0, display: "block" }}
           >
             <div>
@@ -77,9 +85,17 @@ export default function TrendingGuildsMarquee({ items }: { items: TrendingItem[]
                 {g.description}
               </p>
             ) : null}
-          </Link>
+          </button>
         ))}
       </div>
+
+      {selected ? (
+        <TrendingGuildModal
+          guild={selected}
+          isLoggedIn={isLoggedIn}
+          onClose={() => setSelected(null)}
+        />
+      ) : null}
 
       <style>{`
         @keyframes trending-scroll {
