@@ -12,6 +12,7 @@ import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList"
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 import PlazaHero from "@/components/plaza/PlazaHero";
+import TrendingGuilds from "@/components/plaza/TrendingGuilds";
 import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -371,6 +372,12 @@ export default async function PlazaPage() {
 
           {/* 중앙 */}
           <div className="flex-1 min-w-0 space-y-6">
+            <Suspense fallback={
+              <div className="h-[150px] rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />
+            }>
+              <TrendingGuilds />
+            </Suspense>
+
             <BoardPreview posts={plazaPosts} />
 
             <section>
