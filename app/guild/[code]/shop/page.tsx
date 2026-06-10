@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import GuildShop, { type ShopItem } from "@/components/guild/shop/GuildShop";
+import { type NameplateProduct } from "@/components/guild/shop/NameplateShop";
 import { type MegaphoneItem } from "@/components/guild/shop/MegaphoneInventory";
 export const dynamic = "force-dynamic";
 type Props = { params: { code: string } };
@@ -9,7 +10,7 @@ export default async function GuildShopPage({ params }: Props) {
   const code = params.code.toUpperCase();
   const [{ data: { user } }, { data: guild }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("guilds").select("id, name, code, server, total_points").eq("code", code).single(),
+    supabase.from("guilds").select("id, name, code, total_points, server, member_count, max_members").eq("code", code).single(),
   ]);
   if (!user || !guild) notFound();
   const { data: membership } = await supabase
@@ -19,18 +20,16 @@ export default async function GuildShopPage({ params }: Props) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!membership) notFound();
-  const [{ data: items }, { data: myPurchases }, { data: guildPurchases }, { data: megaphonePurchases }, { data: packSetting }, { data: theme }, { data: priceRow }] = await Promise.all([
+  const [{ data: items }, { data: myPurchases }, { data: guildPurchases }, { data: megaphonePurchases }, { data: packSetting }, { data: themeRow }, { data: nameplateCards }, { data: ownedRows }] = await Promise.all([
     supabase
       .from("shop_items")
       .select("id, shop_type, category, name, description, price, image_url, duration_hours")
       .eq("is_active", true)
       .order("price", { ascending: true }),
-    // 내가 산 것 (개인 상품 보유 판정용)
     supabase
       .from("purchases")
       .select("item_id")
       .eq("buyer_id", user.id),
-    // 우리 길드가 산 것 (길드 상품 보유 판정용)
     supabase
       .from("purchases")
       .select("item_id")
@@ -48,14 +47,18 @@ export default async function GuildShopPage({ params }: Props) {
       .maybeSingle(),
     supabase
       .from("guild_themes")
-      .select("card_grade")
+      .select("equipped_mark_id")
       .eq("guild_id", guild.id)
       .maybeSingle(),
     supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "card_grade_prices")
-      .maybeSingle(),
+      .from("guild_nameplate_cards")
+      .select("id, name, description, image_url, design, price")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("guild_owned_nameplates")
+      .select("card_id")
+      .eq("guild_id", guild.id),
   ]);
   const shopItems: ShopItem[] = (items ?? []).map((it) => ({
     id: it.id,
@@ -81,33 +84,25 @@ export default async function GuildShopPage({ params }: Props) {
     megaphone_message: p.megaphone_message,
   }));
 
-  // 소비성 상품(확성기 등 duration 있는 것)은 보유 판정에서 제외
   const consumableItemIds = new Set(
     (items ?? []).filter((it) => it.duration_hours !== null).map((it) => it.id)
   );
 
-  // 상품별 shop_type 맵
-  const itemTypeMap = new Map((items ?? []).map((it) => [it.id, it.shop_type]));
-
-  // 내가 산 item_id (개인)
   const myItemIds = new Set(
     (myPurchases ?? []).map((p) => p.item_id).filter(Boolean) as string[]
   );
-  // 길드가 산 item_id
   const guildItemIds = new Set(
     (guildPurchases ?? []).map((p) => p.item_id).filter(Boolean) as string[]
   );
 
-  // 보유 판정: 활동샵(개인) 상품은 내 구매로만, 길드샵 상품은 길드 구매로
   const ownedItemIds = Array.from(
     new Set(
       (items ?? [])
         .filter((it) => {
-          if (consumableItemIds.has(it.id)) return false; // 소비성은 항상 재구매 가능
+          if (consumableItemIds.has(it.id)) return false;
           if (it.shop_type === "guild") {
             return guildItemIds.has(it.id);
           }
-          // activity (개인)
           return myItemIds.has(it.id);
         })
         .map((it) => it.id)
@@ -120,8 +115,37 @@ export default async function GuildShopPage({ params }: Props) {
   const cardPackPrice = packRaw?.price ?? 10;
   const cardPackActive = packRaw?.active ?? false;
 
-  const cardGrade = (theme?.card_grade as string) ?? "free";
-  const cardGradePrices = (priceRow?.value ?? {}) as { [key: string]: number };
+  // 명함 카드 상품
+  const nameplateProducts: NameplateProduct[] = (nameplateCards ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    imageUrl: c.image_url,
+    design: (c.design ?? {}) as { [effect: string]: any },
+    price: c.price,
+  }));
+  const ownedNameplateIds = Array.from(
+    new Set((ownedRows ?? []).map((r) => r.card_id).filter(Boolean))
+  ) as string[];
+
+  // 길드 마크 이미지 URL (equipped_mark_id → purchases → shop_items.image_url)
+  let markUrl: string | null = null;
+  const equippedMarkPurchaseId = themeRow?.equipped_mark_id ?? null;
+  if (equippedMarkPurchaseId) {
+    const { data: markPurchase } = await supabase
+      .from("purchases")
+      .select("item_id")
+      .eq("id", equippedMarkPurchaseId)
+      .maybeSingle();
+    if (markPurchase?.item_id) {
+      const { data: markItem } = await supabase
+        .from("shop_items")
+        .select("image_url")
+        .eq("id", markPurchase.item_id)
+        .maybeSingle();
+      markUrl = markItem?.image_url ?? null;
+    }
+  }
 
   return (
     <GuildShop
@@ -138,8 +162,11 @@ export default async function GuildShopPage({ params }: Props) {
       megaphoneItems={megaphoneItems}
       cardPackPrice={cardPackPrice}
       cardPackActive={cardPackActive}
-      cardGrade={cardGrade}
-      cardGradePrices={cardGradePrices}
+      guildMarkUrl={markUrl}
+      memberCount={guild.member_count ?? 0}
+      maxMembers={guild.max_members ?? 50}
+      nameplateProducts={nameplateProducts}
+      ownedNameplateIds={ownedNameplateIds}
     />
   );
 }
