@@ -107,16 +107,22 @@ export default async function PlazaPage() {
     });
   }
 
-  // 좋아요 카운트 + 주간 랭킹 로고 (서로 독립 → 병렬)
+  // 좋아요 카운트 + 주간 랭킹 로고/정보/등급 (서로 독립 → 병렬)
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
-  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean)));
+  const weeklyGuildIds = Array.from(new Set((weeklyRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
 
-  const [likeRowsResult, weeklyDisplayResult] = await Promise.all([
+  const [likeRowsResult, weeklyDisplayResult, weeklyGuildInfoResult, weeklyThemeResult] = await Promise.all([
     plazaPostIds.length > 0
       ? supabase.from("post_likes").select("post_id").in("post_id", plazaPostIds)
       : Promise.resolve({ data: [] }),
     weeklyGuildIds.length > 0
       ? supabase.from("guilds_display").select("id, display_logo_url").in("id", weeklyGuildIds)
+      : Promise.resolve({ data: [] }),
+    weeklyGuildIds.length > 0
+      ? supabase.from("guilds").select("id, server, member_count, total_exp").in("id", weeklyGuildIds)
+      : Promise.resolve({ data: [] }),
+    weeklyGuildIds.length > 0
+      ? supabase.from("guild_themes").select("guild_id, card_grade").in("guild_id", weeklyGuildIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -131,11 +137,33 @@ export default async function PlazaPage() {
     weeklyLogoMap.set(g.id, g.display_logo_url);
   }
 
-  const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => ({
-    id: g.id, code: g.code, name: g.name,
-    logo_url: weeklyLogoMap.get(g.id) ?? g.logo_url,
-    points: g.weekly_points ?? 0, member_count: 0, master_name: "",
-  }));
+  let weeklyInfoMap = new Map<string, { server: string | null; member_count: number; total_exp: number }>();
+  for (const g of weeklyGuildInfoResult.data ?? []) {
+    weeklyInfoMap.set((g as any).id, {
+      server: (g as any).server ?? null,
+      member_count: (g as any).member_count ?? 0,
+      total_exp: (g as any).total_exp ?? 0,
+    });
+  }
+
+  let weeklyGradeMap = new Map<string, string>();
+  for (const t of weeklyThemeResult.data ?? []) {
+    weeklyGradeMap.set((t as any).guild_id, ((t as any).card_grade as string) ?? "free");
+  }
+
+  const topRankings: RankedGuild[] = (weeklyRaw ?? []).map((g) => {
+    const info = weeklyInfoMap.get(g.id);
+    return {
+      id: g.id, code: g.code, name: g.name,
+      logo_url: weeklyLogoMap.get(g.id) ?? g.logo_url,
+      points: g.weekly_points ?? 0,
+      member_count: info?.member_count ?? 0,
+      master_name: "",
+      server: info?.server ?? null,
+      exp: info?.total_exp ?? 0,
+      grade: weeklyGradeMap.get(g.id) ?? "free",
+    };
+  });
 
   const postAuthorIds = Array.from(new Set((rawPosts ?? []).map((p) => p.author_id).filter(Boolean)));
 
