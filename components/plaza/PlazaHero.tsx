@@ -43,22 +43,24 @@ export default function PlazaHero({
 
   const patchMeta = latestPatch ? getPatchTagMeta(latestPatch.tag) : null;
 
+  const shadow = "drop-shadow-[0_1px_6px_rgba(0,0,0,1)]";
+
   return (
     <div className="mb-5">
       <div
-        className="relative overflow-hidden rounded-2xl"
+        className="relative overflow-hidden rounded-2xl h-[128px] md:h-[140px]"
         style={
           imageUrl
             ? { backgroundImage: `url(${imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
             : { backgroundColor: "#6d28d9" }
         }
       >
-        {/* 가독성 오버레이 */}
+        {/* 가독성 오버레이 — 왼쪽 글자 영역만 살짝, 이미지 최대 노출 */}
         <div
           className="absolute inset-0"
           style={{
             background: imageUrl
-              ? "linear-gradient(90deg, rgba(30,10,60,0.82) 0%, rgba(30,10,60,0.45) 60%, rgba(30,10,60,0.25) 100%)"
+              ? "linear-gradient(90deg, rgba(15,8,28,0.55) 0%, rgba(15,8,28,0.12) 42%, transparent 68%)"
               : "linear-gradient(90deg, rgba(0,0,0,0.18), rgba(0,0,0,0))",
           }}
         />
@@ -66,55 +68,56 @@ export default function PlazaHero({
         {/* 장식 (이미지 없을 때만) */}
         {!imageUrl && (
           <>
-            <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-white/[0.06]" />
-            <Shield className="absolute right-10 top-1/2 -translate-y-1/2 w-28 h-28 text-white/[0.08]" />
+            <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/[0.06]" />
+            <Shield className="absolute right-10 top-1/2 -translate-y-1/2 w-24 h-24 text-white/[0.08]" />
           </>
         )}
 
-        <div className="relative z-10 px-6 py-7 md:px-8 md:py-8 text-white">
-          <div className="inline-flex items-center gap-1.5 bg-white/15 px-3 py-1 rounded-full text-xs mb-3.5">
-            <Sparkles className="w-3.5 h-3.5" />
+        <div className="relative z-10 h-full px-5 md:px-7 flex flex-col justify-center text-white">
+          <div className={"inline-flex items-center gap-1.5 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] mb-2 w-fit " + shadow}>
+            <Sparkles className="w-3 h-3" />
             <span>로스트아크 길드 운영, 한 곳에서</span>
           </div>
 
-          <h2 className="text-2xl md:text-[26px] font-bold leading-tight mb-1.5">{title}</h2>
-          <p className="text-sm text-white/85 max-w-lg leading-relaxed">{subtitle}</p>
+          <h2 className={"text-xl md:text-[22px] font-bold leading-none " + shadow}>{title}</h2>
+          <p className={"text-[11px] text-white/90 max-w-lg leading-snug mt-1.5 " + shadow}>{subtitle}</p>
 
           {showStats && (
-            <div className="flex items-center gap-6 mt-5">
+            <div className={"flex items-center gap-4 mt-2.5 " + shadow}>
               <div>
-                <p className="text-2xl md:text-[28px] font-bold leading-none">
-                  {formatNumber(guildCount)}<span className="text-sm text-white/70 ml-1">개</span>
+                <p className="text-lg md:text-xl font-bold leading-none">
+                  {formatNumber(guildCount)}<span className="text-[11px] text-white/70 ml-0.5">개</span>
                 </p>
-                <p className="text-[11px] text-white/70 mt-1.5">활동 길드</p>
+                <p className="text-[9px] text-white/70 mt-1">활동 길드</p>
               </div>
-              <div className="w-px h-9 bg-white/25" />
+              <div className="w-px h-7 bg-white/30" />
               <div>
-                <p className="text-2xl md:text-[28px] font-bold leading-none">
-                  {formatNumber(memberCount)}<span className="text-sm text-white/70 ml-1">명</span>
+                <p className="text-lg md:text-xl font-bold leading-none">
+                  {formatNumber(memberCount)}<span className="text-[11px] text-white/70 ml-0.5">명</span>
                 </p>
-                <p className="text-[11px] text-white/70 mt-1.5">길드원</p>
+                <p className="text-[9px] text-white/70 mt-1">길드원</p>
               </div>
-              <div className="w-px h-9 bg-white/25" />
+              <div className="w-px h-7 bg-white/30" />
               <div>
-                <p className="text-2xl md:text-[28px] font-bold leading-none">
-                  {formatNumber(todayAttendance)}<span className="text-sm text-white/70 ml-1">회</span>
+                <p className="text-lg md:text-xl font-bold leading-none">
+                  {formatNumber(todayAttendance)}<span className="text-[11px] text-white/70 ml-0.5">회</span>
                 </p>
-                <p className="text-[11px] text-white/70 mt-1.5">오늘 출석</p>
+                <p className="text-[9px] text-white/70 mt-1">오늘 출석</p>
               </div>
             </div>
           )}
-
-          {!isLoggedIn && (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 mt-5 rounded-lg bg-white px-4 py-2 text-sm font-bold text-violet-700 hover:bg-white/90 transition-colors"
-            >
-              디스코드로 시작하기
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          )}
         </div>
+
+        {/* 비로그인 CTA — 우하단 작게 */}
+        {!isLoggedIn && (
+          <Link
+            href="/login"
+            className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-white/90 transition-colors"
+          >
+            디스코드로 시작하기
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </div>
 
       {/* 패치노트 미리보기 (배너 아래 붙임) */}
