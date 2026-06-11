@@ -56,19 +56,18 @@
     --ring: 263 80% 65%;
   }
 
-  .plaza-light {
-    --plaza-bg: 210 40% 98%;
-    --plaza-bg-subtle: 214 32% 95%;
-    --plaza-card: 0 0% 100%;
-    --plaza-border: 214 32% 91%;
-    --plaza-border-strong: 215 20% 80%;
-    --plaza-text: 222 47% 11%;
-    --plaza-text-muted: 215 16% 47%;
-    --plaza-text-subtle: 215 16% 65%;
-    --plaza-accent: 221 83% 53%;
-    --plaza-accent-strong: 224 76% 48%;
-    --plaza-accent-light: 199 89% 48%;
-    --plaza-accent-soft: 214 100% 97%;
+  /* 광장 전용 다크 팔레트 (우리가 정한 톤) */
+  .plaza-dark {
+    --pz-canvas: 240 39% 6%;
+    --pz-surface: 245 27% 10%;
+    --pz-surface-2: 244 25% 13%;
+    --pz-line: 246 30% 18%;
+    --pz-line-soft: 245 22% 14%;
+    --pz-accent: 253 73% 73%;
+    --pz-accent-soft: 252 40% 22%;
+    --pz-ink: 250 56% 96%;
+    --pz-ink-soft: 249 24% 78%;
+    --pz-ink-dim: 249 13% 48%;
   }
 }
 
@@ -100,19 +99,9 @@
     mix-blend-mode: overlay;
   }
 
-  .plaza-light ~ body::before,
-  body:has(.plaza-light)::before {
-    opacity: 0;
-  }
-
   ::selection {
     background-color: hsl(263 80% 65% / 0.3);
     color: hsl(0 0% 100%);
-  }
-
-  .plaza-light ::selection {
-    background-color: hsl(221 83% 53% / 0.2);
-    color: hsl(222 47% 11%);
   }
 
   ::-webkit-scrollbar {
@@ -136,12 +125,6 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
-
-  .plaza-light :focus-visible {
-    outline: 2px solid hsl(221 83% 53%);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
 }
 
 @layer utilities {
@@ -158,7 +141,7 @@
   }
 
   .text-gradient-plaza {
-    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0ea5e9 100%);
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #8b5cf6 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -171,13 +154,6 @@
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(139, 92, 246, 0.16);
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
-  }
-
-  .plaza-card {
-    background: #ffffff;
-    border: 1px solid hsl(214 32% 91%);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
-    border-radius: 0.75rem;
   }
 
   .glow-on-hover {
@@ -193,8 +169,8 @@
     transition: all 0.2s ease;
   }
   .plaza-lift-on-hover:hover {
-    border-color: hsl(221 83% 53% / 0.3);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    border-color: hsl(253 73% 73% / 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     transform: translateY(-2px);
   }
 
@@ -219,7 +195,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.26em;
-    color: hsl(221 83% 53%);
+    color: hsl(253 73% 73%);
   }
 
   .container-padded {
