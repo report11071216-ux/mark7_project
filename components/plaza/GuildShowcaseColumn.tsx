@@ -1,24 +1,18 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
 export type ShowcaseItem = {
   id: string;
   guildCode: string;
   guildName: string;
   imageUrl: string;
 };
-
 const PER_PAGE = 4;
 const ROTATE_MS = 5 * 60 * 1000;
-
 export default function GuildShowcaseColumn({ items }: { items: ShowcaseItem[] }) {
   const [group, setGroup] = useState(0);
   const [zoom, setZoom] = useState<ShowcaseItem | null>(null);
-
   const groupCount = Math.max(1, Math.ceil(items.length / PER_PAGE));
-
   useEffect(() => {
     if (items.length <= PER_PAGE) return;
     const timer = setInterval(() => {
@@ -26,23 +20,20 @@ export default function GuildShowcaseColumn({ items }: { items: ShowcaseItem[] }
     }, ROTATE_MS);
     return () => clearInterval(timer);
   }, [items.length, groupCount]);
-
   const visible = items.slice(group * PER_PAGE, group * PER_PAGE + PER_PAGE);
-
   return (
-    <div className="rounded-xl ring-1 ring-slate-200 overflow-hidden bg-white">
-      <div className="bg-slate-800 px-3 py-2 flex items-center justify-between">
-        <h3 className="text-xs font-bold text-white">길드 자랑</h3>
+    <div className="rounded-xl ring-1 ring-plaza-line overflow-hidden bg-plaza-surface">
+      <div className="bg-plaza-surface-2 px-3 py-2 flex items-center justify-between border-b border-plaza-line">
+        <h3 className="text-xs font-bold text-plaza-ink">길드 자랑</h3>
         {items.length > PER_PAGE && (
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[10px] font-mono text-plaza-ink-dim">
             {group + 1}/{groupCount}
           </span>
         )}
       </div>
-
       <div className="p-3 space-y-2.5">
         {items.length === 0 ? (
-          <p className="text-[11px] text-slate-400 text-center leading-relaxed py-4">
+          <p className="text-[11px] text-plaza-ink-dim text-center leading-relaxed py-4">
             아직 자랑한<br />길드가 없습니다
           </p>
         ) : (
@@ -53,21 +44,20 @@ export default function GuildShowcaseColumn({ items }: { items: ShowcaseItem[] }
               onClick={() => setZoom(it)}
               className="block w-full group"
             >
-              <div className="aspect-square rounded-lg overflow-hidden ring-1 ring-slate-200 group-hover:ring-sky-400 transition-colors">
+              <div className="aspect-square rounded-lg overflow-hidden ring-1 ring-plaza-line group-hover:ring-plaza-accent transition-colors">
                 <img
                   src={it.imageUrl}
                   alt={it.guildName}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <p className="text-[11px] font-bold text-slate-700 truncate mt-1 text-center">
+              <p className="text-[11px] font-bold text-plaza-ink-soft truncate mt-1 text-center">
                 {it.guildName}
               </p>
             </button>
           ))
         )}
       </div>
-
       {zoom && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
