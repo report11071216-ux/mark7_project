@@ -28,9 +28,9 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-4 h-4 text-violet-500" />
-      <h2 className="text-base font-bold text-slate-900">{title}</h2>
-      <div className="flex-1 h-px bg-slate-200 ml-2" />
+      <Icon className="w-4 h-4 text-plaza-accent" />
+      <h2 className="text-base font-bold text-plaza-ink">{title}</h2>
+      <div className="flex-1 h-px bg-plaza-line ml-2" />
       {action}
     </div>
   );
@@ -76,7 +76,6 @@ export default async function PlazaPage() {
   const annMessage = annRaw?.active ? (annRaw.message ?? "") : "";
   const annLink = annRaw?.link ?? "";
 
-  // 히어로 배너 설정 + 통계
   const heroSetting = (heroResult.data?.value ?? null) as {
     active?: boolean;
     image_url?: string;
@@ -87,7 +86,6 @@ export default async function PlazaPage() {
   const memberTotal = memberCountResult.count ?? 0;
   const todayAttendanceCount = (todayAttendanceResult.data as number | null) ?? 0;
 
-  // 길드 자랑 — 길드별 최신 1장만
   const seenShowcaseGuilds = new Set<string>();
   const showcaseItems: ShowcaseItem[] = [];
   for (const row of (showcaseRaw ?? []) as any[]) {
@@ -103,7 +101,6 @@ export default async function PlazaPage() {
     });
   }
 
-  // 좋아요 카운트
   const plazaPostIds = Array.from(new Set((rawPosts ?? []).map((p) => p.id).filter(Boolean))) as string[];
 
   const [likeRowsResult] = await Promise.all([
@@ -137,12 +134,10 @@ export default async function PlazaPage() {
   const memberships = (membershipsResult.data ?? []) as any[];
   const postAuthors = postAuthorsResult.data ?? [];
 
-  // 내 길드 정보 + 서버 이름 (멤버십/모집 결과에 의존 → 병렬로 묶음)
   const myGuildIds = Array.from(new Set(memberships.map((m) => m.guild_id).filter(Boolean)));
   const recruitingIds = Array.from(new Set((recruitingRaw ?? []).map((g) => g.id).filter(Boolean))) as string[];
   const guildIdsForServer = Array.from(new Set([...recruitingIds, ...myGuildIds])) as string[];
 
-  // 장착 마크/카드 purchase id
   const equippedPurchaseIds = myProfile
     ? ([myProfile.equipped_mark_id, myProfile.equipped_card_id].filter(Boolean) as string[])
     : [];
@@ -165,7 +160,6 @@ export default async function PlazaPage() {
   let serverMap = new Map<string, string | null>();
   serverMap = new Map((serverRowsResult.data ?? []).map((r) => [r.id, (r as any).server ?? null]));
 
-  // 장착 마크/카드 이미지 (purchase → shop_items)
   let equippedMarkUrl: string | null = null;
   let equippedCardFrameUrl: string | null = null;
   const equippedPurchases = equippedPurchasesResult.data ?? [];
@@ -242,7 +236,6 @@ export default async function PlazaPage() {
     image_url: s.image_url, category: s.category,
   }));
 
-  // 신규 패치노트 여부 + 최신 패치노트 정보
   const latestPatchRow = latestPatchResult.data?.[0] ?? null;
   const latestPatchAt = latestPatchRow?.created_at ?? null;
   const lastSeenAt = myProfile?.last_patch_seen_at ?? null;
@@ -254,24 +247,24 @@ export default async function PlazaPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-plaza-canvas">
       {/* 상단 헤더 */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <div className="bg-plaza-surface border-b border-plaza-line sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-plaza-accent-soft flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-plaza-accent" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
-                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">광장</h1>
+                <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
+                <h1 className="text-lg font-bold text-plaza-ink truncate leading-tight">광장</h1>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider leading-none mb-1">Total</p>
-              <p className="text-base font-bold text-slate-800 leading-none">
-                {totalGuildCount ?? 0}<span className="text-sm text-slate-400 ml-1">개</span>
+              <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-wider leading-none mb-1">Total</p>
+              <p className="text-base font-bold text-plaza-ink leading-none">
+                {totalGuildCount ?? 0}<span className="text-sm text-plaza-ink-dim ml-1">개</span>
               </p>
             </div>
           </div>
@@ -281,12 +274,12 @@ export default async function PlazaPage() {
 
       {/* 플랫폼 공지 */}
       {annMessage.trim().length > 0 && (
-        <div className="bg-slate-100 border-b border-slate-200 w-full">
+        <div className="bg-plaza-surface-2 border-b border-plaza-line w-full">
           <div className="flex items-center gap-3 max-w-[1400px] mx-auto px-4 md:px-6 py-2">
-            <Megaphone className="w-4 h-4 text-slate-500 shrink-0" />
-            <p className="text-sm font-medium text-slate-700 truncate flex-1">{annMessage}</p>
+            <Megaphone className="w-4 h-4 text-plaza-ink-dim shrink-0" />
+            <p className="text-sm font-medium text-plaza-ink-soft truncate flex-1">{annMessage}</p>
             {annLink.length > 0 && (
-              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-slate-500 underline underline-offset-2 shrink-0 hidden sm:block">
+              <a href={annLink} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-plaza-ink-dim underline underline-offset-2 shrink-0 hidden sm:block">
                 자세히 보기 →
               </a>
             )}
@@ -342,26 +335,26 @@ export default async function PlazaPage() {
             />
             {shopItems.length > 0 && (
               <div>
-                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.1em] mb-2">POINT SHOP</p>
+                <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-[0.1em] mb-2">POINT SHOP</p>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5">
                   {shopItems.map((item) => (
                     <Link
                       key={item.id}
                       href={shopHref}
-                      className="block rounded-xl ring-1 ring-slate-200 bg-white overflow-hidden hover:ring-violet-300 transition group"
+                      className="block rounded-xl ring-1 ring-plaza-line bg-plaza-surface overflow-hidden hover:ring-plaza-accent transition group"
                     >
-                      <div className="aspect-square bg-slate-100 overflow-hidden">
+                      <div className="aspect-square bg-plaza-surface-2 overflow-hidden">
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <ShoppingBag className="w-5 h-5 text-slate-300" />
+                            <ShoppingBag className="w-5 h-5 text-plaza-ink-dim" />
                           </div>
                         )}
                       </div>
                       <div className="p-2.5">
-                        <p className="text-xs font-bold text-slate-800 truncate">{item.name}</p>
-                        <p className="text-xs font-bold text-violet-600 mt-0.5">{formatNumber(item.price)}P</p>
+                        <p className="text-xs font-bold text-plaza-ink truncate">{item.name}</p>
+                        <p className="text-xs font-bold text-plaza-accent mt-0.5">{formatNumber(item.price)}P</p>
                       </div>
                     </Link>
                   ))}
@@ -373,7 +366,7 @@ export default async function PlazaPage() {
           {/* 중앙 */}
           <div className="flex-1 min-w-0 space-y-6">
             <Suspense fallback={
-              <div className="h-[150px] rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />
+              <div className="h-[150px] rounded-xl bg-plaza-surface ring-1 ring-plaza-line animate-pulse" />
             }>
               <TrendingGuilds />
             </Suspense>
@@ -385,7 +378,7 @@ export default async function PlazaPage() {
               <Suspense fallback={
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-48 rounded-xl bg-white ring-1 ring-slate-200 animate-pulse" />
+                    <div key={i} className="h-48 rounded-xl bg-plaza-surface ring-1 ring-plaza-line animate-pulse" />
                   ))}
                 </div>
               }>
