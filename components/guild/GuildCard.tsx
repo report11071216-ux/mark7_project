@@ -113,8 +113,6 @@ export default function GuildCard(props: GuildCardProps) {
         <div className={styles.noise} style={{ ["--noise-opacity" as any]: (d.noise.strength || 5) / 100 }} />
       ) : null}
 
-      {markUrl ? <img src={markUrl} alt="" aria-hidden="true" className={styles.water} /> : null}
-
       {isOn("glint") ? (
         <div className={styles.glint} style={{ ["--glint-color" as any]: hexToRgba(d.glint.color || "#ffffff", 0.5) }} />
       ) : null}
