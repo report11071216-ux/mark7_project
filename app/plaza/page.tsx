@@ -252,14 +252,23 @@ export default async function PlazaPage() {
       <div className="bg-plaza-surface border-b border-plaza-line sticky top-0 z-20">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-plaza-accent-soft flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-plaza-accent" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-[0.2em] leading-none mb-1">GUILD PLAZA</p>
-                <h1 className="text-lg font-bold text-plaza-ink truncate leading-tight">광장</h1>
-              </div>
+          <div className="flex items-center gap-3 min-w-0">
+  <div className="min-w-0">
+    <h1
+      className="text-2xl font-extrabold tracking-tight leading-none"
+      style={{
+        backgroundImage: "linear-gradient(95deg, #f5b8e0 0%, #c99af0 50%, #9a7ce8 100%)",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        color: "transparent",
+      }}
+    >
+      CLAYLOA
+    </h1>
+    <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-[0.25em] leading-none mt-1">GUILD PLAZA</p>
+  </div>
+</div>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-mono text-plaza-ink-dim uppercase tracking-wider leading-none mb-1">Total</p>
