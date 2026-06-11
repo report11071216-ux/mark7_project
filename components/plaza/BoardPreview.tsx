@@ -36,9 +36,9 @@ const CATEGORY_LABEL: { [key: string]: string } = {
 };
 
 const CATEGORY_STYLE: { [key: string]: string } = {
-  free: "bg-slate-100 text-slate-600",
-  recruit: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-  question: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  free: "bg-plaza-surface-2 text-plaza-ink-soft",
+  recruit: "bg-plaza-accent-soft text-plaza-accent",
+  question: "bg-plaza-accent-soft text-plaza-accent",
 };
 
 export default function BoardPreview({ posts }: Props) {
@@ -68,13 +68,13 @@ export default function BoardPreview({ posts }: Props) {
         key={post.id}
         href={`/plaza/board/${post.id}`}
         className={
-          "flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition group " +
-          (isLast ? "" : "border-b border-slate-100")
+          "flex items-center gap-2.5 px-4 py-2.5 hover:bg-plaza-surface-2 transition group " +
+          (isLast ? "" : "border-b border-plaza-line")
         }
       >
         <span className="shrink-0">
           {post.is_notice ? (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400">
               <Pin className="w-2.5 h-2.5" />
               공지
             </span>
@@ -82,21 +82,21 @@ export default function BoardPreview({ posts }: Props) {
             <span
               className={
                 "inline-block px-1.5 py-0.5 rounded text-[10px] font-bold " +
-                (CATEGORY_STYLE[post.category] ?? "bg-slate-100 text-slate-600")
+                (CATEGORY_STYLE[post.category] ?? "bg-plaza-surface-2 text-plaza-ink-soft")
               }
             >
               {CATEGORY_LABEL[post.category] ?? post.category}
             </span>
           ) : (
-            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-400">
+            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-plaza-surface-2 text-plaza-ink-dim">
               일반
             </span>
           )}
         </span>
-        <span className="flex-1 min-w-0 truncate text-[13px] text-slate-800 group-hover:text-slate-600 transition">
+        <span className="flex-1 min-w-0 truncate text-[13px] text-plaza-ink-soft group-hover:text-plaza-ink transition">
           {post.title}
         </span>
-        <span className="shrink-0 flex items-center gap-0.5 text-[11px] text-slate-400">
+        <span className="shrink-0 flex items-center gap-0.5 text-[11px] text-plaza-ink-dim">
           <Heart className="w-3 h-3" />
           {post.like_count ?? 0}
         </span>
@@ -105,16 +105,16 @@ export default function BoardPreview({ posts }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden">
+    <div className="bg-plaza-surface rounded-xl ring-1 ring-plaza-line overflow-hidden">
       {/* 가벼운 헤더 */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-plaza-line">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-violet-500" />
-          <h3 className="text-[15px] font-bold text-slate-900">광장 게시판</h3>
+          <MessageSquare className="w-4 h-4 text-plaza-accent" />
+          <h3 className="text-[15px] font-bold text-plaza-ink">광장 게시판</h3>
         </div>
         <Link
           href="/plaza/board"
-          className="text-xs font-medium text-slate-400 hover:text-slate-700 transition flex items-center gap-0.5"
+          className="text-xs font-medium text-plaza-ink-dim hover:text-plaza-ink transition flex items-center gap-0.5"
         >
           전체 글
           <ChevronRight className="w-3.5 h-3.5" />
@@ -122,7 +122,7 @@ export default function BoardPreview({ posts }: Props) {
       </div>
 
       {/* 카테고리 탭 */}
-      <div className="flex gap-1 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
+      <div className="flex gap-1 px-4 py-2.5 border-b border-plaza-line bg-plaza-surface-2">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value}
@@ -130,8 +130,8 @@ export default function BoardPreview({ posts }: Props) {
             className={
               "px-3 py-1.5 rounded-lg text-[13px] font-bold transition " +
               (activeCategory === cat.value
-                ? "bg-slate-800 text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200")
+                ? "bg-plaza-accent text-plaza-canvas"
+                : "text-plaza-ink-dim hover:text-plaza-ink hover:bg-plaza-surface")
             }
           >
             {cat.label}
@@ -141,12 +141,12 @@ export default function BoardPreview({ posts }: Props) {
 
       {/* 2열 리스트 */}
       {top10.length === 0 ? (
-        <div className="p-10 text-center text-slate-400 text-sm">
+        <div className="p-10 text-center text-plaza-ink-dim text-sm">
           게시글이 없습니다
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2">
-          <div className="md:border-r border-slate-100">
+          <div className="md:border-r border-plaza-line">
             {leftCol.map((p, i) => renderRow(p, i === leftCol.length - 1))}
           </div>
           <div>
