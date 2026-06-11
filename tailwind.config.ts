@@ -73,6 +73,18 @@ const config: Config = {
           400: "#22d3ee",
           500: "#06b6d4",
         },
+        plaza: {
+          canvas: "hsl(var(--pz-canvas) / <alpha-value>)",
+          surface: "hsl(var(--pz-surface) / <alpha-value>)",
+          "surface-2": "hsl(var(--pz-surface-2) / <alpha-value>)",
+          line: "hsl(var(--pz-line) / <alpha-value>)",
+          "line-soft": "hsl(var(--pz-line-soft) / <alpha-value>)",
+          accent: "hsl(var(--pz-accent) / <alpha-value>)",
+          "accent-soft": "hsl(var(--pz-accent-soft) / <alpha-value>)",
+          ink: "hsl(var(--pz-ink) / <alpha-value>)",
+          "ink-soft": "hsl(var(--pz-ink-soft) / <alpha-value>)",
+          "ink-dim": "hsl(var(--pz-ink-dim) / <alpha-value>)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
