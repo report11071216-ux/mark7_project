@@ -145,11 +145,11 @@ export default async function TrendingGuilds() {
 
   return (
     <section>
-      <div className="flex items-center gap-2 mb-3">
-        <Flame className="w-4 h-4 text-orange-500" />
-        <h2 className="text-base font-bold text-slate-900">지금 뜨는 길드</h2>
-        <div className="flex-1 h-px bg-slate-200 ml-2" />
-      </div>
+     <div className="flex items-center gap-2 mb-3">
+  <Flame className="w-4 h-4 text-orange-500" />
+  <h2 className="text-base font-bold text-plaza-ink">지금 뜨는 길드</h2>
+  <div className="flex-1 h-px bg-plaza-line ml-2" />
+</div>
       <TrendingGuildsMarquee items={items} isLoggedIn={!!user} />
     </section>
   );
