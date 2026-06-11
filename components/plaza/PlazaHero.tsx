@@ -121,22 +121,19 @@ export default function PlazaHero({
       {latestPatch && patchMeta && (
         <Link
           href="/patch-notes"
-          className="flex items-center gap-3 mt-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-slate-300 transition-colors"
+          className="flex items-center gap-3 mt-2.5 rounded-xl border border-plaza-line bg-plaza-surface px-4 py-3 hover:border-plaza-accent transition-colors"
         >
-          <div
-            className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-            style={{ backgroundColor: patchMeta.bg }}
-          >
-            <Megaphone className="w-4 h-4" style={{ color: patchMeta.text }} />
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-plaza-accent-soft">
+            <Megaphone className="w-4 h-4 text-plaza-accent" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold" style={{ color: patchMeta.text }}>{patchMeta.label}</span>
-              <span className="text-[11px] text-slate-400">새 업데이트</span>
+              <span className="text-[11px] font-bold text-plaza-accent">{patchMeta.label}</span>
+              <span className="text-[11px] text-plaza-ink-dim">새 업데이트</span>
             </div>
-            <p className="text-sm font-semibold text-slate-800 truncate">{latestPatch.title}</p>
+            <p className="text-sm font-semibold text-plaza-ink truncate">{latestPatch.title}</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+          <ChevronRight className="w-4 h-4 text-plaza-ink-dim shrink-0" />
         </Link>
       )}
     </div>
