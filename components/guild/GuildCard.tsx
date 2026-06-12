@@ -1,4 +1,5 @@
 import styles from "./GuildCard.module.css";
+import GradeEmblem from "./GradeEmblem";
 
 type EffectConf = { [key: string]: any };
 type DesignConf = { [effect: string]: EffectConf };
@@ -28,7 +29,6 @@ const GRADE_LABEL: { [key: string]: string } = {
   legend: "LEGEND",
 };
 
-// 기본 프리셋 (design을 안 받으면 이걸로 — 기존 5등급 모양 유지)
 const DEFAULT_DESIGNS: { [grade: string]: DesignConf } = {
   free: {},
   rare: { border: { on: true, color: "#5dcaa5", width: 2 } },
@@ -58,8 +58,6 @@ export default function GuildCard(props: GuildCardProps) {
 
   const d: DesignConf = design ?? DEFAULT_DESIGNS[g] ?? {};
   const isOn = (key: string) => d[key] && d[key].on === true;
-
-  const initial = guildName ? guildName.slice(0, 1) : "?";
 
   // CSS 변수 주입 (색·속도)
   const cardVars: { [k: string]: string } = {};
@@ -128,7 +126,11 @@ export default function GuildCard(props: GuildCardProps) {
         <div className={styles.top}>
           <div className={styles.id}>
             <div className={styles.mark}>
-              {markUrl ? <img src={markUrl} alt="" className={styles.markImg} /> : <span>{initial}</span>}
+              {markUrl ? (
+                <img src={markUrl} alt="" className={styles.markImg} />
+              ) : (
+                <GradeEmblem tierLabel={tierLabel} size={40} />
+              )}
             </div>
             <div className={styles.nameWrap}>
               <div className={styles.name}>{guildName}</div>
