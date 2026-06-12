@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Users, CalendarCheck, Trophy, Lock, Gift, Check, Loader2 } from "lucide-react";
+import { Users, CalendarCheck, Trophy, Lock, Gift, Check, Loader2, Coins, User } from "lucide-react";
 import {
   type Achievement,
   type AchievementKind,
@@ -28,6 +28,9 @@ export default function AchievementsBoard({
   current,
   claimedKeys,
   canClaim,
+  guildPoints,
+  myPoints,
+  isMember,
 }: {
   guildId: string;
   guildCode: string;
@@ -35,6 +38,9 @@ export default function AchievementsBoard({
   current: Current;
   claimedKeys: string[];
   canClaim: boolean;
+  guildPoints: number;
+  myPoints: number;
+  isMember: boolean;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<AchievementKind>("member");
@@ -58,6 +64,30 @@ export default function AchievementsBoard({
 
   return (
     <div>
+      {/* 보유 포인트 표시줄 */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex-1 flex items-center gap-2.5 bg-white border border-slate-200 rounded-xl px-4 py-3">
+          <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+            <Coins className="w-4.5 h-4.5 text-violet-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 leading-none mb-1">길드 포인트</p>
+            <p className="text-lg font-bold text-slate-900 leading-none">{guildPoints.toLocaleString()}<span className="text-xs text-slate-400 ml-0.5">P</span></p>
+          </div>
+        </div>
+        {isMember && (
+          <div className="flex-1 flex items-center gap-2.5 bg-white border border-slate-200 rounded-xl px-4 py-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+              <User className="w-4.5 h-4.5 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 leading-none mb-1">내 포인트</p>
+              <p className="text-lg font-bold text-slate-900 leading-none">{myPoints.toLocaleString()}<span className="text-xs text-slate-400 ml-0.5">P</span></p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 탭 */}
       <div className="flex gap-1.5 mb-5">
         {TABS.map((t) => {
@@ -87,7 +117,6 @@ export default function AchievementsBoard({
           const prog = progressOf(a, current);
           const isClaimingThis = claiming === a.key;
 
-          // 상태: claimed > claimable > locked
           let state: "claimed" | "claimable" | "locked" = "locked";
           if (claimed) state = "claimed";
           else if (achieved) state = "claimable";
@@ -111,7 +140,6 @@ export default function AchievementsBoard({
                 <span className="absolute top-3 right-3 text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">수령 가능</span>
               )}
 
-              {/* 아이콘 */}
               <div
                 className={
                   "w-11 h-11 rounded-xl flex items-center justify-center mb-3 " +
@@ -130,13 +158,11 @@ export default function AchievementsBoard({
               <p className="text-[15px] font-bold text-slate-900">{a.label}</p>
               <p className="text-[11px] text-slate-400 mt-0.5 mb-3">{a.desc}</p>
 
-              {/* 보상 칩 */}
               <div className="flex gap-1.5 mb-3 flex-wrap">
                 <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-slate-100 text-slate-600">길드 +{a.guildReward}P</span>
                 <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-slate-100 text-slate-600">개인 +{a.personalReward}P</span>
               </div>
 
-              {/* 진행도 바 */}
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
                 <div
                   className="h-full rounded-full transition-all"
@@ -148,7 +174,6 @@ export default function AchievementsBoard({
               </div>
               <p className="text-[10px] text-slate-400 mb-3">{progressText(a, current)}</p>
 
-              {/* 버튼 */}
               {state === "claimed" ? (
                 <button disabled className="w-full h-9 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center justify-center gap-1.5">
                   <Check className="w-3.5 h-3.5" /> 수령 완료
