@@ -235,6 +235,11 @@ export default async function PlazaPage() {
     image_url: s.image_url, category: s.category,
   }));
 
+  const latestPatchRow = latestPatchResult.data?.[0] ?? null;
+  const latestPatch = latestPatchRow
+    ? { title: latestPatchRow.title as string, tag: latestPatchRow.tag as string }
+    : null;
+
   return (
     <>
       {/* 플랫폼 공지 */}
@@ -262,7 +267,7 @@ export default async function PlazaPage() {
           guildCount={totalGuildCount ?? 0}
           memberCount={memberTotal}
           todayAttendance={todayAttendanceCount}
-          latestPatch={latestPatch_unused()}
+          latestPatch={latestPatch}
           isLoggedIn={!!user}
         />
 
