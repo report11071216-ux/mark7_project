@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuroraBackground } from "@/components/landing/AuroraBackground";
 import { ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
-import { LOSTARK_SERVERS } from "@/lib/lostark-servers";
+import { GUILD_SERVER_OPTIONS, COMMUNITY_SERVER } from "@/lib/lostark-servers";
 
 const initialState = { error: null as string | null };
 
@@ -30,6 +30,8 @@ function SubmitButton() {
 export default function CreateGuildPage() {
   const [state, formAction] = useFormState(createGuild, initialState);
   const [server, setServer] = useState("");
+
+  const isCommunity = server === COMMUNITY_SERVER;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden">
@@ -79,19 +81,25 @@ export default function CreateGuildPage() {
               서버 <span className="text-rose-400">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {LOSTARK_SERVERS.map((s) => {
+              {GUILD_SERVER_OPTIONS.map((s) => {
                 const selected = server === s;
+                const community = s === COMMUNITY_SERVER;
+                let cls = "px-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ";
+                if (selected && community) {
+                  cls += "border-pink-500 bg-pink-500/15 text-white";
+                } else if (selected) {
+                  cls += "border-violet-500 bg-violet-500/15 text-white";
+                } else if (community) {
+                  cls += "border-pink-500/30 bg-pink-500/5 text-pink-200 hover:border-pink-500/50 hover:text-white";
+                } else {
+                  cls += "border-white/10 bg-white/5 text-muted-foreground hover:border-violet-500/40 hover:text-white";
+                }
                 return (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setServer(s)}
-                    className={
-                      "px-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border " +
-                      (selected
-                        ? "border-violet-500 bg-violet-500/15 text-white"
-                        : "border-white/10 bg-white/5 text-muted-foreground hover:border-violet-500/40 hover:text-white")
-                    }
+                    className={cls}
                   >
                     {s}
                   </button>
@@ -100,7 +108,9 @@ export default function CreateGuildPage() {
             </div>
             <input type="hidden" name="server" value={server} />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              길드가 활동하는 로스트아크 서버를 선택하세요
+              {isCommunity
+                ? "친목방·디스코드 등 인게임 서버에 묶이지 않는 모임이에요"
+                : "길드가 활동하는 로스트아크 서버를 선택하세요"}
             </p>
           </div>
 
