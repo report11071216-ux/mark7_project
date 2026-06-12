@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Users, ArrowRight } from "lucide-react";
+import GradeEmblem from "@/components/guild/GradeEmblem";
+
 export type RecruitingGuild = {
   id: string;
   code: string;
@@ -9,7 +11,20 @@ export type RecruitingGuild = {
   max_members: number;
   description: string | null;
   server?: string | null;
+  exp?: number;
 };
+
+function gradeLabelOf(exp: number): string {
+  if (exp >= 12000) return "그랜드마스터";
+  if (exp >= 6000) return "마스터";
+  if (exp >= 3000) return "다이아몬드";
+  if (exp >= 1500) return "에메랄드";
+  if (exp >= 700) return "플래티넘";
+  if (exp >= 300) return "골드";
+  if (exp >= 100) return "실버";
+  return "브론즈";
+}
+
 export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[] }) {
   return (
     <div className="bg-plaza-surface rounded-xl ring-1 ring-plaza-line overflow-hidden">
@@ -40,10 +55,8 @@ export default function RecruitingGuilds({ guilds }: { guilds: RecruitingGuild[]
                     className="w-10 h-10 rounded-lg object-cover ring-1 ring-plaza-line shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-plaza-accent-soft flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-plaza-accent">
-                      {g.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-10 h-10 shrink-0">
+                    <GradeEmblem tierLabel={gradeLabelOf(g.exp ?? 0)} size={40} />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
