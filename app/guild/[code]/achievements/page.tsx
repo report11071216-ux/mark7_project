@@ -14,7 +14,6 @@ export default async function AchievementsPage({
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 길드 조회
   const { data: guild } = await supabase
     .from("guilds")
     .select("id, code, name, member_count, total_exp, total_points")
@@ -23,7 +22,6 @@ export default async function AchievementsPage({
 
   if (!guild) notFound();
 
-  // 내 역할 + 내 개인 포인트
   let myRole: string | null = null;
   let myPoints = 0;
   if (user) {
@@ -37,13 +35,11 @@ export default async function AchievementsPage({
     myPoints = membership?.points ?? 0;
   }
 
-  // 누적 출석 수
   const { count: attendanceCount } = await supabase
     .from("attendances")
     .select("id", { count: "exact", head: true })
     .eq("guild_id", guild.id);
 
-  // 수령한 업적 목록
   const { data: claims } = await supabase
     .from("guild_achievement_claims")
     .select("achievement_key")
@@ -61,26 +57,28 @@ export default async function AchievementsPage({
   const isMember = myRole !== null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
-      <div className="mb-5">
-        <p className="text-[11px] font-mono text-violet-600 uppercase tracking-[0.15em] mb-1">GUILD ACHIEVEMENTS</p>
-        <h1 className="text-2xl font-bold text-slate-900">길드 업적</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          목표를 달성하고 마스터·부마스터가 보상을 수령하세요
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
+        <div className="mb-5">
+          <p className="text-[11px] font-mono text-violet-600 uppercase tracking-[0.15em] mb-1">GUILD ACHIEVEMENTS</p>
+          <h1 className="text-2xl font-bold text-slate-900">길드 업적</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            목표를 달성하고 마스터·부마스터가 보상을 수령하세요
+          </p>
+        </div>
 
-      <AchievementsBoard
-        guildId={guild.id}
-        guildCode={guild.code}
-        achievements={ALL_ACHIEVEMENTS}
-        current={current}
-        claimedKeys={claimedKeys}
-        canClaim={canClaim}
-        guildPoints={guild.total_points ?? 0}
-        myPoints={myPoints}
-        isMember={isMember}
-      />
+        <AchievementsBoard
+          guildId={guild.id}
+          guildCode={guild.code}
+          achievements={ALL_ACHIEVEMENTS}
+          current={current}
+          claimedKeys={claimedKeys}
+          canClaim={canClaim}
+          guildPoints={guild.total_points ?? 0}
+          myPoints={myPoints}
+          isMember={isMember}
+        />
+      </div>
     </div>
   );
 }
