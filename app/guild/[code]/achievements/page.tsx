@@ -17,22 +17,24 @@ export default async function AchievementsPage({
   // 길드 조회
   const { data: guild } = await supabase
     .from("guilds")
-    .select("id, code, name, member_count, total_exp")
+    .select("id, code, name, member_count, total_exp, total_points")
     .eq("code", params.code)
     .maybeSingle();
 
   if (!guild) notFound();
 
-  // 내 역할 (수령 권한)
+  // 내 역할 + 내 개인 포인트
   let myRole: string | null = null;
+  let myPoints = 0;
   if (user) {
     const { data: membership } = await supabase
       .from("guild_members")
-      .select("role")
+      .select("role, points")
       .eq("guild_id", guild.id)
       .eq("user_id", user.id)
       .maybeSingle();
     myRole = membership?.role ?? null;
+    myPoints = membership?.points ?? 0;
   }
 
   // 누적 출석 수
@@ -56,6 +58,7 @@ export default async function AchievementsPage({
   };
 
   const canClaim = myRole === "master" || myRole === "submaster";
+  const isMember = myRole !== null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
@@ -74,6 +77,9 @@ export default async function AchievementsPage({
         current={current}
         claimedKeys={claimedKeys}
         canClaim={canClaim}
+        guildPoints={guild.total_points ?? 0}
+        myPoints={myPoints}
+        isMember={isMember}
       />
     </div>
   );
