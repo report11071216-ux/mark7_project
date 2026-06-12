@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import GuildCard from "@/components/guild/GuildCard";
+import GradeEmblem from "@/components/guild/GradeEmblem";
 import RankingModal from "./RankingModal";
 import { formatNumber } from "@/lib/utils";
 
@@ -131,8 +132,8 @@ export default function RankingBoard({
                   {g.markUrl ? (
                     <img src={g.markUrl} alt="" className="w-8 h-8 rounded-lg object-cover ring-1 ring-plaza-line shrink-0" />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-plaza-accent-soft flex items-center justify-center text-xs font-bold text-plaza-accent shrink-0">
-                      {g.name.charAt(0)}
+                    <div className="w-8 h-8 shrink-0">
+                      <GradeEmblem tierLabel={grade.label} size={32} />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
