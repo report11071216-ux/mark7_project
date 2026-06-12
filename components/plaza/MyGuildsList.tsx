@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Shield, Plus, ArrowRight } from "lucide-react";
+import GradeEmblem from "@/components/guild/GradeEmblem";
 
 export type MyGuildItem = {
   id: string;
@@ -9,6 +10,7 @@ export type MyGuildItem = {
   role: string;
   my_points: number;
   server?: string | null;
+  exp?: number;
 };
 
 const ROLE_LABEL: { [key: string]: string } = {
@@ -18,6 +20,17 @@ const ROLE_LABEL: { [key: string]: string } = {
 };
 
 const GUILD_LIMIT = 2;
+
+function gradeLabelOf(exp: number): string {
+  if (exp >= 12000) return "그랜드마스터";
+  if (exp >= 6000) return "마스터";
+  if (exp >= 3000) return "다이아몬드";
+  if (exp >= 1500) return "에메랄드";
+  if (exp >= 700) return "플래티넘";
+  if (exp >= 300) return "골드";
+  if (exp >= 100) return "실버";
+  return "브론즈";
+}
 
 export default function MyGuildsList({
   isLoggedIn,
@@ -70,10 +83,8 @@ export default function MyGuildsList({
                         className="w-8 h-8 rounded-lg object-cover ring-1 ring-plaza-line shrink-0"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-plaza-accent-soft flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold text-plaza-accent">
-                          {g.name.charAt(0).toUpperCase()}
-                        </span>
+                      <div className="w-8 h-8 shrink-0">
+                        <GradeEmblem tierLabel={gradeLabelOf(g.exp ?? 0)} size={32} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
