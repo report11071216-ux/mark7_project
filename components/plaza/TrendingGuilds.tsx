@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Flame } from "lucide-react";
 import TrendingGuildsMarquee, { type TrendingItem } from "@/components/plaza/TrendingGuildsMarquee";
+import MetalFrame from "@/components/plaza/MetalFrame";
 
 function tierOf(exp: number) {
   if (exp >= 12000) return { label: "그랜드마스터", color: "#dc2626" };
@@ -145,12 +146,14 @@ export default async function TrendingGuilds() {
 
   return (
     <section>
-     <div className="flex items-center gap-2 mb-3">
-  <Flame className="w-4 h-4 text-orange-500" />
-  <h2 className="text-base font-bold text-plaza-ink">지금 뜨는 길드</h2>
-  <div className="flex-1 h-px bg-plaza-line ml-2" />
-</div>
-      <TrendingGuildsMarquee items={items} isLoggedIn={!!user} />
+      <div className="flex items-center gap-2 mb-3">
+        <Flame className="w-4 h-4 text-orange-500" />
+        <h2 className="text-base font-bold text-plaza-ink">지금 뜨는 길드</h2>
+        <div className="flex-1 h-px bg-plaza-line ml-2" />
+      </div>
+      <MetalFrame className="overflow-hidden p-3">
+        <TrendingGuildsMarquee items={items} isLoggedIn={!!user} />
+      </MetalFrame>
     </section>
   );
 }
