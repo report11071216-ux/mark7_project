@@ -227,7 +227,6 @@ export default async function PlazaPage() {
     });
 
   const hasGuild = myGuilds.length > 0;
-  const canCreateGuild = myGuilds.length < 2;
   const shopHref = hasGuild ? `/guild/${myGuilds[0].code}/shop` : "/onboarding/join";
 
   const shopItems = (shopRaw ?? []).map((s) => ({
@@ -271,29 +270,8 @@ export default async function PlazaPage() {
           isLoggedIn={!!user}
         />
 
-        {/* 길드 만들기 CTA */}
-        {canCreateGuild && (
-          <Link
-            href="/onboarding/create"
-            className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 mb-5 max-w-md hover:from-violet-500 hover:to-indigo-500 transition-colors group"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 shrink-0">
-                <Plus className="w-4 h-4 text-white" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-white font-bold text-sm leading-tight truncate">
-                  {hasGuild ? "새 길드 만들기" : "나만의 길드 만들기"}
-                </p>
-                <p className="text-white/75 text-[11px] leading-tight">출석 · 레이드 · 랭킹 한 곳에서</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-white shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        )}
-
         {/* 3단: 좌배너 + 중앙 + 우배너 */}
-        <div className="flex flex-col lg:flex-row gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-5 items-start mt-5">
           {/* 좌측: 마이프로필 + 포인트샵 */}
           <div className="w-full lg:w-[200px] shrink-0 space-y-4">
             <MyProfileCard
