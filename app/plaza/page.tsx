@@ -146,7 +146,7 @@ export default async function PlazaPage() {
       ? supabase.from("guilds_display").select("id, code, name, display_logo_url").in("id", myGuildIds)
       : Promise.resolve({ data: [] }),
     guildIdsForServer.length > 0
-      ? supabase.from("guilds").select("id, server").in("id", guildIdsForServer)
+      ? supabase.from("guilds").select("id, server, total_exp").in("id", guildIdsForServer)
       : Promise.resolve({ data: [] }),
     equippedPurchaseIds.length > 0
       ? supabase.from("purchases").select("id, item_id").in("id", equippedPurchaseIds)
@@ -157,7 +157,11 @@ export default async function PlazaPage() {
   myGuildMap = new Map((myGuildsDisplayResult.data ?? []).map((g) => [g.id, g]));
 
   let serverMap = new Map<string, string | null>();
-  serverMap = new Map((serverRowsResult.data ?? []).map((r) => [r.id, (r as any).server ?? null]));
+  let expMap = new Map<string, number>();
+  for (const r of serverRowsResult.data ?? []) {
+    serverMap.set(r.id, (r as any).server ?? null);
+    expMap.set(r.id, (r as any).total_exp ?? 0);
+  }
 
   let equippedMarkUrl: string | null = null;
   let equippedCardFrameUrl: string | null = null;
@@ -196,6 +200,7 @@ export default async function PlazaPage() {
     max_members: g.max_members ?? 50,
     description: g.description,
     server: serverMap.get(g.id) ?? null,
+    exp: expMap.get(g.id) ?? 0,
   }));
 
   const myGuilds: MyGuildItem[] = memberships
@@ -208,6 +213,7 @@ export default async function PlazaPage() {
         role: m.role,
         my_points: m.points ?? 0,
         server: serverMap.get(g.id) ?? null,
+        exp: expMap.get(g.id) ?? 0,
       };
     });
 
