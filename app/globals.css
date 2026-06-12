@@ -213,3 +213,27 @@
     background-color: rgba(127, 127, 127, 0.12);
   }
 }
+/* ── 다크 플래티넘 메탈 프레임 ── */
+.metal-frame {
+  background: linear-gradient(180deg, #16152a, #100f1f);
+  border: 1px solid #3c3a52;
+  box-shadow: 0 0 0 1px rgba(170, 175, 210, 0.1), 0 0 20px rgba(130, 135, 180, 0.13);
+  animation: metalPulse 3.6s ease-in-out infinite;
+}
+@keyframes metalPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(170, 175, 210, 0.1), 0 0 16px rgba(130, 135, 180, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(185, 190, 225, 0.26), 0 0 30px rgba(140, 145, 195, 0.24);
+  }
+}
+.metal-frame-topline {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #bcc0e0, transparent);
+  pointer-events: none;
+}
