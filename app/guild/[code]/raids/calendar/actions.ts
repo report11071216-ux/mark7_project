@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { sendGuildWebhook, buildRaidMessage } from '@/lib/discord'
+import { sendGuildEmbed, buildRaidEmbed } from '@/lib/discord'
 
 type CreateScheduleInput = {
   guildCode: string
@@ -88,22 +88,23 @@ export async function createRaidSchedule(input: CreateScheduleInput): Promise<Ac
     return { ok: false, error: '일정 생성 실패: ' + error.message }
   }
 
-  // ── 레이드 알림 ──
+  // ── 레이드 알림 (임베드) ──
   try {
     const { data: raid } = await supabase
       .from('raids')
-      .select('title')
+      .select('title, image_url')
       .eq('id', input.raidId)
       .maybeSingle()
-    const content = buildRaidMessage({
+    const embed = buildRaidEmbed({
       raidTitle: raid?.title || '레이드',
       difficulty: input.difficulty,
       skillLevel: input.skillLevel,
       maxMembers: input.maxMembers,
       scheduledDate: input.scheduledDate,
       scheduledTime: input.scheduledTime,
+      raidImage: (raid?.image_url as string) || null,
     })
-    await sendGuildWebhook(guild.id, 'raid', content)
+    await sendGuildEmbed(guild.id, 'raid', embed)
   } catch {
     // 알림 실패는 일정 생성을 막지 않음
   }
