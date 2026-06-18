@@ -23,6 +23,14 @@ export type DiscordEmbed = {
   footer?: { text: string };
 };
 
+// 참여 명단 한 줄 (캐릭터명 · 직업 · 시너지)
+export type RosterEntry = {
+  name: string;
+  cls: string;
+  synergy: string;
+  role: "dealer" | "support" | null;
+};
+
 export function isValidDiscordWebhook(url: string): boolean {
   if (!url) return false;
   const trimmed = url.trim();
@@ -216,7 +224,7 @@ export function buildRaidEmbed(args: {
   return embed;
 }
 
-// 🙋 레이드 참여 (임베드): 누군가 참여 신청했을 때
+// 🙋 레이드 참여 (임베드): 누군가 참여 신청했을 때 + 현재 명단
 export function buildJoinEmbed(args: {
   raidTitle: string;
   participantName: string;
@@ -225,6 +233,7 @@ export function buildJoinEmbed(args: {
   max: number;
   scheduledDate: string;
   scheduledTime: string;
+  roster?: RosterEntry[];
 }): DiscordEmbed {
   const raid = args.raidTitle?.trim() || "레이드";
   const name = args.participantName?.trim() || "길드원";
@@ -235,27 +244,65 @@ export function buildJoinEmbed(args: {
   const max = Number(args.max) || 0;
   const full = max > 0 && cur >= max;
 
-  const embed: DiscordEmbed = {
+  function lineOf(r: RosterEntry): string {
+    const parts: string[] = [r.name || "길드원"];
+    if (r.cls) parts.push(r.cls);
+    if (r.synergy) parts.push(r.synergy);
+    return parts.join(" · ");
+  }
+  function blockOf(arr: RosterEntry[]): string {
+    const text = arr.map(lineOf).join("\n");
+    return text || "-";
+  }
+
+  const list = Array.isArray(args.roster) ? args.roster : [];
+  const dealers = list.filter((r) => r.role === "dealer");
+  const supports = list.filter((r) => r.role === "support");
+  const others = list.filter((r) => r.role !== "dealer" && r.role !== "support");
+
+  const fields: { name: string; value: string; inline?: boolean }[] = [
+    {
+      name: "현재 인원",
+      value: cur + "/" + max + "명" + (full ? " · 마감!" : ""),
+      inline: true,
+    },
+    {
+      name: "일시",
+      value: formatKDateTime(args.scheduledDate, args.scheduledTime),
+      inline: true,
+    },
+  ];
+
+  if (dealers.length > 0) {
+    fields.push({
+      name: "🗡 딜러 (" + dealers.length + ")",
+      value: blockOf(dealers),
+      inline: false,
+    });
+  }
+  if (supports.length > 0) {
+    fields.push({
+      name: "🛡 서포터 (" + supports.length + ")",
+      value: blockOf(supports),
+      inline: false,
+    });
+  }
+  if (others.length > 0) {
+    fields.push({
+      name: "❔ 기타 (" + others.length + ")",
+      value: blockOf(others),
+      inline: false,
+    });
+  }
+
+  return {
     author: { name: "🙋 레이드 참여" },
     title: raid,
     description: "**" + name + "**님이 참여했어요" + roleLabel,
     color: full ? 0xf59e0b : 0x10b981,
-    fields: [
-      {
-        name: "현재 인원",
-        value: cur + "/" + max + "명" + (full ? " · 마감!" : ""),
-        inline: true,
-      },
-      {
-        name: "일시",
-        value: formatKDateTime(args.scheduledDate, args.scheduledTime),
-        inline: true,
-      },
-    ],
+    fields: fields,
     footer: { text: "길드패스" },
   };
-
-  return embed;
 }
 
 // ⚔️ 레이드 (텍스트): 임베드를 못 쓰는 곳을 위한 폴백
