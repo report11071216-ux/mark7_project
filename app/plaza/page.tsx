@@ -10,6 +10,7 @@ import MyProfileCard from "@/components/plaza/MyProfileCard";
 import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList";
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
+import MarketPriceCard, { type MarketPriceItem } from "@/components/plaza/MarketPriceCard";
 import PlazaHero from "@/components/plaza/PlazaHero";
 import TrendingGuilds from "@/components/plaza/TrendingGuilds";
 import { formatNumber } from "@/lib/utils";
@@ -50,6 +51,7 @@ export default async function PlazaPage() {
     heroResult,
     memberCountResult,
     todayAttendanceResult,
+    marketPricesResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -62,6 +64,7 @@ export default async function PlazaPage() {
     supabase.from("platform_settings").select("value").eq("key", "plaza_hero").maybeSingle(),
     supabase.from("guild_members").select("*", { count: "exact", head: true }),
     supabase.rpc("today_attendance_count"),
+    supabase.from("market_prices").select("item_name, display_name, icon_url, current_min_price, yday_avg_price, updated_at").order("sort_order", { ascending: true }),
   ]);
 
   const user = userResult.data.user;
@@ -84,6 +87,23 @@ export default async function PlazaPage() {
   } | null;
   const memberTotal = memberCountResult.count ?? 0;
   const todayAttendanceCount = (todayAttendanceResult.data as number | null) ?? 0;
+
+  // 강화재료 시세
+  const marketRaw = (marketPricesResult.data ?? []) as any[];
+  const marketItems: MarketPriceItem[] = marketRaw.map((m) => ({
+    itemName: m.item_name as string,
+    displayName: (m.display_name as string) || (m.item_name as string),
+    iconUrl: (m.icon_url as string) || null,
+    currentMinPrice: m.current_min_price == null ? null : Number(m.current_min_price),
+    ydayAvgPrice: m.yday_avg_price == null ? null : Number(m.yday_avg_price),
+  }));
+  const marketUpdatedAt = marketRaw.length > 0
+    ? marketRaw
+        .map((m) => m.updated_at as string)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] ?? null
+    : null;
 
   const seenShowcaseGuilds = new Set<string>();
   const showcaseItems: ShowcaseItem[] = [];
@@ -341,10 +361,11 @@ export default async function PlazaPage() {
             </section>
           </div>
 
-          {/* 우측: 내 길드 + 모집중 + 길드 자랑 */}
+          {/* 우측: 내 길드 + 모집중 + 시세 + 길드 자랑 */}
           <aside className="w-full lg:w-[212px] shrink-0 space-y-4">
             <MyGuildsList isLoggedIn={!!user} guilds={myGuilds} />
             <RecruitingGuilds guilds={recruitingGuilds} />
+            <MarketPriceCard items={marketItems} updatedAt={marketUpdatedAt} />
             <GuildShowcaseColumn items={showcaseItems} />
           </aside>
         </div>
