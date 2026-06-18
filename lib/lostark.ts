@@ -239,9 +239,6 @@ export type MarketItemResult = {
   ydayAvgPrice: number | null;
 };
 
-// 거래소에서 정확히 이 이름인 아이템 시세 1건 조회.
-// markets/items 검색은 부분일치라 "운명의 파괴석"에 "운명의 파괴석 결정"이
-// 섞여 나옴 → 이름이 정확히 일치하는 첫 결과만 채택.
 export async function getMarketItemPrice(
   itemName: string
 ): Promise<MarketItemResult | null> {
@@ -281,7 +278,6 @@ export async function getMarketItemPrice(
     const items = Array.isArray(data.Items) ? data.Items : [];
     if (items.length === 0) return null;
 
-    // 정확히 같은 이름 우선, 없으면 첫 결과
     const exact = items.find((it) => (it.Name || "").trim() === itemName.trim());
     const picked = exact || items[0];
 
@@ -295,5 +291,52 @@ export async function getMarketItemPrice(
     };
   } catch {
     return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// 이벤트 (Events) — 로스트아크 공식 진행 이벤트
+// ─────────────────────────────────────────────
+export type LostarkEvent = {
+  title: string;
+  thumbnail: string;
+  link: string;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+export async function getLostarkEvents(): Promise<LostarkEvent[]> {
+  try {
+    const res = await fetch(`${BASE}/news/events`, {
+      headers: {
+        Authorization: `bearer ${process.env.LOSTARK_API_KEY}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as {
+      Title?: string;
+      Thumbnail?: string;
+      Link?: string;
+      StartDate?: string | null;
+      EndDate?: string | null;
+    }[];
+
+    const arr = Array.isArray(data) ? data : [];
+
+    return arr
+      .filter((e) => e && (e.Link || "").trim().length > 0)
+      .map((e) => ({
+        title: (e.Title || "이벤트").trim(),
+        thumbnail: (e.Thumbnail || "").trim(),
+        link: (e.Link || "").trim(),
+        startDate: e.StartDate || null,
+        endDate: e.EndDate || null,
+      }));
+  } catch {
+    return [];
   }
 }
