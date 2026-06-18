@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { sendGuildEmbed, buildRaidEmbed } from '@/lib/discord'
+import { sendGuildEmbed, buildRaidEmbed, buildJoinEmbed } from '@/lib/discord'
 
 type CreateScheduleInput = {
   guildCode: string
@@ -230,7 +230,7 @@ export async function joinRaidSchedule(
 
   const { data: schedule } = await supabase
     .from('raid_schedules')
-    .select('id, guild_id, max_members, completed, scheduled_date, scheduled_time')
+    .select('id, guild_id, raid_id, max_members, completed, scheduled_date, scheduled_time')
     .eq('id', scheduleId)
     .single()
 
@@ -331,6 +331,49 @@ export async function joinRaidSchedule(
 
   if (error) {
     return { ok: false, error: '참여 신청 실패: ' + error.message }
+  }
+
+  // ── 참여 알림 (임베드) ──
+  try {
+    const { count: afterCount } = await supabase
+      .from('raid_participants')
+      .select('schedule_id', { count: 'exact', head: true })
+      .eq('schedule_id', scheduleId)
+
+    let raidTitle = '레이드'
+    const rid = schedule.raid_id as string | null
+    if (rid) {
+      const { data: raid } = await supabase
+        .from('raids')
+        .select('title')
+        .eq('id', rid)
+        .maybeSingle()
+      if (raid?.title) raidTitle = raid.title as string
+    }
+
+    // 표시 이름: 참여 캐릭터명 우선, 없으면 프로필 닉네임
+    let displayName = (characterName || '').trim()
+    if (!displayName) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle()
+      displayName = (profile?.username as string) || '길드원'
+    }
+
+    const embed = buildJoinEmbed({
+      raidTitle: raidTitle,
+      participantName: displayName,
+      role: safeRole,
+      current: afterCount || (count || 0) + 1,
+      max: max,
+      scheduledDate: (schedule.scheduled_date as string) || '',
+      scheduledTime: (schedule.scheduled_time as string) || '',
+    })
+    await sendGuildEmbed(schedule.guild_id as string, 'raid', embed)
+  } catch {
+    // 알림 실패는 참여를 막지 않음
   }
 
   revalidatePath('/guild/' + guildCode + '/raids/calendar')
