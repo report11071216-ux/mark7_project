@@ -14,6 +14,16 @@ type CreateScheduleInput = {
   scheduledTime: string
 }
 
+type UpdateScheduleInput = {
+  scheduleId: string
+  guildCode: string
+  difficulty: string
+  skillLevel: string
+  maxMembers: number
+  scheduledDate: string
+  scheduledTime: string
+}
+
 type ActionResult = { ok: boolean; error?: string }
 
 export type MyCharacter = {
@@ -102,6 +112,87 @@ export async function createRaidSchedule(input: CreateScheduleInput): Promise<Ac
   return { ok: true }
 }
 
+export async function updateRaidSchedule(input: UpdateScheduleInput): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: '로그인이 필요합니다.' }
+  }
+
+  const { data: schedule } = await supabase
+    .from('raid_schedules')
+    .select('id, guild_id, created_by, completed')
+    .eq('id', input.scheduleId)
+    .single()
+
+  if (!schedule) {
+    return { ok: false, error: '일정을 찾을 수 없습니다.' }
+  }
+
+  if (schedule.completed) {
+    return { ok: false, error: '완료된 레이드는 수정할 수 없습니다.' }
+  }
+
+  const { data: membership } = await supabase
+    .from('guild_members')
+    .select('role')
+    .eq('guild_id', schedule.guild_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!membership) {
+    return { ok: false, error: '길드원만 수정할 수 있습니다.' }
+  }
+
+  const isOwner = schedule.created_by === user.id
+  const isStaff = membership.role === 'master' || membership.role === 'submaster'
+
+  if (!isOwner && !isStaff) {
+    return { ok: false, error: '일정을 만든 사람 또는 마스터/부마만 수정할 수 있습니다.' }
+  }
+
+  if (!input.scheduledDate) {
+    return { ok: false, error: '날짜가 올바르지 않습니다.' }
+  }
+  if (!input.scheduledTime) {
+    return { ok: false, error: '시작 시간을 입력해주세요.' }
+  }
+
+  // 이미 참여 중인 인원보다 작게는 줄일 수 없음
+  const { count } = await supabase
+    .from('raid_participants')
+    .select('schedule_id', { count: 'exact', head: true })
+    .eq('schedule_id', input.scheduleId)
+
+  const joinedCount = count || 0
+  if (input.maxMembers < joinedCount) {
+    return {
+      ok: false,
+      error: '이미 ' + joinedCount + '명이 참여 중이라 인원을 그보다 적게 줄일 수 없어요.',
+    }
+  }
+
+  const { error } = await supabase
+    .from('raid_schedules')
+    .update({
+      difficulty: input.difficulty,
+      skill_level: input.skillLevel,
+      max_members: input.maxMembers,
+      scheduled_date: input.scheduledDate,
+      scheduled_time: input.scheduledTime,
+    })
+    .eq('id', input.scheduleId)
+
+  if (error) {
+    return { ok: false, error: '일정 수정 실패: ' + error.message }
+  }
+
+  revalidatePath('/guild/' + input.guildCode + '/raids/calendar')
+  revalidatePath('/guild/' + input.guildCode)
+  return { ok: true }
+}
+
 export async function getMyCharacters(guildCode: string): Promise<MyCharacter[]> {
   const supabase = await createClient()
 
@@ -173,8 +264,6 @@ export async function joinRaidSchedule(
   }
 
   // ── 같은 시간 중복 신청 방지 ──
-  // 한 사람은 같은 날짜 + 같은 시간에 한 레이드만 참여 가능 (한 몸이라 동시에 두 곳 불가).
-  // 시간이 다르면 OK (예: 20시 발탄 + 22시 비아키스).
   const { data: myParts } = await supabase
     .from('raid_participants')
     .select('schedule_id')
@@ -228,7 +317,6 @@ export async function joinRaidSchedule(
     return { ok: false, error: '정원이 가득 찼습니다.' }
   }
 
-  // 역할: 'dealer' | 'support' 만 허용, 그 외엔 null (표시 시 직업으로 추정)
   const safeRole = role === 'dealer' || role === 'support' ? role : null
 
   const { error } = await supabase
