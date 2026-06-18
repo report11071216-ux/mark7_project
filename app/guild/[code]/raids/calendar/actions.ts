@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { sendGuildEmbed, buildRaidEmbed, buildJoinEmbed } from '@/lib/discord'
+import { sendGuildEmbed, buildRaidEmbed, buildJoinEmbed, type RosterEntry } from '@/lib/discord'
+import { getClassRole, getClassSynergy } from '@/lib/lostark-classes'
 
 type CreateScheduleInput = {
   guildCode: string
@@ -333,13 +334,75 @@ export async function joinRaidSchedule(
     return { ok: false, error: '참여 신청 실패: ' + error.message }
   }
 
-  // ── 참여 알림 (임베드) ──
+  // ── 참여 알림 (임베드 + 현재 명단) ──
   try {
-    const { count: afterCount } = await supabase
+    // 1) 현재 참여자 전체
+    const { data: allParts } = await supabase
       .from('raid_participants')
-      .select('schedule_id', { count: 'exact', head: true })
+      .select('user_id, character_name, role')
       .eq('schedule_id', scheduleId)
+    const partRows = allParts || []
 
+    // 2) 캐릭터명 → 직업 (user_characters)
+    const cnames = Array.from(
+      new Set(partRows.map((p) => p.character_name).filter(Boolean))
+    ) as string[]
+    const clsByChar: { [key: string]: string } = {}
+    if (cnames.length > 0) {
+      const { data: crows } = await supabase
+        .from('user_characters')
+        .select('character_name, character_class')
+        .in('character_name', cnames)
+      for (const c of crows || []) {
+        clsByChar[c.character_name as string] = (c.character_class as string) || ''
+      }
+    }
+
+    // 3) 캐릭터명 없는 참여자 → 프로필 fallback
+    const noCharIds = Array.from(
+      new Set(partRows.filter((p) => !p.character_name).map((p) => p.user_id as string))
+    )
+    const profById: { [key: string]: { name: string; cls: string } } = {}
+    if (noCharIds.length > 0) {
+      const { data: prows } = await supabase
+        .from('profiles')
+        .select('id, username, main_character_name, character_class')
+        .in('id', noCharIds)
+      for (const pr of prows || []) {
+        profById[pr.id as string] = {
+          name: (pr.main_character_name as string) || (pr.username as string) || '길드원',
+          cls: (pr.character_class as string) || '',
+        }
+      }
+    }
+
+    // 4) 명단 구성 (page.tsx와 동일 규칙)
+    const roster: RosterEntry[] = partRows.map((p) => {
+      const cn = (p.character_name as string) || ''
+      const cls = cn ? clsByChar[cn] || '' : profById[p.user_id as string]?.cls || ''
+      const displayName = cn || profById[p.user_id as string]?.name || '길드원'
+      const stored =
+        p.role === 'dealer' || p.role === 'support' ? (p.role as 'dealer' | 'support') : null
+      const finalRole: 'dealer' | 'support' | null = stored
+        ? stored
+        : cls
+        ? getClassRole(cls)
+        : null
+      return {
+        name: displayName,
+        cls: cls,
+        synergy: cls ? getClassSynergy(cls) : '',
+        role: finalRole,
+      }
+    })
+
+    // 5) 방금 참여한 사람 표시 이름
+    let myName = (characterName || '').trim()
+    if (!myName) {
+      myName = profById[user.id]?.name || '길드원'
+    }
+
+    // 6) 레이드 제목
     let raidTitle = '레이드'
     const rid = schedule.raid_id as string | null
     if (rid) {
@@ -351,25 +414,15 @@ export async function joinRaidSchedule(
       if (raid?.title) raidTitle = raid.title as string
     }
 
-    // 표시 이름: 참여 캐릭터명 우선, 없으면 프로필 닉네임
-    let displayName = (characterName || '').trim()
-    if (!displayName) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .maybeSingle()
-      displayName = (profile?.username as string) || '길드원'
-    }
-
     const embed = buildJoinEmbed({
       raidTitle: raidTitle,
-      participantName: displayName,
+      participantName: myName,
       role: safeRole,
-      current: afterCount || (count || 0) + 1,
+      current: partRows.length || (count || 0) + 1,
       max: max,
       scheduledDate: (schedule.scheduled_date as string) || '',
       scheduledTime: (schedule.scheduled_time as string) || '',
+      roster: roster,
     })
     await sendGuildEmbed(schedule.guild_id as string, 'raid', embed)
   } catch {
