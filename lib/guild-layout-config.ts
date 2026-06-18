@@ -31,7 +31,7 @@ const VALID_IDS: WidgetId[] = [
   "attendance", "calendar", "stats", "recentMembers",
   "notice", "guildIntro", "pointRanking", "guardian",
   "raidStatus", "onlineMembers", "raidSchedule", "raidCalendar",
-  "raidActivity", "discord",
+  "raidActivity", "discord", "activityFeed",
 ];
 
 function cleanColumn(arr: any): LayoutWidget[] {
