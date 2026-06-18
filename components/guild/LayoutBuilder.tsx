@@ -13,6 +13,7 @@ const ALL_WIDGET_IDS: WidgetId[] = [
   'notice', 'pointRanking', 'attendance', 'calendar', 'stats',
   'guardian', 'recentMembers', 'onlineMembers', 'raidStatus',
   'raidSchedule', 'raidCalendar', 'raidActivity', 'guildIntro', 'discord',
+  'activityFeed',
 ]
 
 const COLUMN_LABELS: { key: ColKey; label: string }[] = [
