@@ -216,6 +216,48 @@ export function buildRaidEmbed(args: {
   return embed;
 }
 
+// 🙋 레이드 참여 (임베드): 누군가 참여 신청했을 때
+export function buildJoinEmbed(args: {
+  raidTitle: string;
+  participantName: string;
+  role: "dealer" | "support" | null;
+  current: number;
+  max: number;
+  scheduledDate: string;
+  scheduledTime: string;
+}): DiscordEmbed {
+  const raid = args.raidTitle?.trim() || "레이드";
+  const name = args.participantName?.trim() || "길드원";
+  const roleLabel =
+    args.role === "support" ? " (서포터)" : args.role === "dealer" ? " (딜러)" : "";
+
+  const cur = Number(args.current) || 0;
+  const max = Number(args.max) || 0;
+  const full = max > 0 && cur >= max;
+
+  const embed: DiscordEmbed = {
+    author: { name: "🙋 레이드 참여" },
+    title: raid,
+    description: "**" + name + "**님이 참여했어요" + roleLabel,
+    color: full ? 0xf59e0b : 0x10b981,
+    fields: [
+      {
+        name: "현재 인원",
+        value: cur + "/" + max + "명" + (full ? " · 마감!" : ""),
+        inline: true,
+      },
+      {
+        name: "일시",
+        value: formatKDateTime(args.scheduledDate, args.scheduledTime),
+        inline: true,
+      },
+    ],
+    footer: { text: "길드패스" },
+  };
+
+  return embed;
+}
+
 // ⚔️ 레이드 (텍스트): 임베드를 못 쓰는 곳을 위한 폴백
 export function buildRaidMessage(args: {
   raidTitle: string;
