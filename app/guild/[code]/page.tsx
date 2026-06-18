@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getAttendanceDate, calculateStreak } from "@/lib/attendance";
-import { type GuildLayoutData } from "@/lib/guild-layout-types";
+import { type GuildLayoutData, type ActivityFeedItem } from "@/lib/guild-layout-types";
 import { normalizeLayout } from "@/lib/guild-layout-config";
 import { getShowcaseResetBoundary } from "@/lib/showcase";
 import GuildHomeLayout from "@/components/guild/GuildHomeLayout";
@@ -36,6 +36,8 @@ export default async function GuildHomePage({ params }: Props) {
     imagesResult,
     weaknessesResult,
     { data: showcaseToday },
+    { data: attendanceLogs },
+    { data: completedRaids },
   ] = await Promise.all([
     supabase.from("attendances").select("attendance_date").eq("guild_id", guild.id).eq("user_id", user.id).order("attendance_date", { ascending: false }).limit(60),
     supabase.from("guild_members").select("user_id, points, role, joined_at, title, profiles(username, avatar_url, last_seen_at, equipped_mark_id, equipped_card_id)").eq("guild_id", guild.id).order("joined_at", { ascending: false }),
@@ -47,6 +49,8 @@ export default async function GuildHomePage({ params }: Props) {
     supabase.from("platform_settings").select("value").eq("key", "guardian_images").maybeSingle(),
     supabase.from("platform_settings").select("value").eq("key", "guardian_weaknesses").maybeSingle(),
     supabase.from("guild_showcases").select("id").eq("guild_id", guild.id).gte("created_at", showcaseBoundary).limit(1),
+    supabase.from("guild_point_logs").select("actor_name, created_at").eq("guild_id", guild.id).eq("log_type", "attendance").order("created_at", { ascending: false }).limit(15),
+    supabase.from("raid_schedules").select("raid_id, completed_at, raids(title)").eq("guild_id", guild.id).eq("completed", true).not("completed_at", "is", null).order("completed_at", { ascending: false }).limit(15),
   ]);
 
   const attendanceDates = (myAttendances ?? []).map((a) => a.attendance_date);
@@ -178,6 +182,33 @@ export default async function GuildHomePage({ params }: Props) {
     gold_nightmare: r.gold_nightmare ?? 0,
   }));
 
+  // ── 길드 활동 피드 (출석 + 레이드완료 + 가입 합치기) ──
+  const activityRaw: ActivityFeedItem[] = [];
+
+  for (const log of (attendanceLogs ?? []) as any[]) {
+    const nm = (log.actor_name as string) || "길드원";
+    if (!log.created_at) continue;
+    activityRaw.push({ kind: "attendance", name: nm, at: log.created_at as string });
+  }
+
+  for (const r of (completedRaids ?? []) as any[]) {
+    const raidInfo = Array.isArray(r.raids) ? r.raids[0] : r.raids;
+    const title = (raidInfo?.title as string) || "레이드";
+    if (!r.completed_at) continue;
+    activityRaw.push({ kind: "raidClear", name: title, at: r.completed_at as string });
+  }
+
+  for (const m of members) {
+    if (!m.joined_at) continue;
+    const nm = (m.profiles?.username as string) || "길드원";
+    activityRaw.push({ kind: "join", name: nm, at: m.joined_at as string });
+  }
+
+  const activityFeed = activityRaw
+    .filter((a) => a.at)
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 12);
+
   const layoutData: GuildLayoutData = {
     guild: {
       id: guild.id, name: guild.name, code: guild.code,
@@ -194,6 +225,7 @@ export default async function GuildHomePage({ params }: Props) {
     recentMembers, rankingMembers, onlineMembers, noticePosts,
     raidList: [],
     raids,
+    activityFeed,
     welcomeMessage: themeRow?.welcome_message ?? null,
     guardianIndex, guardianImageUrl, weaknesses,
     primaryColor,
