@@ -174,8 +174,6 @@ function stripHtml(str: string): string {
 }
 
 // ─── 전투력 ───
-// 로스트아크 API가 CombatPower 필드를 직접 제공함 (예: "5,205.69").
-// 과거엔 공격력 기반으로 추정 계산했으나, 이제 API값을 그대로 사용해 100% 정확.
 export function extractCombatPower(profile: LostarkProfile | null): number {
   if (!profile?.CombatPower) return 0;
   const num = parseFloat(profile.CombatPower.replace(/,/g, ""));
@@ -205,9 +203,6 @@ export function parseItemLevel(levelStr: string | null | undefined): number {
 }
 
 // ─── Time utils ───
-// 로스트아크 API의 StartTimes는 시간대 표기가 없는 KST 문자열임 (예: "2026-06-05T19:00:00").
-// 그냥 new Date()로 읽으면 서버(UTC)가 UTC로 오해해서 +9시간 밀림 → "오늘"이 "내일"이 됨.
-// 그래서 표기가 없을 때만 "+09:00"을 붙여서 KST로 정확히 파싱한다.
 function parseKST(dateStr: string): Date {
   const hasOffset = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(dateStr);
   return new Date(hasOffset ? dateStr : dateStr + "+09:00");
@@ -232,4 +227,73 @@ export function isTodayKST(dateStr: string): boolean {
   const today = new Date().toLocaleDateString("ko-KR", opts);
   const target = parseKST(dateStr).toLocaleDateString("ko-KR", opts);
   return today === target;
+}
+
+// ─────────────────────────────────────────────
+// 거래소 (Market) — 강화재료 시세
+// ─────────────────────────────────────────────
+export type MarketItemResult = {
+  name: string;
+  iconUrl: string;
+  currentMinPrice: number | null;
+  ydayAvgPrice: number | null;
+};
+
+// 거래소에서 정확히 이 이름인 아이템 시세 1건 조회.
+// markets/items 검색은 부분일치라 "운명의 파괴석"에 "운명의 파괴석 결정"이
+// 섞여 나옴 → 이름이 정확히 일치하는 첫 결과만 채택.
+export async function getMarketItemPrice(
+  itemName: string
+): Promise<MarketItemResult | null> {
+  try {
+    const res = await fetch(`${BASE}/markets/items`, {
+      method: "POST",
+      headers: {
+        Authorization: `bearer ${process.env.LOSTARK_API_KEY}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Sort: "GRADE",
+        CategoryCode: 50000,
+        CharacterClass: "",
+        ItemTier: null,
+        ItemGrade: "",
+        ItemName: itemName,
+        PageNo: 0,
+        SortCondition: "ASC",
+      }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      Items?: {
+        Name?: string;
+        Icon?: string;
+        CurrentMinPrice?: number | null;
+        YDayAvgPrice?: number | null;
+        RecentPrice?: number | null;
+      }[];
+    };
+
+    const items = Array.isArray(data.Items) ? data.Items : [];
+    if (items.length === 0) return null;
+
+    // 정확히 같은 이름 우선, 없으면 첫 결과
+    const exact = items.find((it) => (it.Name || "").trim() === itemName.trim());
+    const picked = exact || items[0];
+
+    return {
+      name: (picked.Name || itemName).trim(),
+      iconUrl: picked.Icon || "",
+      currentMinPrice:
+        picked.CurrentMinPrice == null ? null : Number(picked.CurrentMinPrice),
+      ydayAvgPrice:
+        picked.YDayAvgPrice == null ? null : Number(picked.YDayAvgPrice),
+    };
+  } catch {
+    return null;
+  }
 }
