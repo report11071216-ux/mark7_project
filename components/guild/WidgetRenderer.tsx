@@ -13,6 +13,7 @@ import RaidMonthWidget from "@/components/guild/RaidMonthWidget";
 import RaidActivityWidget from "@/components/guild/RaidActivityWidget";
 import RaidStatusGalleryWidget from "@/components/guild/RaidStatusGalleryWidget";
 import DiscordWidget from "@/components/guild/DiscordWidget";
+import ActivityFeedWidget from "@/components/guild/ActivityFeedWidget";
 
 const GUARDIAN_NAMES = ["루멘칼리고","가르가디스","스콜라키아","크라티오스","아게오로스","드렉탈라스","소나벨","베스칼"];
 
@@ -112,7 +113,7 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
     return <RaidActivityWidget guildId={guild.id} colors={colors} />;
   }
 
-  if (widgetId === "discord") {
+ if (widgetId === "discord") {
     return (
       <DiscordWidget
         widgetId={guild.discord_widget_id ?? null}
@@ -122,6 +123,10 @@ export default function WidgetRenderer({ widgetId, data, guildCode, colors }: Pr
         textSecondary={textSecondary}
       />
     );
+  }
+
+  if (widgetId === "activityFeed") {
+    return <ActivityFeedWidget items={data.activityFeed} colors={colors} />;
   }
 
   if (widgetId === "attendance") {
