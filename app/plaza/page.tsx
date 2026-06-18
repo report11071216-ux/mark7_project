@@ -11,6 +11,7 @@ import MyGuildsList, { type MyGuildItem } from "@/components/plaza/MyGuildsList"
 import GameContentWidgets from "@/components/plaza/GameContentWidgets";
 import GuildShowcaseColumn, { type ShowcaseItem } from "@/components/plaza/GuildShowcaseColumn";
 import MarketPriceCard, { type MarketPriceItem } from "@/components/plaza/MarketPriceCard";
+import EventBanner, { type PlazaEvent } from "@/components/plaza/EventBanner";
 import PlazaHero from "@/components/plaza/PlazaHero";
 import TrendingGuilds from "@/components/plaza/TrendingGuilds";
 import { formatNumber } from "@/lib/utils";
@@ -52,6 +53,7 @@ export default async function PlazaPage() {
     memberCountResult,
     todayAttendanceResult,
     marketPricesResult,
+    eventsResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("guilds_display").select("id, code, name, display_logo_url, member_count, max_members, description").eq("is_recruiting", true).lt("member_count", 50).order("created_at", { ascending: false }).limit(5),
@@ -65,6 +67,7 @@ export default async function PlazaPage() {
     supabase.from("guild_members").select("*", { count: "exact", head: true }),
     supabase.rpc("today_attendance_count"),
     supabase.from("market_prices").select("item_name, display_name, icon_url, current_min_price, yday_avg_price, updated_at").order("sort_order", { ascending: true }),
+    supabase.from("lostark_events").select("link, title, thumbnail, end_date, sort_order").order("sort_order", { ascending: true }),
   ]);
 
   const user = userResult.data.user;
@@ -104,6 +107,15 @@ export default async function PlazaPage() {
         .sort()
         .slice(-1)[0] ?? null
     : null;
+
+  // 로스트아크 이벤트
+  const eventRaw = (eventsResult.data ?? []) as any[];
+  const plazaEvents: PlazaEvent[] = eventRaw.map((e) => ({
+    link: e.link as string,
+    title: (e.title as string) || "이벤트",
+    thumbnail: (e.thumbnail as string) || null,
+    endDate: (e.end_date as string) || null,
+  }));
 
   const seenShowcaseGuilds = new Set<string>();
   const showcaseItems: ShowcaseItem[] = [];
@@ -339,6 +351,9 @@ export default async function PlazaPage() {
 
           {/* 중앙 */}
           <div className="flex-1 min-w-0 space-y-6">
+            {/* 이벤트 배너 (최상단) */}
+            <EventBanner events={plazaEvents} />
+
             <Suspense fallback={
               <div className="h-[150px] rounded-xl bg-plaza-surface ring-1 ring-plaza-line animate-pulse" />
             }>
