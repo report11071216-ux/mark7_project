@@ -69,7 +69,10 @@ export default function EventBanner({ events }: { events: PlazaEvent[] }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div
+        className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:[grid-template-columns:repeat(var(--ev-cols),minmax(0,1fr))]"
+        style={{ ["--ev-cols" as any]: Math.min(shown.length, MAX_SHOWN) }}
+      >
         {shown.map((ev) => {
           const ending = isEndingSoon(ev.endDate);
           return (
