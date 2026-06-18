@@ -107,6 +107,9 @@ export default function ScheduleDetailModal({
   const [selectedChar, setSelectedChar] = useState('')
   const [selectedRole, setSelectedRole] = useState<'dealer' | 'support'>('dealer')
 
+  // ── 참여 캐릭터 선택 펼침 ──
+  const [joinExpanded, setJoinExpanded] = useState(false)
+
   // ── 편집 상태 ──
   const [editing, setEditing] = useState(false)
   const [eDiff, setEDiff] = useState('노말')
@@ -132,6 +135,7 @@ export default function ScheduleDetailModal({
       setSubmitting(false)
       setConfirming(false)
       setEditing(false)
+      setJoinExpanded(false)
       const rep = chars.find((c) => c.isRepresentative)
       const initChar = rep ? rep : chars.length > 0 ? chars[0] : null
       setSelectedChar(initChar ? initChar.name : '')
@@ -154,13 +158,22 @@ export default function ScheduleDetailModal({
   const roleSelectable = selectedClass ? getClassRole(selectedClass) === 'support' : false
   const effectiveRole: 'dealer' | 'support' = roleSelectable ? selectedRole : 'dealer'
 
-  const showJoinUI = !isCompleted && !joined && !full && hasChars
-
   let dealerCount = 0
   let supportCount = 0
   for (const p of schedule.participants) {
     if (p.role === 'support') supportCount++
     else if (p.role === 'dealer') dealerCount++
+  }
+
+  function onJoinClick() {
+    if (!schedule) return
+    setError('')
+    // 연동된 캐릭터가 없으면 바로 신청(캐릭터명 없이)
+    if (!hasChars) {
+      handleJoin()
+      return
+    }
+    setJoinExpanded(true)
   }
 
   function startEdit() {
@@ -280,6 +293,14 @@ export default function ScheduleDetailModal({
     onClose()
     window.location.reload()
   }
+
+  // 참여 칸 라벨(정사각/풀폭 공용 텍스트 판정용)
+  const joinLabelFull = hasChars
+    ? (selectedChar || '캐릭터') +
+      ' · ' +
+      (effectiveRole === 'support' ? '서포터' : '딜러') +
+      '(으)로 참여 신청'
+    : '참여 신청'
 
   return (
     <div
@@ -462,6 +483,7 @@ export default function ScheduleDetailModal({
           ) : null}
 
           {editing ? (
+            /* ───────── 수정 폼 ───────── */
             <div className="mt-5">
               <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                 일정 수정
@@ -560,57 +582,54 @@ export default function ScheduleDetailModal({
                 </button>
               </div>
             </div>
-          ) : (
-            <>
-              {showJoinUI ? (
-                <div className="mt-5">
-                  <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
-                    참여 캐릭터 선택
-                  </p>
-                  <div className="max-h-40 space-y-1.5 overflow-y-auto">
-                    {chars.map((c) => {
-                      const active = selectedChar === c.name
-                      return (
-                        <button
-                          key={c.name}
-                          type="button"
-                          onClick={() => {
-                            setSelectedChar(c.name)
-                            setSelectedRole(defaultRoleFor(c.characterClass))
-                          }}
-                          className={cx(
-                            'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition',
-                            active
-                              ? 'border-violet-500 bg-violet-500/10'
-                              : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700'
-                          )}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate text-sm font-medium text-zinc-100">
-                                {c.name}
-                              </span>
-                              {c.isRepresentative ? (
-                                <span className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300">
-                                  대표
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="text-[11px] text-zinc-400">
-                              {c.characterClass || '직업 미상'}
-                            </p>
-                          </div>
-                          <span className="shrink-0 font-mono text-[11px] font-bold text-violet-300">
-                            Lv {Math.floor(c.itemLevel).toLocaleString()}
+          ) : joinExpanded ? (
+            /* ───────── 참여 캐릭터 선택 (펼침) ───────── */
+            <div className="mt-5">
+              <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
+                참여 캐릭터 선택
+              </p>
+              <div className="max-h-40 space-y-1.5 overflow-y-auto">
+                {chars.map((c) => {
+                  const active = selectedChar === c.name
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChar(c.name)
+                        setSelectedRole(defaultRoleFor(c.characterClass))
+                      }}
+                      className={cx(
+                        'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition',
+                        active
+                          ? 'border-violet-500 bg-violet-500/10'
+                          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700'
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-sm font-medium text-zinc-100">
+                            {c.name}
                           </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : null}
+                          {c.isRepresentative ? (
+                            <span className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300">
+                              대표
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-[11px] text-zinc-400">
+                          {c.characterClass || '직업 미상'}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-mono text-[11px] font-bold text-violet-300">
+                        Lv {Math.floor(c.itemLevel).toLocaleString()}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
 
-              {showJoinUI && roleSelectable ? (
+              {roleSelectable ? (
                 <div className="mt-3">
                   <p className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                     역할 선택
@@ -644,72 +663,139 @@ export default function ScheduleDetailModal({
                 </div>
               ) : null}
 
-              <div className="mt-3">
-                {isCompleted ? (
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    setJoinExpanded(false)
+                    setError('')
+                  }}
+                  disabled={submitting}
+                  className="w-24 rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleJoin}
+                  disabled={submitting}
+                  className="flex-1 rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
+                >
+                  {submitting ? '처리 중...' : joinLabelFull}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ───────── 액션 버튼 영역 ───────── */
+            <div className="mt-5">
+              {isCompleted ? (
+                <>
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-center text-sm font-medium text-emerald-300">
                     ✓ 완료된 레이드
                   </div>
-                ) : joined ? (
-                  <button
-                    onClick={handleLeave}
-                    disabled={submitting}
-                    className="w-full rounded-lg border border-red-500/40 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
-                  >
-                    {submitting ? '처리 중...' : '참여 취소'}
-                  </button>
-                ) : full ? (
-                  <button
-                    disabled
-                    className="w-full cursor-not-allowed rounded-lg bg-zinc-800 py-2.5 text-sm font-medium text-zinc-500"
-                  >
-                    정원이 가득 찼어요
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleJoin}
-                    disabled={submitting}
-                    className="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
-                  >
-                    {submitting
-                      ? '처리 중...'
-                      : hasChars
-                      ? `${selectedChar || '캐릭터'} · ${
-                          effectiveRole === 'support' ? '서포터' : '딜러'
-                        }(으)로 참여 신청`
-                      : '참여 신청'}
-                  </button>
-                )}
-              </div>
 
-              {canManage ? (
+                  {canManage ? (
+                    <>
+                      <button
+                        onClick={handleUncomplete}
+                        disabled={submitting}
+                        className="mt-3 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/15 disabled:opacity-50"
+                      >
+                        {submitting ? '처리 중...' : '완료 취소'}
+                      </button>
+
+                      {confirming ? (
+                        <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                          <p className="mb-2.5 text-center text-xs text-zinc-300">
+                            이 일정을 삭제할까요? 참여자 정보도 함께 사라져요.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirming(false)}
+                              disabled={submitting}
+                              className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm text-zinc-400 transition hover:bg-zinc-800/60 disabled:opacity-50"
+                            >
+                              취소
+                            </button>
+                            <button
+                              onClick={handleDelete}
+                              disabled={submitting}
+                              className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+                            >
+                              {submitting ? '삭제 중...' : '삭제'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirming(true)}
+                          disabled={submitting}
+                          className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
+                        >
+                          일정 삭제
+                        </button>
+                      )}
+                    </>
+                  ) : null}
+                </>
+              ) : canManage ? (
                 <>
-                  {!isCompleted ? (
+                  <button
+                    onClick={handleComplete}
+                    disabled={submitting}
+                    className="mb-2.5 w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                  >
+                    {submitting ? '처리 중...' : '✓ 레이드 완료 처리'}
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* 참여 칸 */}
+                    {joined ? (
+                      <button
+                        onClick={handleLeave}
+                        disabled={submitting}
+                        className="flex flex-col items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/5 py-3 text-xs font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        <span className="text-lg leading-none">−</span>
+                        참여취소
+                      </button>
+                    ) : full ? (
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-800/40 py-3 text-xs font-medium text-zinc-500"
+                      >
+                        <span className="text-lg leading-none">·</span>
+                        정원참
+                      </button>
+                    ) : (
+                      <button
+                        onClick={onJoinClick}
+                        disabled={submitting}
+                        className="flex flex-col items-center gap-1.5 rounded-lg bg-violet-600 py-3 text-xs font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
+                      >
+                        <span className="text-lg leading-none">+</span>
+                        참여
+                      </button>
+                    )}
+
+                    {/* 수정 칸 */}
                     <button
                       onClick={startEdit}
                       disabled={submitting}
-                      className="mt-3 w-full rounded-lg border border-violet-500/50 bg-violet-500/10 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
+                      className="flex flex-col items-center gap-1.5 rounded-lg border border-violet-500/50 bg-violet-500/10 py-3 text-xs font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
                     >
-                      일정 수정
+                      <span className="text-lg leading-none">✎</span>
+                      수정
                     </button>
-                  ) : null}
 
-                  {isCompleted ? (
+                    {/* 삭제 칸 */}
                     <button
-                      onClick={handleUncomplete}
+                      onClick={() => setConfirming(true)}
                       disabled={submitting}
-                      className="mt-3 w-full rounded-lg border border-amber-500/30 bg-amber-500/5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/15 disabled:opacity-50"
+                      className="flex flex-col items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/5 py-3 text-xs font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      {submitting ? '처리 중...' : '완료 취소'}
+                      <span className="text-lg leading-none">🗑</span>
+                      일정삭제
                     </button>
-                  ) : (
-                    <button
-                      onClick={handleComplete}
-                      disabled={submitting}
-                      className="mt-3 w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
-                    >
-                      {submitting ? '처리 중...' : '✓ 레이드 완료 처리'}
-                    </button>
-                  )}
+                  </div>
 
                   {confirming ? (
                     <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
@@ -733,18 +819,38 @@ export default function ScheduleDetailModal({
                         </button>
                       </div>
                     </div>
+                  ) : null}
+                </>
+              ) : (
+                /* ───────── 일반 길드원 (참여만) ───────── */
+                <>
+                  {joined ? (
+                    <button
+                      onClick={handleLeave}
+                      disabled={submitting}
+                      className="w-full rounded-lg border border-red-500/40 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+                    >
+                      {submitting ? '처리 중...' : '참여 취소'}
+                    </button>
+                  ) : full ? (
+                    <button
+                      disabled
+                      className="w-full cursor-not-allowed rounded-lg bg-zinc-800 py-2.5 text-sm font-medium text-zinc-500"
+                    >
+                      정원이 가득 찼어요
+                    </button>
                   ) : (
                     <button
-                      onClick={() => setConfirming(true)}
+                      onClick={onJoinClick}
                       disabled={submitting}
-                      className="mt-3 w-full py-2 text-xs text-zinc-500 transition hover:text-red-300 disabled:opacity-50"
+                      className="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
                     >
-                      일정 삭제
+                      {submitting ? '처리 중...' : '참여 신청'}
                     </button>
                   )}
                 </>
-              ) : null}
-            </>
+              )}
+            </div>
           )}
         </div>
       </div>
