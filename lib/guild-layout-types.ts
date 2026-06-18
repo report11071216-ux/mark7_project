@@ -61,6 +61,11 @@ export type RaidEntry = {
   gold_hard: number;
   gold_nightmare: number;
 };
+export type ActivityFeedItem = {
+  kind: "attendance" | "raidClear" | "join";
+  name: string;       // 활동 주체 (캐릭터/유저명, 레이드 클리어는 레이드명)
+  at: string;         // ISO 시각
+};
 export type GuildLayoutData = {
   guild: {
     id: string;
@@ -85,6 +90,7 @@ export type GuildLayoutData = {
   noticePosts: NoticePost[];
   raidList: RaidItem[];
   raids: RaidEntry[];
+  activityFeed: ActivityFeedItem[];
   welcomeMessage: string | null;
   guardianIndex: number;
   guardianImageUrl: string | null;
